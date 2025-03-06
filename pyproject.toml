@@ -1,0 +1,26 @@
+[project]
+name = "bulletinator"
+version = "0.1.0"
+description = "A bulletin board app where users can easily plan and brainstorm project ideas."
+authors = [
+    {name = "Sam Hill",email = "smotired@gmail.com"}
+]
+license = {text = "GPL-3.0-or-later"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.115.11,<0.116.0)",
+    "pydantic (>=2.10.6,<3.0.0)",
+    "sqlmodel (>=0.0.23,<0.0.24)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

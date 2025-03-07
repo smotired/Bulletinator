@@ -8,16 +8,20 @@ Args:
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
-from sqlmodel import Session, SQLModel, create_engine, text
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+
 from backend.config import settings
+from backend.database.schema import * # includes Base
 
 engine = create_engine(settings.db_url, echo=True)
+Session = sessionmaker(bind=engine)
 
 def create_db_tables():
     """Ensure the database and tables are created."""
 
-    SQLModel.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
 
     if settings.db_sqlite:
         with engine.connect() as connection:
@@ -26,7 +30,7 @@ def create_db_tables():
 def get_session():
     """Database session dependency."""
 
-    with Session(engine) as session:
+    with Session() as session:
         yield session
 
 DBSession = Annotated[Session, Depends(get_session)]

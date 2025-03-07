@@ -7,7 +7,6 @@ Args:
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 
 from backend.dependencies import create_db_tables
 from backend.exceptions import BadRequestException
@@ -27,10 +26,10 @@ app = FastAPI(
 
 # Set up all of the routers
 
-@app.get("/status", response_model=None, status_code=204)
+@app.get("/status", status_code=200)
 def status():
     """Get current status of the API."""
-    pass
+    return { "message": "Hello World!" }
 
 @app.exception_handler(BadRequestException)
 def handle_error(request: Request, exc: BadRequestException):

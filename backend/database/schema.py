@@ -4,12 +4,10 @@ from sqlalchemy import (
     Integer, Float, String, Text,
     ForeignKey, Table, Column
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
 from typing import List, Optional
 
-# Declarative table creation
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 # Intermediate table for many-to-many relationship between Users and the Boards they are allowed to edit
 editor_table = Table(

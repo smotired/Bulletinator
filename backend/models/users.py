@@ -1,6 +1,9 @@
 """Request and response models for user functionality"""
 
 from pydantic import BaseModel
+from typing import Annotated
+from fastapi import Form
+
 import media
 import shared
 
@@ -26,3 +29,5 @@ class PasswordUpdate(BaseModel):
     
     email: str | None = None
     new_password: str | None = None
+    
+PasswordUpdateForm = Annotated[PasswordUpdate, Form()]

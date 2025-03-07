@@ -1,6 +1,9 @@
 """Request and response models for authentication functionality"""
 
 from pydantic import BaseModel
+from typing import Annotated
+from fastapi import Form
+
 import media
     
 class AuthenticatedUser(BaseModel):
@@ -15,11 +18,21 @@ class Registration(BaseModel):
     username: str
     email: str
     password: str
+
+RegistrationForm = Annotated[Registration, Form()]
     
-class Login(BaseModel):
-    """Request model for logging in a user"""
+class LoginUsername(BaseModel):
+    """Request model for logging in a user with the usename"""
     username: str
     password: str
+    
+class LoginEmail(BaseModel):
+    """Request model for logging in a user with the email"""
+    email: str
+    password: str
+    
+Login = LoginEmail | LoginUsername
+LoginForm = Annotated[Login, Form()]
     
 # TODO: Figure out access and refresh tokens
 class AccessToken(BaseModel):

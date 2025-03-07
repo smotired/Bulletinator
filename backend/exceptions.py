@@ -36,13 +36,7 @@ Examples:
 
 from typing import Any
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
-
-class BadRequest(BaseModel):
-    """Response model for error messages."""
-    
-    error: str
-    message: str
+from backend.models.shared import BadRequest
 
 class BadRequestException(Exception):
     """General purpose class for 400 exceptions.

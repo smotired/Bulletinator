@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 
 from backend.dependencies import create_db_tables
 from backend.exceptions import BadRequestException
+from backend.routers import boards, users, items
 
 # Set up the application lifecycle
 @asynccontextmanager
@@ -25,6 +26,10 @@ app = FastAPI(
 )
 
 # Set up all of the routers
+for router in [ users.router, boards.router, items.router ]:
+    app.include_router(router)
+
+# Basic routes
 
 @app.get("/status", status_code=200)
 def status():

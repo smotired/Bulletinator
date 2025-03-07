@@ -12,5 +12,5 @@ from backend.dependencies import DBSession
 router = APIRouter(prefix="/boards/{board_id}/items", tags=["Item"])
 
 @router.get("/", status_code=200)
-def get_users(session: DBSession, board_id: int) -> dict:
+def get_items(session: DBSession, board_id: int) -> dict:
     return {"message": f"Getting items for board {board_id}"}

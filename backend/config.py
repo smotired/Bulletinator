@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_description: str
     db_url: str
     db_sqlite: bool
+    favicon_path: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -29,6 +30,7 @@ def get_settings() -> Settings:
         app_description="A project management and collaboration app",
         db_url="sqlite:///backend/database/development.db",
         db_sqlite=True,
+        favicon_path="favicon.ico"
     )
 
 settings = get_settings()

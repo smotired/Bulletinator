@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from backend.dependencies import create_db_tables
 from backend.exceptions import BadRequestException
-from backend.routers import boards, users, items
+from backend.routers import boards, users, items, auth
 from backend.config import settings
 
 # Set up the application lifecycle
@@ -46,7 +46,7 @@ app = FastAPI(
 )
 
 # Set up all of the routers
-for router in [ users.router, boards.router, items.router ]:
+for router in [ users.router, boards.router, items.router, auth.router ]:
     app.include_router(router)
 
 # Basic routes

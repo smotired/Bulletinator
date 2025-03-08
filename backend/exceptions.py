@@ -62,3 +62,29 @@ class BadRequestException(Exception):
             status_code=self.status_code,
             content=self.response_content().model_dump(),
         )
+        
+# Exceptions
+
+class EntityNotFound(BadRequestException):
+    def __init__(self, entity: str, property: str, value: Any):
+        self.status_code = 404
+        self.error = "entity_not_found"
+        self.message = f"Unable to find {entity} with {property}={value}"
+        
+class InvalidCredentials(BadRequestException):
+    def __init__(self):
+        self.status_code = 401
+        self.error = "invalid_credentials"
+        self.message = "Authentication failed: invalid username or password"
+        
+class InvalidAccessToken(BadRequestException):
+    def __init__(self):
+        self.status_code = 401
+        self.error = "invalid_access_token"
+        self.message = "Authentication failed: Access token expired or was invalid"
+        
+class InvalidRefreshToken(BadRequestException):
+    def __init__(self):
+        self.status_code = 401
+        self.error = "invalid_refresh_token"
+        self.message = "Authentication failed: Refresh token expired or was invalid"

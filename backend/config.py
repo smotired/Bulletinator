@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     db_url: str
     db_sqlite: bool
     favicon_path: str
+    jwt_algorithm: str
+    jwt_cookie_key: str
+    jwt_access_duration: int
+    jwt_refresh_duration: int
+    jwt_issuer: str
+    jwt_secret_key: str = "jwt-secret-key-dev"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -30,7 +36,12 @@ def get_settings() -> Settings:
         app_description="A project management and collaboration app",
         db_url="sqlite:///backend/database/development.db",
         db_sqlite=True,
-        favicon_path="favicon.ico"
+        favicon_path="favicon.ico",
+        jwt_algorithm="HS256",
+        jwt_cookie_key="bulletinator_refresh_token",
+        jwt_access_duration=900,
+        jwt_refresh_duration=3600*24*14,
+        jwt_issuer="http://127.0.0.1"
     )
 
 settings = get_settings()

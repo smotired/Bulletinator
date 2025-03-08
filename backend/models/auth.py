@@ -34,15 +34,22 @@ class LoginEmail(BaseModel):
 Login = LoginEmail | LoginUsername
 LoginForm = Annotated[Login, Form()]
     
-# TODO: Figure out access and refresh tokens
 class AccessToken(BaseModel):
     """Response model for a JWT request"""
     access_token: str
     token_type: str
     
-class Claims(BaseModel):
+class AccessPayload(BaseModel):
     """Model for JWT access token payload"""
     sub: str # subject. user ID as string
+    iss: str # issuer domain
+    iat: int # time this token was issued
+    exp: int # time after which this token has expired
+    
+class RefreshPayload(BaseModel):
+    """Model for JWT refresh token payload"""
+    sub: str # subject. user ID as string.
+    uid: str # unique ID of this token so we can manually revoke it
     iss: str # issuer domain
     iat: int # time this token was issued
     exp: int # time after which this token has expired

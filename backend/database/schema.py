@@ -251,3 +251,17 @@ class DBImage(Base):
     filename: Mapped[str]
     
     uploader: Mapped["DBUser"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
+    
+class DBRefreshToken(Base):
+    """Refresh token table. Each row represents a relationship between 
+    
+    Fields:
+        - token_id: the UUID of the token
+        - user_id: the user the token belongs to
+        - expires_at: the time at which this token should automatically expire
+    """
+    __tablename__ = "refresh_tokens"
+    
+    token_id: Mapped[str] = mapped_column(primary_key=True, unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    expires_at: Mapped[int]

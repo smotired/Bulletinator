@@ -28,3 +28,10 @@ def client(session, monkeypatch):
     app.dependency_overrides[get_session] = lambda: session
     yield TestClient(app)
     app.dependency_overrides.clear()
+    
+@pytest.fixture
+def exception():
+    # function to generate an error message
+    def _exception(error: str, message: str) -> dict:
+        return { "error": error, "message": message }
+    return _exception

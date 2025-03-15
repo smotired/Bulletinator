@@ -88,3 +88,9 @@ class InvalidRefreshToken(BadRequestException):
         self.status_code = 401
         self.error = "invalid_refresh_token"
         self.message = "Authentication failed: Refresh token expired or was invalid"
+        
+class NotAuthenticated(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "not_authenticated"
+        self.message = "Not authenticated"

@@ -71,6 +71,12 @@ class EntityNotFound(BadRequestException):
         self.error = "entity_not_found"
         self.message = f"Unable to find {entity} with {property}={value}"
         
+class DuplicateEntity(BadRequestException):
+    def __init__(self, entity: str, field_name: str, field_value: Any):
+        self.status_code = 422
+        self.error = "duplicate_entity"
+        self.message = f"Entity {entity} with {field_name}={field_value} already exists."
+        
 class InvalidCredentials(BadRequestException):
     def __init__(self):
         self.status_code = 401

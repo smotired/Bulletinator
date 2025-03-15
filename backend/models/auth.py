@@ -1,7 +1,7 @@
 """Request and response models for authentication functionality"""
 
 from pydantic import BaseModel
-from typing import Annotated
+from typing import Annotated, Union
 from fastapi import Form
 
 import media
@@ -31,7 +31,7 @@ class LoginEmail(BaseModel):
     email: str
     password: str
     
-Login = LoginEmail | LoginUsername
+Login = Union[LoginEmail, LoginUsername]
 LoginForm = Annotated[Login, Form()]
     
 class AccessToken(BaseModel):

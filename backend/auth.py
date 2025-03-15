@@ -65,6 +65,8 @@ def generate_tokens(session: Session, form: Login) -> tuple[str, str]:
         user = users_db.get_by_email(form.email)
     else:
         raise InvalidCredentials()
+    if user is None:
+        raise InvalidCredentials()
     user = verify_user(user, form.password)
     # Generate an access token
     access_token = jwt.encode(
@@ -150,6 +152,19 @@ def refresh_access_token(session: Session, refresh_token: str) -> str:
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm
     )
+    
+def revoke_one_refresh_token(session: Session, token: str):
+    """Removes a refresh tokens for a user in the database, ensuring it cannot be used to log in again.
+    
+    Args:
+        session (Session): The database session
+        token (str): The refresh token to revoke
+    """
+    # Verify the refresh token and extract the payload
+    payload: RefreshPayload = _extract_refresh_payload(session, token)
+    stmt = delete(DBRefreshToken).where(DBRefreshToken.token_id == payload.uid)
+    session.exec(stmt)
+    session.commit()
     
 def revoke_refresh_tokens(session: Session, user: DBUser):
     """Removes all refresh tokens for a user in the database, logging them out on all devices.

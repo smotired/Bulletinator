@@ -58,24 +58,23 @@ def update(session: Session, user: DBUser, update: UserUpdate) -> DBUser:
             raise DuplicateEntity("user", "username", update.username)
         user.username = update.username
     # TODO: Make sure the image exists and update that, once image uploading is developed
-    # Update in DB
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
-
-def update_sensitive(session: Session, user: DBUser, update: PasswordUpdate) -> DBUser:
-    """Updates a user's sensitive information"""
-    # Make sure the password is correct
-    user = auth.verify_user(user, update.old_password)
+    
+    # Check if the password is correct
+    verified = (auth.verify_user(user, update.old_password) is not None) if update.old_password is not None else False
+    
     # Make sure the email isn't taken, and update it
     if update.email is not None and update.email != user.email:
+        if not verified:
+            raise InvalidCredentials()
         if get_by_email(session, update.email) is not None:
             raise DuplicateEntity("user", "email", update.email)
         user.email = update.email
     # Update the password
     if update.new_password is not None:
+        if not verified:
+            raise InvalidCredentials()
         user.hashed_password = auth.hash_password(update.new_password)
+        
     # Update in DB
     session.add(user)
     session.commit()

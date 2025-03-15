@@ -20,14 +20,11 @@ class UserCollection(BaseModel):
     
 class UserUpdate(BaseModel):
     """Request model to update an account."""
+    old_password: str | None = None # not necessary unless updating email or password
+    
     username: str | None = None
     profile_image_filename: str | None = None # requires uploading the image beforehand
-    
-class PasswordUpdate(BaseModel):
-    """Request model to update sensitive account information"""
-    old_password: str | None = None
-    
     email: str | None = None
     new_password: str | None = None
     
-PasswordUpdateForm = Annotated[PasswordUpdate, Form()]
+UserUpdateForm = Annotated[UserUpdate, Form()]

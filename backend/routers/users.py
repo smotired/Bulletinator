@@ -33,7 +33,7 @@ def get_current_user(
     user: CurrentUser
 ) -> DBUser:
     """Get the currently authenticated account"""
-    return users_db.get_by_id(user.id)
+    return users_db.get_by_id(session, user.id)
 
 @router.put("/me", status_code=200, response_model=User)
 def update_current_user(

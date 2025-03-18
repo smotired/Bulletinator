@@ -21,17 +21,11 @@ class Registration(BaseModel):
 
 RegistrationForm = Annotated[Registration, Form()]
     
-class LoginUsername(BaseModel):
-    """Request model for logging in a user with the usename"""
-    username: str
-    password: str
-    
-class LoginEmail(BaseModel):
+class Login(BaseModel):
     """Request model for logging in a user with the email"""
     email: str
     password: str
     
-Login = Union[LoginEmail, LoginUsername]
 LoginForm = Annotated[Login, Form()]
     
 class AccessToken(BaseModel):

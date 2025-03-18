@@ -19,12 +19,12 @@ def get_by_id(session: DBSession, user_id: int) -> DBUser:
 def get_by_email(session: DBSession, email: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.email == email)
-    return session.execute(stmt).one_or_none()
+    return session.execute(stmt).scalars().one_or_none()
 
 def get_by_username(session: DBSession, username: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.username == username)
-    return session.execute(stmt).one_or_none()
+    return session.execute(stmt).scalars().one_or_none()
 
 def get_all(session: DBSession) -> list[DBUser]:
     """Retrieve all accounts"""

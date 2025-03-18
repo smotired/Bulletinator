@@ -12,7 +12,7 @@ from backend.config import settings
 from backend.dependencies import DBSession
 from backend.database.schema import DBUser, DBRefreshToken
 from backend.exceptions import *
-from backend.models.auth import AccessToken, AccessPayload, RefreshPayload, Login, Registration, LoginEmail, LoginUsername
+from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
 
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt.
@@ -47,12 +47,12 @@ def check_password(password: str, hashed_password: str) -> str:
 def get_by_email(session: DBSession, email: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.email == email)
-    return session.execute(stmt).one_or_none()
+    return session.execute(stmt).scalars().one_or_none()
 
 def get_by_username(session: DBSession, username: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.username == username)
-    return session.execute(stmt).one_or_none()
+    return session.execute(stmt).scalars().one_or_none()
 
 def register_account(session: DBSession, form: Registration) -> DBUser:
     """Creates an account in the database for this user
@@ -98,13 +98,7 @@ def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]:
         InvalidCredentials: if the username or password is invalid
     """
     # Verify login
-    user: DBUser
-    if isinstance(form, LoginUsername):
-        user = get_by_username(form.username)
-    elif isinstance(form, LoginEmail):
-        user = get_by_email(form.email)
-    else:
-        raise InvalidCredentials()
+    user: DBUser = get_by_email(session, form.email)
     if user is None:
         raise InvalidCredentials()
     user = verify_user(user, form.password)
@@ -116,7 +110,7 @@ def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]:
     )
     # Create a refresh token
     refresh_token = jwt.encode(
-        _generate_refresh_payload(user).model_dump(),
+        _generate_refresh_payload(session, user).model_dump(),
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm
     )
@@ -160,7 +154,7 @@ def extract_user(session: DBSession, token: str) -> DBUser:
     # Get the information
     payload = _extract_access_payload(token)
     # Make sure the user exists
-    user_id = int(payload['sub'])
+    user_id = int(payload.sub)
     user = session.get(DBUser, user_id)
     if user is None:
         raise InvalidAccessToken()
@@ -255,7 +249,7 @@ def _extract_access_payload(token: str) -> AccessPayload:
             settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm]
         )
-        return AccessPayload(payload)
+        return AccessPayload(**payload)
     except ExpiredSignatureError:
         raise InvalidAccessToken()
     except JWTError:
@@ -275,7 +269,7 @@ def _generate_refresh_payload(session: DBSession, user: DBUser) -> RefreshPayloa
     iat = int(datetime.now(UTC).timestamp())
     exp = iat + settings.jwt_refresh_duration
     # Create an ID for this token
-    uid = uuid.uuid4()
+    uid = str(uuid.uuid4())
     # Track in the database
     token = DBRefreshToken(token_id=uid, user_id=user.id, expires_at=exp)
     session.add(token)

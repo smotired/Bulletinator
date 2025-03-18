@@ -20,7 +20,6 @@ from sqlalchemy.orm import sessionmaker
 from backend.config import settings
 from backend.database.schema import * # includes Base
 from backend.exceptions import *
-from backend import auth
 
 engine = create_engine(settings.db_url, echo=True)
 Session = sessionmaker(bind=engine)
@@ -42,6 +41,8 @@ def get_session():
 
     with Session() as session:
         yield session
+
+DBSession = Annotated[Session, Depends(get_session)]
         
 def get_access_token(
     bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
@@ -63,13 +64,16 @@ def get_refresh_token(
         return cookie_token
     raise NotAuthenticated()
 
+RefreshToken = Annotated[str, Depends(get_refresh_token)]
+
+# gotta import this down here
+from backend.auth import extract_user
+
 def get_current_user(
     session: Session = Depends(get_session),
     access_token: str = Depends(get_access_token),
 ) -> DBUser:
     """Current user dependency. Depends on the session and the access token."""
-    return auth.extract_user(session, access_token)
+    return extract_user(session, access_token)
 
-DBSession = Annotated[Session, Depends(get_session)]
 CurrentUser = Annotated[DBUser, Depends(get_current_user)]
-RefreshToken = Annotated[str, Depends(get_refresh_token)]

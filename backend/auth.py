@@ -6,14 +6,13 @@ import uuid
 import bcrypt
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError
-from sqlalchemy import delete
+from sqlalchemy import select, delete
 
 from backend.config import settings
-from backend.dependencies import Session
-from backend.database import users as users_db
+from backend.dependencies import DBSession
 from backend.database.schema import DBUser, DBRefreshToken
 from backend.exceptions import *
-from backend.models.auth import AccessToken, AccessPayload, RefreshPayload, Login, LoginEmail, LoginUsername
+from backend.models.auth import AccessToken, AccessPayload, RefreshPayload, Login, Registration, LoginEmail, LoginUsername
 
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt.
@@ -43,8 +42,51 @@ def check_password(password: str, hashed_password: str) -> str:
         password.encode("utf-8"),
         hashed_password.encode("utf-8")
     )
+
+# gotta repeat these here because of circular imports
+def get_by_email(session: DBSession, email: str) -> DBUser | None:
+    """Retrieve account by email"""
+    stmt = select(DBUser).where(DBUser.email == email)
+    return session.exec(stmt).one_or_none()
+
+def get_by_username(session: DBSession, username: str) -> DBUser | None:
+    """Retrieve account by email"""
+    stmt = select(DBUser).where(DBUser.username == username)
+    return session.exec(stmt).one_or_none()
+
+def register_account(session: DBSession, form: Registration) -> DBUser:
+    """Creates an account in the database for this user
     
-def generate_tokens(session: Session, form: Login) -> tuple[str, str]:
+    Args:
+        session (Session): The database session
+        form (Registration): The username, email, and password for a new account
+
+    Returns:
+        DBUser: A User object for the registered user
+
+    Raises:
+        DuplicateEntity: if the username or email is already taken
+    """
+    # Make sure the username and email are not already registered
+    if get_by_email(form.email) is not None:
+        raise DuplicateEntity("user", "email", form.email)
+    if get_by_username(form.username) is not None:
+        raise DuplicateEntity("user", "username", form.username)
+    # Hash the password
+    hashed = hash_password(form.password)
+    # Create the user
+    new_user = DBUser(
+        username=form.username,
+        email=form.email,
+        hashed_password=hashed
+    )
+    # Add and return
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+    return new_user
+    
+def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]:
     """Generates access and refresh token JWTs from a login form.
     
     Args:
@@ -60,9 +102,9 @@ def generate_tokens(session: Session, form: Login) -> tuple[str, str]:
     # Verify login
     user: DBUser
     if isinstance(form, LoginUsername):
-        user = users_db.get_by_username(form.username)
+        user = get_by_username(form.username)
     elif isinstance(form, LoginEmail):
-        user = users_db.get_by_email(form.email)
+        user = get_by_email(form.email)
     else:
         raise InvalidCredentials()
     if user is None:
@@ -104,7 +146,7 @@ def verify_user(user: DBUser | None, password: str) -> DBUser:
         raise InvalidCredentials()
     return user
 
-def extract_user(session: Session, token: str) -> DBUser:
+def extract_user(session: DBSession, token: str) -> DBUser:
     """Extract a user from an access token JWT
     
     Args:
@@ -127,7 +169,7 @@ def extract_user(session: Session, token: str) -> DBUser:
     # Return the user
     return user
 
-def refresh_access_token(session: Session, refresh_token: str) -> str:
+def refresh_access_token(session: DBSession, refresh_token: str) -> str:
     """Attempts to refresh an access token
     
     Args:
@@ -153,7 +195,7 @@ def refresh_access_token(session: Session, refresh_token: str) -> str:
         algorithm=settings.jwt_algorithm
     )
     
-def revoke_one_refresh_token(session: Session, token: str):
+def revoke_one_refresh_token(session: DBSession, token: str):
     """Removes a refresh tokens for a user in the database, ensuring it cannot be used to log in again.
     
     Args:
@@ -166,7 +208,7 @@ def revoke_one_refresh_token(session: Session, token: str):
     session.exec(stmt)
     session.commit()
     
-def revoke_refresh_tokens(session: Session, user: DBUser):
+def revoke_refresh_tokens(session: DBSession, user: DBUser):
     """Removes all refresh tokens for a user in the database, logging them out on all devices.
     
     Args:
@@ -221,7 +263,7 @@ def _extract_access_payload(token: str) -> AccessPayload:
     except JWTError:
         raise InvalidAccessToken()
 
-def _generate_refresh_payload(session: Session, user: DBUser) -> RefreshPayload:
+def _generate_refresh_payload(session: DBSession, user: DBUser) -> RefreshPayload:
     """Create a payload for an access token for this user.
     
     Args:
@@ -249,7 +291,7 @@ def _generate_refresh_payload(session: Session, user: DBUser) -> RefreshPayload:
         exp=exp
     )
 
-def _extract_refresh_payload(session: Session, token: str) -> RefreshPayload:
+def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload:
     """Verify and extract payload from JWT refresh token.
     
     Args:

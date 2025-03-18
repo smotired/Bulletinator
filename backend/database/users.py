@@ -1,63 +1,43 @@
 from sqlalchemy import select
 
-from backend.dependencies import Session
+from backend.dependencies import DBSession
 from backend.database.schema import DBUser
 from backend.exceptions import *
 
 from backend import auth
-from backend.models.auth import Registration
-from backend.models.users import UserUpdate, PasswordUpdate
+from backend.models.users import UserUpdate
 
-def create(session: Session, form: Registration) -> DBUser:
-    """Creates a user with this login information."""
-    # Make sure the username and email are not already registered
-    if get_by_email(form.email) is not None:
-        raise DuplicateEntity("user", "email", form.email)
-    if get_by_email(form.username) is not None:
-        raise DuplicateEntity("user", "username", form.username)
-    # Hash the password
-    hashed = auth.hash_password(form.password)
-    # Create the user
-    new_user = DBUser(
-        username=form.username,
-        email=form.email,
-        hashed_password=hashed
-    )
-    # Add and return
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    return new_user
+# User creation logic will be handled only by authentication module
 
-def get_by_id(session: Session, user_id: int) -> DBUser:
+def get_by_id(session: DBSession, user_id: int) -> DBUser:
     """Retrieve account by email"""
     user = session.get(DBUser, user_id)
     if user is None:
         raise EntityNotFound("user", "id", user_id)
     return user
 
-def get_by_email(session: Session, email: str) -> DBUser | None:
+def get_by_email(session: DBSession, email: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.email == email)
     return session.exec(stmt).one_or_none()
 
-def get_by_username(session: Session, username: str) -> DBUser | None:
+def get_by_username(session: DBSession, username: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.username == username)
     return session.exec(stmt).one_or_none()
 
-def get_all(session: Session) -> list[DBUser]:
+def get_all(session: DBSession) -> list[DBUser]:
     """Retrieve all accounts"""
     return list(session.exec(select(DBUser)).all())
 
-def update(session: Session, user: DBUser, update: UserUpdate) -> DBUser:
+def update(session: DBSession, user: DBUser, update: UserUpdate) -> DBUser:
     """Updates a user with non-sensitive information"""
     # Make sure the username isn't taken, and update it
     if update.username is not None and update.username != user.username:
         if get_by_username(session, update.username) is not None:
             raise DuplicateEntity("user", "username", update.username)
         user.username = update.username
-    # TODO: Make sure the image exists and update that, once image uploading is developed
+    # TODO: Once image uploading is implemented, make sure the image at this filename exists and is owned by the user
     
     # Check if the password is correct
     verified = (auth.verify_user(user, update.old_password) is not None) if update.old_password is not None else False
@@ -81,7 +61,7 @@ def update(session: Session, user: DBUser, update: UserUpdate) -> DBUser:
     session.refresh(user)
     return user
 
-def delete(session: Session, account: DBUser) -> None:
+def delete(session: DBSession, account: DBUser) -> None:
     """Delete an account."""
     session.delete(account)
     session.commit()

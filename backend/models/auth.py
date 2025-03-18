@@ -18,15 +18,11 @@ class Registration(BaseModel):
     username: str
     email: str
     password: str
-
-RegistrationForm = Annotated[Registration, Form()]
     
 class Login(BaseModel):
     """Request model for logging in a user with the email"""
     email: str
     password: str
-    
-LoginForm = Annotated[Login, Form()]
     
 class AccessToken(BaseModel):
     """Response model for a JWT request"""

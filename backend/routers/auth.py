@@ -4,21 +4,23 @@ Args:
     router (APIRouter): Router for /auth routes
 """
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Form
 
 from backend import auth
 from backend.config import settings
 from backend.database.schema import *
 from backend.dependencies import DBSession, CurrentUser, RefreshToken
-from backend.models.auth import RegistrationForm, LoginForm, AccessToken
+from backend.models.auth import AccessToken, Registration, Login
 from backend.models.users import User
+
+from typing import Annotated
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/registration", status_code=201, response_model=User)
 def register_account(
     session: DBSession,
-    form: RegistrationForm
+    form: Annotated[Registration, Form()]
 ) -> DBUser:
     """Register new account"""
     return auth.register_account(session, form)
@@ -27,7 +29,7 @@ def register_account(
 def login_user(
     response: Response,
     session: DBSession,
-    form: LoginForm
+    form: Annotated[Login, Form()]
 ) -> AccessToken:
     """Given an account login, generate access and refresh tokens.
     

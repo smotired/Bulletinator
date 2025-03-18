@@ -43,7 +43,7 @@ class DBUser(Base):
 
     # relationships
     boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor
-    editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table )
+    editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table, back_populates="editors" )
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id")
 
 class DBBoard(Base):
@@ -72,7 +72,7 @@ class DBBoard(Base):
     public: Mapped[bool] = mapped_column( default=False )
     
     owner: Mapped["DBUser"] = relationship( back_populates="boards" )
-    editors: Mapped[List["DBUser"]] = relationship( secondary=editor_table )
+    editors: Mapped[List["DBUser"]] = relationship( secondary=editor_table, back_populates="editable" )
     items: Mapped[List["DBItem"]] = relationship( back_populates="board", cascade="all, delete-orphan" )
 
 class DBItem(Base):

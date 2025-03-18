@@ -101,5 +101,13 @@ def auth_headers(client, create_login):
         assert response.status_code == 200
         token = response.json()["access_token"]
         return { "Authorization": f"Bearer {token}" }
-
     return _auth_headers
+
+@pytest.fixture
+def login_client(create_login, form_headers):
+    def _login_client(client, id: int): # takes in a client so we can save the cookie
+        response = client.post("/auth/login", headers=form_headers, data=create_login(id))
+        assert response.status_code == 200
+        token = response.json()["access_token"]
+        return { "Authorization": f"Bearer {token}" }, response
+    return _login_client

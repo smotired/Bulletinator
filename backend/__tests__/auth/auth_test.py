@@ -3,8 +3,7 @@ from backend.database.schema import *
 from backend.config import settings
 from time import sleep
 
-def test_view_self_when_not_authenticated(client, exception, get_user):
-    user: DBUser = get_user(1)
+def test_me_not_authenticated(client, exception, get_user):
     response = client.get("/users/me")
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
@@ -79,14 +78,11 @@ def test_access_token_expiration(client, monkeypatch, auth_headers, exception):
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401
 
-def test_refresh_access_token(client, monkeypatch, form_headers, create_login, exception, get_response_user):
+def test_refresh_access_token(client, monkeypatch, login_client, exception, get_response_user):
     # make access tokens expire 1 second after issuance
     monkeypatch.setattr(settings, 'jwt_access_duration', 1)
-    # Log in (manually, so we have access to the refresh token)
-    response = client.post("/auth/login", headers=form_headers, data=create_login(1))
-    assert response.status_code == 200
-    access_token = response.json()['access_token']
-    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # Log in and get access to the refresh token
+    auth_headers, response = login_client(client, 1)
     # Wait 2 seconds and try accessing something
     sleep(2)
     response = client.get("/users/me", headers=auth_headers)
@@ -102,20 +98,47 @@ def test_refresh_access_token(client, monkeypatch, form_headers, create_login, e
     assert response.json() == get_response_user(1)
     assert response.status_code == 200
 
-def test_refresh_token_expiration(client, monkeypatch, form_headers, create_login, exception, get_response_user):
+def test_refresh_token_expiration(client, monkeypatch, login_client, exception):
     # make access AND refresh tokens expire 1 minute before issuance
     monkeypatch.setattr(settings, 'jwt_access_duration', -60)
     monkeypatch.setattr(settings, 'jwt_refresh_duration', -60)
-    # Log in (manually, so we have access to the refresh token)
-    response = client.post("/auth/login", headers=form_headers, data=create_login(1))
-    assert response.status_code == 200
-    access_token = response.json()['access_token']
-    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # Log in and get access to the refresh token
+    auth_headers, response = login_client(client, 1)
     # Try accessing something
     response = client.get("/users/me", headers=auth_headers)
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401
     # Try refreshing
+    response = client.post("/auth/refresh")
+    assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
+    assert response.status_code == 401
+
+def test_logout(client, auth_headers):
+    response = client.post("/auth/logout", headers=auth_headers(1))
+    assert response.status_code == 204
+    # access tokens can't actually be revoked which is why they only last 15 minutes
+
+def test_logout_deletes_and_invalidates_refresh_token(client, monkeypatch, login_client, exception):
+    # make access tokens expire 1 second after issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', 1)
+    # Log in and get access to the refresh token
+    auth_headers, response = login_client(client, 1)
+    # Save the refresh token for later
+    refresh_token = response.cookies.get(settings.jwt_cookie_key)
+    # Log out
+    response = client.post("/auth/logout", headers=auth_headers)
+    assert response.status_code == 204
+    sleep(2)
+    # Try accessing something
+    response = client.get("/users/me", headers=auth_headers)
+    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
+    assert response.status_code == 401
+    # Try refreshing (cookie should have been deleted)
+    response = client.post("/auth/refresh")
+    assert response.json() == exception("not_authenticated", "Not authenticated")
+    assert response.status_code == 403
+    # Add the cookie and try again
+    client.cookies.set(settings.jwt_cookie_key, refresh_token)
     response = client.post("/auth/refresh")
     assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
     assert response.status_code == 401

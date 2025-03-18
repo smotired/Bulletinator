@@ -317,4 +317,4 @@ def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload:
         session.commit()
         raise InvalidRefreshToken()
     # return
-    return RefreshPayload(payload)
+    return RefreshPayload(**payload)

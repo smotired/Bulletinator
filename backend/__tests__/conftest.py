@@ -93,3 +93,13 @@ def create_login(get_user):
         password: str = "password" + str(id)
         return { "email": email, "password": password }
     return _create_login
+
+@pytest.fixture
+def auth_headers(client, create_login):
+    def _auth_headers(id: int):
+        response = client.post("/auth/login", data=create_login(id))
+        assert response.status_code == 200
+        token = response.json()["access_token"]
+        return { "Authorization": f"Bearer {token}" }
+
+    return _auth_headers

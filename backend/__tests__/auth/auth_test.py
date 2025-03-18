@@ -1,6 +1,7 @@
 """Module for testing the authentication routes"""
 from backend.database.schema import *
 from backend.config import settings
+from time import sleep
 
 def test_view_self_when_not_authenticated(client, exception, get_user):
     user: DBUser = get_user(1)
@@ -46,12 +47,12 @@ def test_login(client, form_headers, create_login, get_response_user):
     # log in
     login = create_login(1)
     response = client.post("/auth/login", headers=form_headers, data=login)
-    access_token = response.json()
+    access_token = response.json()['access_token']
     assert response.status_code == 200
     refresh_token = response.cookies.get(settings.jwt_cookie_key)
     assert refresh_token is not None
     # create auth headers
-    auth_headers = { "Authorization": f"Bearer {access_token['access_token']}" }
+    auth_headers = { "Authorization": f"Bearer {access_token}" }
     # try an authenticated route
     response = client.get("/users/me", headers=auth_headers)
     assert response.json() == get_response_user(1)
@@ -61,11 +62,60 @@ def test_login_incorrect_password(client, form_headers, create_login, exception)
     login = create_login(1)
     login['password'] = "incorrect password"
     response = client.post("/auth/login", headers=form_headers, data=login)
-    assert response.status_code == 401
     assert response.json() == exception("invalid_credentials", "Authentication failed: invalid username or password")
+    assert response.status_code == 401
 
 def test_login_nonexistent_user(client, form_headers, exception):
     login = { "email": "nobody@example.com", "password": "nonexistent" }
     response = client.post("/auth/login", headers=form_headers, data=login)
-    assert response.status_code == 401
     assert response.json() == exception("invalid_credentials", "Authentication failed: invalid username or password")
+    assert response.status_code == 401
+
+def test_access_token_expiration(client, monkeypatch, auth_headers, exception):
+    # make access tokens expire 1 minute before issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', -60)
+    # Log in and try accessing something
+    response = client.get("/users/me", headers=auth_headers(1))
+    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
+    assert response.status_code == 401
+
+def test_refresh_access_token(client, monkeypatch, form_headers, create_login, exception, get_response_user):
+    # make access tokens expire 1 second after issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', 1)
+    # Log in (manually, so we have access to the refresh token)
+    response = client.post("/auth/login", headers=form_headers, data=create_login(1))
+    assert response.status_code == 200
+    access_token = response.json()['access_token']
+    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # Wait 2 seconds and try accessing something
+    sleep(2)
+    response = client.get("/users/me", headers=auth_headers)
+    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
+    assert response.status_code == 401
+    # Refresh our token (client stores the cookies)
+    response = client.post("/auth/refresh")
+    assert response.status_code == 200
+    access_token = response.json()['access_token']
+    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # Make sure we can 
+    response = client.get("/users/me", headers=auth_headers)
+    assert response.json() == get_response_user(1)
+    assert response.status_code == 200
+
+def test_refresh_token_expiration(client, monkeypatch, form_headers, create_login, exception, get_response_user):
+    # make access AND refresh tokens expire 1 minute before issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', -60)
+    monkeypatch.setattr(settings, 'jwt_refresh_duration', -60)
+    # Log in (manually, so we have access to the refresh token)
+    response = client.post("/auth/login", headers=form_headers, data=create_login(1))
+    assert response.status_code == 200
+    access_token = response.json()['access_token']
+    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # Try accessing something
+    response = client.get("/users/me", headers=auth_headers)
+    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
+    assert response.status_code == 401
+    # Try refreshing
+    response = client.post("/auth/refresh")
+    assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
+    assert response.status_code == 401

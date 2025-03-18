@@ -10,7 +10,7 @@ class User(BaseModel):
     """Response model for users"""
     id: int
     username: str
-    profile_image: media.Image | None
+    profile_image: media.Image | None = None
     
 class UserCollection(BaseModel):
     """Response model for a collection of users"""

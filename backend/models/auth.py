@@ -11,7 +11,7 @@ class AuthenticatedUser(BaseModel):
     id: int
     username: str
     email: str
-    profile_image: media.Image
+    profile_image: media.Image | None = None
     
 class Registration(BaseModel):
     """Request model for registering a user"""

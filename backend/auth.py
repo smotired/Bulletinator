@@ -47,12 +47,12 @@ def check_password(password: str, hashed_password: str) -> str:
 def get_by_email(session: DBSession, email: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.email == email)
-    return session.exec(stmt).one_or_none()
+    return session.execute(stmt).one_or_none()
 
 def get_by_username(session: DBSession, username: str) -> DBUser | None:
     """Retrieve account by email"""
     stmt = select(DBUser).where(DBUser.username == username)
-    return session.exec(stmt).one_or_none()
+    return session.execute(stmt).one_or_none()
 
 def register_account(session: DBSession, form: Registration) -> DBUser:
     """Creates an account in the database for this user
@@ -68,17 +68,15 @@ def register_account(session: DBSession, form: Registration) -> DBUser:
         DuplicateEntity: if the username or email is already taken
     """
     # Make sure the username and email are not already registered
-    if get_by_email(form.email) is not None:
+    if get_by_email(session, form.email) is not None:
         raise DuplicateEntity("user", "email", form.email)
-    if get_by_username(form.username) is not None:
+    if get_by_username(session, form.username) is not None:
         raise DuplicateEntity("user", "username", form.username)
-    # Hash the password
-    hashed = hash_password(form.password)
     # Create the user
     new_user = DBUser(
         username=form.username,
         email=form.email,
-        hashed_password=hashed
+        hashed_password=hash_password(form.password)
     )
     # Add and return
     session.add(new_user)
@@ -205,7 +203,7 @@ def revoke_one_refresh_token(session: DBSession, token: str):
     # Verify the refresh token and extract the payload
     payload: RefreshPayload = _extract_refresh_payload(session, token)
     stmt = delete(DBRefreshToken).where(DBRefreshToken.token_id == payload.uid)
-    session.exec(stmt)
+    session.execute(stmt)
     session.commit()
     
 def revoke_refresh_tokens(session: DBSession, user: DBUser):
@@ -216,7 +214,7 @@ def revoke_refresh_tokens(session: DBSession, user: DBUser):
         user (DBUser): The user to revoke access for
     """
     stmt = delete(DBRefreshToken).where(DBRefreshToken.user_id == user.id)
-    session.exec(stmt)
+    session.execute(stmt)
     session.commit()
 
 def _generate_access_payload(user: DBUser) -> AccessPayload:

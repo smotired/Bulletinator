@@ -1,7 +1,7 @@
 """Request and response models for item functionality"""
 
 from pydantic import BaseModel
-import shared
+from backend.models import shared
 
 # Base Item
 

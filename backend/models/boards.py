@@ -1,7 +1,7 @@
 """Request and response models for board functionality"""
 
 from pydantic import BaseModel
-import shared
+from backend.models import shared
 
 class Board(BaseModel):
     """Response model for a board"""

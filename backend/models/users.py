@@ -4,8 +4,7 @@ from pydantic import BaseModel
 from typing import Annotated
 from fastapi import Form
 
-import media
-import shared
+from backend.models import media, shared
 
 class User(BaseModel):
     """Response model for users"""

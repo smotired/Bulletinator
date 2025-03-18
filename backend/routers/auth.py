@@ -9,7 +9,6 @@ from fastapi import APIRouter, Response
 from backend import auth
 from backend.config import settings
 from backend.database.schema import *
-from backend.database import users as users_db
 from backend.dependencies import DBSession, CurrentUser, RefreshToken
 from backend.models.auth import RegistrationForm, LoginForm, AccessToken
 from backend.models.users import User
@@ -22,7 +21,7 @@ def register_account(
     form: RegistrationForm
 ) -> DBUser:
     """Register new account"""
-    return users_db.create(session, form)
+    return auth.register_account(session, form)
 
 @router.post("/login", status_code=200)
 def login_user(

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Annotated, Union
 from fastapi import Form
 
-import media
+from backend.models import media
     
 class AuthenticatedUser(BaseModel):
     """Response model for authenticated users which provides more information"""

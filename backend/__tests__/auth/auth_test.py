@@ -142,3 +142,24 @@ def test_logout_deletes_and_invalidates_refresh_token(client, monkeypatch, login
     response = client.post("/auth/refresh")
     assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
     assert response.status_code == 401
+
+def test_delete_account(client, login_client, exception):
+    # Log in and get access to the refresh token
+    auth_headers, response = login_client(client, 1)
+    refresh_token = response.cookies.get(settings.jwt_cookie_key)
+    # Delete the account
+    response = client.delete("/users/me", headers=auth_headers)
+    assert response.status_code == 204
+    # Try accessing something
+    response = client.get("/users/me", headers=auth_headers)
+    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
+    assert response.status_code == 401
+    # Try refreshing (cookie should have been deleted)
+    response = client.post("/auth/refresh")
+    assert response.json() == exception("not_authenticated", "Not authenticated")
+    assert response.status_code == 403
+    # Add the cookie and try again
+    client.cookies.set(settings.jwt_cookie_key, refresh_token)
+    response = client.post("/auth/refresh")
+    assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
+    assert response.status_code == 401

@@ -51,6 +51,6 @@ def delete_current_user(
     user: CurrentUser
 ) -> None:
     """Delete the currently authenticated account and log out"""
-    users_db.delete(session.user)
+    users_db.delete(session, user)
     auth.revoke_refresh_tokens(session, user)
     response.delete_cookie(settings.jwt_cookie_key)

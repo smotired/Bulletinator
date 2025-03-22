@@ -4,7 +4,7 @@ Args:
     router (APIRouter): Router for /boards routes
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
@@ -29,7 +29,7 @@ def create_board(session: DBSession, user: CurrentUser, config: BoardCreate) -> 
     return boards_db.create(session, user, config)
 
 @router.get("/{board_id}/", status_code=200, response_model=Board)
-def get_board(session: DBSession, board_id: int, user: CurrentUser | None = None) -> DBBoard:
+def get_board(session: DBSession, board_id: int, user: CurrentUser | None = Depends(lambda _: None)) -> DBBoard:
     """Returns the board with this ID if the user can access it"""
     return boards_db.get_board(session, user, board_id)
 

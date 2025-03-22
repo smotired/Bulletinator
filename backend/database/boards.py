@@ -15,11 +15,11 @@ def get_by_id(session: DBSession, board_id: int) -> DBBoard:
 def get_board(session: DBSession, user: DBUser | None, board_id: int) -> DBBoard:
     """Returns a board if it's public or the current user can edit it. Raise a 404 if private."""
     board = get_by_id(session, board_id)
-    if not board.public and user != board.owner and user not in board.editors:
+    if not board.public and user.id != board.owner_id and user.id not in [editor.id for editor in board.editors ]:
         raise EntityNotFound("board", "id", board_id)
     return board
 
-def get_editable(session, DBSession, user: DBUser) -> list[DBBoard]:
+def get_editable(session: DBSession, user: DBUser) -> list[DBBoard]:
     """Returns a list of all boards editable by this user"""
     stmt = select(DBBoard).where(DBBoard.owner == user)
     owned = list(session.execute(stmt).all())

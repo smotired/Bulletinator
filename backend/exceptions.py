@@ -100,3 +100,9 @@ class NotAuthenticated(BadRequestException):
         self.status_code = 403
         self.error = "not_authenticated"
         self.message = "Not authenticated"
+
+class AccessDenied(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "access_denied"
+        self.message = "Access denied"

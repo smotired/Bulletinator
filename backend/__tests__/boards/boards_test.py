@@ -1,5 +1,4 @@
 """Module for testing the board routes"""
-from backend.database.schema import *
 
 def test_get_public(client, get_board):
     # boards 1 and 2 are public

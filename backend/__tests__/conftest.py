@@ -65,10 +65,33 @@ def boards():
 def editors(): # board_ids and user_ids
     return { 1: [2], 2: [3], 3: [1, 3] }
 
+@pytest.fixture
+def items():
+    return [
+        { "id": 1, "board_id": 1, "list_id": None, "position": "0,0", "index": None, "type": "note", "text": "Test Note", "size": "300,200" },
+        { "id": 2, "board_id": 2, "list_id": None, "position": "0,0", "index": None, "type": "list", "title": "Test List" },
+        { "id": 3, "board_id": 2, "list_id": 2, "position": None, "index": 0, "type": "note", "text": "List Item 1", "size": "300,200" },
+        { "id": 4, "board_id": 2, "list_id": 2, "position": None, "index": 1, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
+        { "id": 5, "board_id": 1, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 1" },
+        { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 2" },
+        { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
+    ]
+
+@pytest.fixture
+def todo_items():
+    return [
+        { "id": 1, "list_id": 5, "text": "Item 1", "done": True, "link": None },
+        { "id": 2, "list_id": 5, "text": "Item 2", "done": False, "link": None },
+        { "id": 3, "list_id": 5, "text": "Item 3", "done": False, "link": None },
+        { "id": 4, "list_id": 6, "text": "Item 1", "done": True, "link": None },
+        { "id": 5, "list_id": 6, "text": "Item 2", "done": True, "link": None },
+        { "id": 6, "list_id": 6, "text": "Item 3", "done": False, "link": None },
+    ]
+
 # Set up database
 
 @pytest.fixture(autouse=True)
-def setup(session, users, boards, editors):
+def setup(session, users, boards, editors, items, todo_items):
     """Setup initial test data in database."""
 
     # Create accounts, with passwords equal to index (e.g. password1, password2, etc)
@@ -81,9 +104,32 @@ def setup(session, users, boards, editors):
     # Create boards
     for i, board in enumerate(boards):
         db_board = DBBoard(**board)
-        for editor in editors[db_board.id]:
-            db_board.editors.append(db_users[editor])
+        for editor_id in editors[db_board.id]:
+            db_board.editors.append(db_users[editor_id])
         session.add(db_board)
+
+    # Create items
+    for i, item in enumerate(items):
+        db_item = None
+        match item['type']:
+            case "note":
+                db_item = DBItemNote(**item)
+            case "link":
+                db_item = DBItemLink(**item)
+            case "media":
+                db_item = DBItemMedia(**item)
+            case "todo":
+                db_item = DBItemTodo(**item)
+            case "list":
+                db_item = DBItemList(**item)
+        if db_item is None:
+            raise ValueError(f"'{item['type']}' could not be matched to an item type.")
+        session.add(db_item)
+
+    # Create todo list items
+    for i, item in enumerate(todo_items):
+        db_todo_item = DBTodoItem(**item)
+        session.add(db_todo_item)
 
     session.commit()
 
@@ -102,6 +148,27 @@ def get_board(boards):
     def _get_board(id: int) -> dict:
         return [ b for b in boards if b["id"] == id ][0]
     return _get_board
+
+@pytest.fixture
+def get_item(items, todo_items):
+    """Function to get an item by ID"""
+    def _get_item(id: int, includeBoardId: bool = False) -> dict:
+        item = [ i for i in items if i["id"] == id ][0]
+        # Also populate contents
+        if item['type'] == "todo":
+            contents = sorted([ i for i in todo_items if i['list_id'] == id ], key=lambda i: i['id'])
+            item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
+        if item['type'] == "list":
+            contents = sorted([ i for i in items if i['list_id'] == id ], key=lambda i: i['index'])
+            if not includeBoardId:
+                for i in contents:
+                    del i['board_id']
+            item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
+        # Remove board ID if not asked for
+        if not includeBoardId:
+            del item['board_id']
+        return item
+    return _get_item
 
 @pytest.fixture
 def get_response_user(get_user):

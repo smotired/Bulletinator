@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectin_polymorphic, selectinload
 
-from backend.dependencies import DBSession
+from backend.dependencies import DBSession, format_list
 from backend.database import boards as boards_db
 from backend.database.schema import DBItem, DBBoard, DBUser, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList
 from backend.exceptions import *
@@ -35,4 +35,27 @@ def get_item(session: DBSession, board_id: int, item_id: int, user: DBUser | Non
     item = get_by_id(session, item_id)
     if item.board != board:
         raise EntityNotFound("item", "id", item_id)
+    return item
+
+def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBUser | None) -> DBItem:
+    """Creates an item on this board."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    # Figure out what type of config this is
+    subclass: type = ITEMTYPES.get(config.type, { "create": BaseItemCreate })['create']
+    if subclass == BaseItemCreate:
+        raise InvalidItemType(config.type)
+    # Make sure it has the required fields
+    config_dict = config.model_dump()
+    required_fields: list[str] = ITEMTYPES.get(config.type)['required_fields'] # does not include Item's required fields, as those are required in BaseItemUpdate
+    missing = [ f for f in required_fields if config_dict[f] == None ]
+    if len(missing) > 0:
+        raise MissingItemFields(config.type, format_list(missing))
+    # Create a DBItem for the subclass and add it to the database
+    dbclass: type = ITEMTYPES.get(config.type)['db']
+    stripped_dict = dict( (k, v) for k, v in config_dict.items() if k in ITEMFIELDS or v is not None ) # remove optional/not provided options
+    stripped_dict['board_id'] = board_id
+    item = dbclass(**stripped_dict)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
     return item

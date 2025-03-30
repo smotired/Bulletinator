@@ -23,9 +23,9 @@ class ItemCollection(BaseModel):
     
 class BaseItemCreate(BaseModel):
     """Basic request model for creating an item"""
-    position: str
-    list_id: int | None = None
-    index: int | None = None
+    position: str | None = None # defaults to None if in a list and 0,0 otherwise
+    list_id: int | None = None # defaults to None
+    index: int | None = None # defaults to the end of a list if in a list and None otherwise
     type: str
     
 class BaseItemUpdate(BaseModel):
@@ -188,17 +188,19 @@ class ItemIndexChange(BaseModel):
     new_index: int | None = None # setting an exact index
     index_offset: int | None = None # setting a relative index
 
-# Mappings from DBItem subclasses to Item subclasses.
-item_type_mapping = {
-    DBItemNote: ItemNote,
-    DBItemLink: ItemLink,
-    DBItemMedia: ItemMedia,
-    DBItemTodo: ItemTodo,
-    DBItemList: ItemList,
+# Fields for base item
+ITEMFIELDS = [ "board_id", "list_id", "position", "index", "type" ]
+# Mappings from type strings to various subclasses, and required fields.
+ITEMTYPES: dict[str, dict[str, type | list[str]]] = {
+    "note": { "base": ItemNote, "db": DBItemNote, "create": ItemNoteCreate, "update": ItemNoteUpdate, "required_fields": [ "text" ] },
+    "link": { "base": ItemLink, "db": DBItemLink, "create": ItemLinkCreate, "update": ItemLinkUpdate, "required_fields": [ "url" ] },
+    "media": { "base": ItemMedia, "db": DBItemMedia, "create": ItemMediaCreate, "update": ItemMediaUpdate, "required_fields": [ "url" ] },
+    "todo": { "base": ItemTodo, "db": DBItemTodo, "create": ItemTodoCreate, "update": ItemTodoUpdate, "required_fields": [ "title" ] },
+    "list": { "base": ItemList, "db": DBItemList, "create": ItemListCreate, "update": ItemListUpdate, "required_fields": [ "title" ] },
 }
 
-def convert_item(db_item: DBItem) -> Item:
-    item_type = item_type_mapping.get(type(db_item), Item)
+def convert_item(db_item: DBItem) -> SomeItem:
+    item_type = ITEMTYPES.get(db_item.type, { "base": Item })['base']
     # Convert collections before validating
     if item_type == ItemTodo:
         collection = TodoItemCollection(

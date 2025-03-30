@@ -112,3 +112,15 @@ class AddBoardOwnerAsEditor(BadRequestException):
         self.status_code = 403
         self.error = "add_board_owner_as_editor"
         self.message = "Cannot add the board owner as an editor"
+
+class InvalidItemType(BadRequestException):
+    def __init__(self, type):
+        self.status_code = 422
+        self.error = "invalid_item_type"
+        self.message = f"Item type '{type}' is not valid"
+
+class MissingItemFields(BadRequestException):
+    def __init__(self, type, fields):
+        self.status_code = 422
+        self.error = "missing_item_fields"
+        self.message = f"Item type '{type}' was missing the following fields: {fields}"

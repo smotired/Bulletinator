@@ -2,13 +2,14 @@
 
 from pydantic import BaseModel
 from backend.models import shared
+from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList
 
 # Base Item
 
 class Item(BaseModel):
     """Response model for an item"""
     id: int
-    board_id: int
+    item_id: int
     position: str
     list_id: int | None = None
     index: int | None = None
@@ -17,11 +18,11 @@ class Item(BaseModel):
 class ItemCollection(BaseModel):
     """Response model for a collection of items"""
     metadata: shared.Metadata
-    boards: list[Item]
+    items: list[Item]
     
 class BaseItemCreate(BaseModel):
     """Basic request model for creating an item"""
-    board_id: int
+    item_id: int
     position: str
     list_id: int | None = None
     index: int | None = None
@@ -183,3 +184,19 @@ class ItemIndexChange(BaseModel):
     id: int # the id of the item
     new_index: int | None = None # setting an exact index
     index_offset: int | None = None # setting a relative index
+
+# Mappings from DBItem subclasses to Item subclasses.
+item_type_mapping = {
+    DBItemNote: ItemNote,
+    DBItemLink: ItemLink,
+    DBItemMedia: ItemMedia,
+    DBItemTodo: ItemTodo,
+    DBItemList: ItemList,
+}
+
+def convert_item(db_item: DBItem):
+    item_type = item_type_mapping.get(type(db_item), Item)
+    return item_type.model_validate(db_item.__dict__)
+
+def convert_item_list(db_items: list[DBItem]):
+    return [ convert_item(db_item) for db_item in db_items ]

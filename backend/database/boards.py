@@ -7,13 +7,15 @@ from backend.exceptions import *
 
 from backend.models.boards import BoardCreate, BoardUpdate
 
-def can_edit(session: DBSession, board: DBBoard, user: DBUser) -> bool:
+def can_edit(board: DBBoard, user: DBUser | None) -> bool:
     """Returns true if this user can edit the items on this board (i.e. they're the owner or they're an editor)"""
+    if not user:
+        return False
     return board.owner == user or user in board.editors
 
-def can_see(session: DBSession, board: DBBoard, user: DBUser | None) -> bool:
+def can_see(board: DBBoard, user: DBUser | None) -> bool:
     """Returns true if this user can see this board (i.e. it's public, they're the owner, or they're an editor)"""
-    return board.public or (user is not None and can_edit(session, board, user))
+    return board.public or (user is not None and can_edit(board, user))
 
 def get_by_id(session: DBSession, board_id: int) -> DBBoard:
     """Returns the board with this ID"""
@@ -22,12 +24,35 @@ def get_by_id(session: DBSession, board_id: int) -> DBBoard:
         raise EntityNotFound("board", "id", board_id)
     return board
 
-def get_board(session: DBSession, user: DBUser | None, board_id: int) -> DBBoard:
-    """Returns a board if it's public or the current user can edit it. Raise a 404 if private."""
-    board = get_by_id(session, board_id)
-    if not board.public and (user is None or ( user.id != board.owner_id and user.id not in [editor.id for editor in board.editors ])):
+def get_for_owner(session: DBSession, board_id: DBBoard, user: DBUser | None) -> DBBoard:
+    """Returns the board with this ID if the user is the owner, or returns exceptions based on if the user can see it"""
+    board: DBBoard = get_by_id(session, board_id)
+    if can_see(board, user):
+        if user is not None and board.owner == user:
+            return board
+        else:
+            raise AccessDenied()
+    else:
         raise EntityNotFound("board", "id", board_id)
-    return board
+
+def get_for_editor(session: DBSession, board_id: DBBoard, user: DBUser | None) -> DBBoard:
+    """Returns the board with this ID if the user is the owner, or returns exceptions based on if the user can see it"""
+    board: DBBoard = get_by_id(session, board_id)
+    if can_see(board, user):
+        if can_edit(board, user):
+            return board
+        else:
+            raise AccessDenied()
+    else:
+        raise EntityNotFound("board", "id", board_id)
+
+def get_for_viewer(session: DBSession, board_id: DBBoard, user: DBUser | None) -> DBBoard:
+    """Returns the board with this ID if the user can see this board, or returns a 404."""
+    board: DBBoard = get_by_id(session, board_id)
+    if can_see(board, user):
+        return board
+    else:
+        raise EntityNotFound("board", "id", board_id)
 
 def get_all(session: DBSession) -> list[DBBoard]:
     """Returns a list of all boards ordered by name"""
@@ -69,12 +94,7 @@ def create(session: DBSession, user: DBBoard, config: BoardCreate) -> DBBoard:
 
 def update(session: DBSession, user: DBUser, board_id: int, config: BoardUpdate) -> DBBoard:
     """Update a board owned by this user"""
-    board = get_by_id(session, board_id)
-    # Make sure the board is actually owned by this user (editors shouldn't be able to change name, icon, or publicity)
-    if user != board.owner:
-        if not can_see(session, board, user):
-            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
-        raise AccessDenied()
+    board = get_for_owner(session, board_id, user)
     # Update it
     if config.name is not None:
         board.name = config.name
@@ -89,30 +109,18 @@ def update(session: DBSession, user: DBUser, board_id: int, config: BoardUpdate)
 
 def delete(session: DBSession, user: DBUser, board_id: int) -> None:
     """Delete a board owned by this user"""
-    board = get_by_id(session, board_id)
-    if user != board.owner:
-        if not can_see(session, board, user):
-            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
-        raise AccessDenied()
+    board = get_for_owner(session, board_id, user)
     session.delete(board)
     session.commit()
 
 def get_editors(session: DBSession, user: DBUser, board_id: int) -> list[DBUser]:
     """Get a list of editors on this board. Editors can be seen by other editors."""
-    board = get_by_id(session, board_id)
-    if not can_edit(session, board, user):
-        if not can_see(session, board, user):
-            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
-        raise AccessDenied()
+    board = get_for_editor(session, board_id, user)
     return board.editors
 
 def add_editor(session: DBSession, user: DBUser, board_id: int, editor_id: int) -> list[DBUser]:
     """Allow another user to edit this board. Returns the updated list of editors."""
-    board = get_by_id(session, board_id)
-    if user != board.owner:
-        if not can_see(session, board, user):
-            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
-        raise AccessDenied()
+    board = get_for_owner(session, board_id, user)
     editor = users_db.get_by_id(session, editor_id)
     # Make sure we aren't adding the owner
     if editor == board.owner:
@@ -128,11 +136,7 @@ def add_editor(session: DBSession, user: DBUser, board_id: int, editor_id: int) 
 
 def remove_editor(session: DBSession, user: DBUser, board_id: int, editor_id: int) -> list[DBUser]:
     """Remove an editor from a board and return the updated list of editors"""
-    board = get_by_id(session, board_id)
-    if user != board.owner:
-        if not can_see(session, board, user):
-            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
-        raise AccessDenied()
+    board = get_for_owner(session, board_id, user)
     editor = users_db.get_by_id(session, editor_id)
     board.editors = [ e for e in board.editors if e != editor ]
     session.add(board)

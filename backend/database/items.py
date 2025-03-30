@@ -21,9 +21,7 @@ def get_by_id(session: DBSession, item_id: int) -> DBItem:
 
 def get_items(session: DBSession, board_id: int, user: DBUser | None) -> list[DBItem]:
     """Returns the items on the board with this ID, if the user can see them"""
-    board: DBBoard = boards_db.get_by_id(session, board_id)
-    if not boards_db.can_see(session, board, user):
-        raise EntityNotFound("board", "id", board_id)
+    board: DBBoard = boards_db.get_for_viewer(session, board_id, user)
     # Get a list of top-level items
     stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.board_id == board_id).where(DBItem.list_id == None)
     items = list(session.execute(stmt).scalars().all())

@@ -75,6 +75,7 @@ def items():
         { "id": 5, "board_id": 1, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 1" },
         { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 2" },
         { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
+        { "id": 8, "board_id": 3, "list_id": None, "position": "0,0", "index": None, "type": "note", "text": "Private Note", "size": "300,200" },
     ]
 
 @pytest.fixture

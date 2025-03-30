@@ -41,7 +41,7 @@ def create_board(session: DBSession, user: CurrentUser, config: BoardCreate) -> 
 @router.get("/{board_id}/", status_code=200, response_model=Board)
 def get_board(session: DBSession, board_id: int, user: OptionalUser = None) -> DBBoard:
     """Returns the board with this ID if the user can access it"""
-    return boards_db.get_board(session, user, board_id)
+    return boards_db.get_for_viewer(session, board_id, user)
 
 @router.put("/{board_id}/", status_code=200, response_model=Board)
 def update_board(session: DBSession, board_id: int, user: CurrentUser, config: BoardUpdate) -> DBBoard:

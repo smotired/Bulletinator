@@ -19,18 +19,38 @@ class ItemCollection(BaseModel):
     metadata: shared.Metadata
     boards: list[Item]
     
-class ItemCreate(BaseModel):
-    """Request model for creating an item"""
+class BaseItemCreate(BaseModel):
+    """Basic request model for creating an item"""
     board_id: int
     position: str
     list_id: int | None = None
     index: int | None = None
+    type: str
     
-class ItemUpdate(BaseModel):
-    """Request model for updating an item"""
+class BaseItemUpdate(BaseModel):
+    """Basic request model for updating an item"""
     position: str | None = None
     list_id: int | None = None
     index: int | None = None
+
+class AllItemFields(BaseModel):
+    """All fields available on all items, marked as optional, for use in request models."""
+    text: str | None = None         # Note
+    size: str | None = None         # Note, Media
+    title: str | None = None        # Link, Todo, List
+    url: str | None = None          # Link, Media
+
+class ItemCreate(BaseItemCreate, AllItemFields):
+    """Actual request model for creating an item. Contains required fields, as well as optional fields for the specific type of item.
+    
+    Should validate that relevant fields are included."""
+    pass
+
+class ItemUpdate(BaseItemUpdate, AllItemFields):
+    """Actual request model for updating an item. Contains required fields, as well as optional fields for the specific type of item.
+    
+    Should validate that relevant fields are included."""
+    pass
     
 # Note Items
     
@@ -39,12 +59,12 @@ class ItemNote(Item):
     text: str
     size: str
     
-class ItemNoteCreate(Item):
+class ItemNoteCreate(BaseItemCreate):
     """Request model for creating a Note item"""
     text: str
     size: str = "300,400"
     
-class ItemNoteUpdate(Item):
+class ItemNoteUpdate(BaseItemUpdate):
     """Request model for updating a Note item"""
     text: str | None = None
     size: str | None = None
@@ -56,12 +76,12 @@ class ItemLink(Item):
     title: str | None
     url: str
     
-class ItemLinkCreate(Item):
+class ItemLinkCreate(BaseItemCreate):
     """Request model for creating a Link item"""
     title: str | None
     url: str
     
-class ItemLinkUpdate(Item):
+class ItemLinkUpdate(BaseItemUpdate):
     """Request model for updating a Link item"""
     title: str | None = None
     url: str | None = None
@@ -70,17 +90,17 @@ class ItemLinkUpdate(Item):
     
 class ItemMedia(Item):
     """Response model for a Media item"""
-    src: str
+    url: str
     size: str | None
     
-class ItemMediaCreate(Item):
+class ItemMediaCreate(BaseItemCreate):
     """Request model for creating a Media item"""
-    src: str
+    url: str
     size: str | None = None
     
-class ItemMediaUpdate(Item):
+class ItemMediaUpdate(BaseItemUpdate):
     """Request model for updating a Media item"""
-    src: str | None = None
+    url: str | None = None
     size: str | None = None
     
 # Todo Items
@@ -90,11 +110,11 @@ class ItemTodo(Item):
     title: str
     contents: "TodoItemCollection"
     
-class ItemTodoCreate(Item):
+class ItemTodoCreate(BaseItemCreate):
     """Request model for creating a Todo item"""
     title: str
     
-class ItemTodoUpdate(Item):
+class ItemTodoUpdate(BaseItemUpdate):
     """Request model for updating a Todo item"""
     title: str | None = None
     
@@ -105,11 +125,11 @@ class ItemList(Item):
     title: str
     contents: ItemCollection
     
-class ItemListCreate(Item):
+class ItemListCreate(BaseItemCreate):
     """Request model for creating a List item"""
     title: str
     
-class ItemListUpdate(Item):
+class ItemListUpdate(BaseItemUpdate):
     """Request model for updating a List item"""
     title: str | None = None
     

@@ -11,9 +11,9 @@ def can_edit(session: DBSession, board: DBBoard, user: DBUser) -> bool:
     """Returns true if this user can edit the items on this board (i.e. they're the owner or they're an editor)"""
     return board.owner == user or user in board.editors
 
-def can_see(session: DBSession, board: DBBoard, user: DBUser) -> bool:
+def can_see(session: DBSession, board: DBBoard, user: DBUser | None) -> bool:
     """Returns true if this user can see this board (i.e. it's public, they're the owner, or they're an editor)"""
-    return board.public or can_edit(session, board, user)
+    return board.public or (user is not None and can_edit(session, board, user))
 
 def get_by_id(session: DBSession, board_id: int) -> DBBoard:
     """Returns the board with this ID"""

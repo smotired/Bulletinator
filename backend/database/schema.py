@@ -94,7 +94,7 @@ class DBItem(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
-    position: Mapped[str] = mapped_column(default="0,0") # default to origin
+    position: Mapped[Optional[str]] = mapped_column(default="0,0") # default to origin
     list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("items_list.id"), default=None)
     index: Mapped[Optional[int]] = mapped_column(default=None)
     type: Mapped[str] # used for polymorphism
@@ -108,7 +108,7 @@ class DBItem(Base):
     }
     
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.__class__.__name__}({self.id})"
 
 class DBItemNote(DBItem):
     """Notes table. Each row represents a note item.
@@ -116,13 +116,13 @@ class DBItemNote(DBItem):
     Fields:
         - id: primary key - the id of the parent item
         - text: the markdown text of the note
-        - size: the resized dimensions (overridden if in list)\
+        - size: the resized dimensions (overridden if in list)
     """
     __tablename__ = "items_note"
     
     id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
     text: Mapped[str] = mapped_column(Text)
-    size: Mapped[str] = mapped_column(default="300,400")
+    size: Mapped[str] = mapped_column(default="300,200")
     
     __mapper_args__ = {
         "polymorphic_identity": "note",

@@ -1,16 +1,16 @@
 """Request and response models for item functionality"""
 
+from typing import Union
 from pydantic import BaseModel
 from backend.models import shared
-from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList
+from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBTodoItem
 
 # Base Item
 
 class Item(BaseModel):
     """Response model for an item"""
     id: int
-    item_id: int
-    position: str
+    position: str | None = None
     list_id: int | None = None
     index: int | None = None
     type: str
@@ -18,11 +18,10 @@ class Item(BaseModel):
 class ItemCollection(BaseModel):
     """Response model for a collection of items"""
     metadata: shared.Metadata
-    items: list[Item]
+    items: list["SomeItem"]
     
 class BaseItemCreate(BaseModel):
     """Basic request model for creating an item"""
-    item_id: int
     position: str
     list_id: int | None = None
     index: int | None = None
@@ -149,6 +148,9 @@ class TodoItemCollection(BaseModel):
     metadata: shared.Metadata
     items: list[TodoItem]
 
+# Union of all item types
+SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
+
 # List-related request models (both List items and Todo items)
 
 class TodoAdd(BaseModel):
@@ -194,9 +196,36 @@ item_type_mapping = {
     DBItemList: ItemList,
 }
 
-def convert_item(db_item: DBItem):
+def convert_item(db_item: DBItem) -> Item:
     item_type = item_type_mapping.get(type(db_item), Item)
+    # Convert collections before validating
+    if item_type == ItemTodo:
+        collection = TodoItemCollection(
+            metadata=shared.Metadata(count=len(db_item.contents)),
+            items=convert_todo_item_list(db_item.contents)
+        )
+        item_dict = Item.model_validate(db_item.__dict__).model_dump()
+        item_dict['title'] = db_item.title
+        item_dict['contents'] = collection
+        return ItemTodo(**item_dict)
+    if item_type == ItemList:
+        print([ i.__dict__ for i in db_item.contents ])
+        collection = ItemCollection(
+            metadata=shared.Metadata(count=len(db_item.contents)),
+            items=convert_item_list(db_item.contents) # no need to worry about recursion because lists cannot contain other lists
+        )
+        item_dict = Item.model_validate(db_item.__dict__).model_dump()
+        item_dict['title'] = db_item.title
+        item_dict['contents'] = collection
+        return ItemList(**item_dict)
+    # Otherwise we can just validate
     return item_type.model_validate(db_item.__dict__)
 
-def convert_item_list(db_items: list[DBItem]):
+def convert_item_list(db_items: list[DBItem]) -> list[SomeItem]:
     return [ convert_item(db_item) for db_item in db_items ]
+
+def convert_todo_item(todo_item: DBTodoItem) -> TodoItem:
+    return TodoItem.model_validate(todo_item.__dict__)
+
+def convert_todo_item_list(todo_items: list[DBTodoItem]) -> list[TodoItem]:
+    return [ convert_todo_item(item) for item in todo_items ]

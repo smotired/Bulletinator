@@ -93,9 +93,12 @@ def test_update_board_unauthorized(client, auth_headers, exception):
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
     assert response.status_code == 404
 
-def test_delete_board(client, auth_headers):
+def test_delete_board(client, auth_headers, exception):
     response = client.delete("/boards/3", headers=auth_headers(2))
     assert response.status_code == 204
+    response = client.get("/boards/3", headers=auth_headers(2))
+    assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
+    assert response.status_code == 404
 
 def test_delete_board_as_editor(client, auth_headers, exception):
     response = client.delete("/boards/3", headers=auth_headers(1))

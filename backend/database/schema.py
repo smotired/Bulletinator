@@ -4,7 +4,7 @@ from sqlalchemy import (
     Integer, Float, String, Text,
     ForeignKey, Table, Column
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, validates
 from typing import List, Optional
 
 Base = declarative_base()
@@ -94,9 +94,9 @@ class DBItem(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
-    position: Mapped[Optional[str]] = mapped_column(default="0,0") # default to origin
     list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("items_list.id"), default=None)
-    index: Mapped[Optional[int]] = mapped_column(default=None)
+    position: Mapped[Optional[str]] # will be set conditionally
+    index: Mapped[Optional[int]] # will be set conditionally
     type: Mapped[str] # used for polymorphism
     
     board: Mapped["DBBoard"] = relationship(back_populates="items")
@@ -109,6 +109,26 @@ class DBItem(Base):
     
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
+    
+    # Set default values for position and index
+
+    @validates("position")
+    def validate_position(self, key, value):
+        """If this item is in a list, it should not have a position."""
+        if self.list_id is not None:
+            return None
+        return value or "0,0" # default to origin
+    
+    @validates("index")
+    def validate_index(self, key, value):
+        """If this item is not in a list, it should not have an index."""
+        if self.list_id is None:
+            return None
+        if value:
+            return value
+        if self.list:
+            return len(self.list.contents) - 1
+        return 0
 
 class DBItemNote(DBItem):
     """Notes table. Each row represents a note item.

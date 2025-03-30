@@ -106,3 +106,9 @@ class AccessDenied(BadRequestException):
         self.status_code = 403
         self.error = "access_denied"
         self.message = "Access denied"
+
+class AddBoardOwnerAsEditor(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "add_board_owner_as_editor"
+        self.message = "Cannot add the board owner as an editor"

@@ -10,6 +10,7 @@ from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentUser, OptionalUser
 from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, convert_board_list
+from backend.models.users import UserCollection, convert_user_list
 from backend.models.shared import Metadata
 
 router = APIRouter(prefix="/boards", tags=["Board"])
@@ -51,3 +52,30 @@ def update_board(session: DBSession, board_id: int, user: CurrentUser, config: B
 def delete_board(session: DBSession, board_id: int, user: CurrentUser) -> None:
     """Deletes the board with this ID if the user is the owner"""
     boards_db.delete(session, user, board_id)
+
+@router.get("/{board_id}/editors", status_code=200, response_model=UserCollection)
+def get_editors(session: DBSession, board_id: int, user: CurrentUser) -> UserCollection:
+    """Gets all users that can edit the board with this ID, excluding the owner."""
+    editors = convert_user_list( boards_db.get_editors(session, user, board_id) )
+    return UserCollection(
+        metadata=Metadata(count=len(editors)),
+        users=editors
+    )
+
+@router.put("/{board_id}/editors/{editor_id}", status_code=201, response_model=UserCollection)
+def add_editor(session: DBSession, board_id: int, editor_id: int, user: CurrentUser) -> UserCollection:
+    """Allows the user with this ID to edit the board with this ID, and returns the updated list of editors."""
+    editors = convert_user_list( boards_db.add_editor(session, user, board_id, editor_id) )
+    return UserCollection(
+        metadata=Metadata(count=len(editors)),
+        users=editors
+    )
+
+@router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=UserCollection)
+def remove_editor(session: DBSession, board_id: int, editor_id: int, user: CurrentUser) -> UserCollection:
+    """Disallows the user with this ID to edit the board with this ID, and returns the updated list of editors."""
+    editors = convert_user_list( boards_db.remove_editor(session, user, board_id, editor_id) )
+    return UserCollection(
+        metadata=Metadata(count=len(editors)),
+        users=editors
+    )

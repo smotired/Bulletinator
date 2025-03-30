@@ -107,3 +107,32 @@ def test_delete_board_unauthorized(client, auth_headers, exception):
     response = client.delete("/boards/3", headers=auth_headers(4)) # user 4 has no knowledge of this board
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
     assert response.status_code == 404
+
+def test_get_editors(client, auth_headers, get_response_user):
+    response = client.get("/boards/3/editors", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 2 }, 
+        "users": [ get_response_user(1), get_response_user(3) ]
+    }
+    assert response.status_code == 200
+
+def test_add_editor(client, auth_headers, get_response_user):
+    response = client.put("/boards/3/editors/4", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 3 }, 
+        "users": [ get_response_user(1), get_response_user(3), get_response_user(4) ]
+    }
+    assert response.status_code == 201
+
+def test_remove_editor(client, auth_headers, get_response_user):
+    response = client.delete("/boards/3/editors/3", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 1 }, 
+        "users": [ get_response_user(1) ]
+    }
+    assert response.status_code == 200
+
+def test_add_owner_as_editor(client, auth_headers, exception):
+    response = client.put("/boards/3/editors/2", headers=auth_headers(2))
+    assert response.json() == exception("add_board_owner_as_editor", "Cannot add the board owner as an editor")
+    assert response.status_code == 403

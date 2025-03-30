@@ -3,6 +3,7 @@
 from pydantic import BaseModel
 from typing import Annotated
 from fastapi import Form
+from backend.database.schema import DBUser
 
 from backend.models import media, shared
 
@@ -27,3 +28,9 @@ class UserUpdate(BaseModel):
     new_password: str | None = None
     
 UserUpdateForm = Annotated[UserUpdate, Form()]
+
+def convert_user(db_user: DBUser):
+    return User.model_validate(db_user.__dict__)
+
+def convert_user_list(db_users: list[DBUser]):
+    return [ convert_user(db_user) for db_user in db_users ]

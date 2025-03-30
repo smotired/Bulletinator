@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from backend.dependencies import DBSession
+from backend.database import users as users_db
 from backend.database.schema import DBBoard, DBUser
 from backend.exceptions import *
 
@@ -95,3 +96,46 @@ def delete(session: DBSession, user: DBUser, board_id: int) -> None:
         raise AccessDenied()
     session.delete(board)
     session.commit()
+
+def get_editors(session: DBSession, user: DBUser, board_id: int) -> list[DBUser]:
+    """Get a list of editors on this board. Editors can be seen by other editors."""
+    board = get_by_id(session, board_id)
+    if not can_edit(session, board, user):
+        if not can_see(session, board, user):
+            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
+        raise AccessDenied()
+    return board.editors
+
+def add_editor(session: DBSession, user: DBUser, board_id: int, editor_id: int) -> list[DBUser]:
+    """Allow another user to edit this board. Returns the updated list of editors."""
+    board = get_by_id(session, board_id)
+    if user != board.owner:
+        if not can_see(session, board, user):
+            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
+        raise AccessDenied()
+    editor = users_db.get_by_id(session, editor_id)
+    # Make sure we aren't adding the owner
+    if editor == board.owner:
+        raise AddBoardOwnerAsEditor()
+    # Add it, unless it's already in there
+    if editor not in board.editors:
+        board.editors.append(editor)
+    # Update and return editors
+    session.add(board)
+    session.commit()
+    session.refresh(board)
+    return board.editors
+
+def remove_editor(session: DBSession, user: DBUser, board_id: int, editor_id: int) -> list[DBUser]:
+    """Remove an editor from a board and return the updated list of editors"""
+    board = get_by_id(session, board_id)
+    if user != board.owner:
+        if not can_see(session, board, user):
+            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
+        raise AccessDenied()
+    editor = users_db.get_by_id(session, editor_id)
+    board.editors = [ e for e in board.editors if e != editor ]
+    session.add(board)
+    session.commit()
+    session.refresh(board)
+    return board.editors

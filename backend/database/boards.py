@@ -6,7 +6,16 @@ from backend.exceptions import *
 
 from backend.models.boards import BoardCreate, BoardUpdate
 
+def can_edit(session: DBSession, board: DBBoard, user: DBUser) -> bool:
+    """Returns true if this user can edit the items on this board (i.e. they're the owner or they're an editor)"""
+    return board.owner == user or user in board.editors
+
+def can_see(session: DBSession, board: DBBoard, user: DBUser) -> bool:
+    """Returns true if this user can see this board (i.e. it's public, they're the owner, or they're an editor)"""
+    return board.public or can_edit(session, board, user)
+
 def get_by_id(session: DBSession, board_id: int) -> DBBoard:
+    """Returns the board with this ID"""
     board = session.get(DBBoard, board_id)
     if board is None:
         raise EntityNotFound("board", "id", board_id)
@@ -62,6 +71,8 @@ def update(session: DBSession, user: DBUser, board_id: int, config: BoardUpdate)
     board = get_by_id(session, board_id)
     # Make sure the board is actually owned by this user (editors shouldn't be able to change name, icon, or publicity)
     if user != board.owner:
+        if not can_see(session, board, user):
+            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
         raise AccessDenied()
     # Update it
     if config.name is not None:
@@ -79,6 +90,8 @@ def delete(session: DBSession, user: DBUser, board_id: int) -> None:
     """Delete a board owned by this user"""
     board = get_by_id(session, board_id)
     if user != board.owner:
+        if not can_see(session, board, user):
+            raise EntityNotFound("board", "id", board_id) # do not even say the board exists
         raise AccessDenied()
     session.delete(board)
     session.commit()

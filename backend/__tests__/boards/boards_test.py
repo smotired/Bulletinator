@@ -48,17 +48,62 @@ def test_get_private_board_unauthorized(client, auth_headers, exception):
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3") # the board exists, but even just saying that gives too much information
     assert response.status_code == 404
 
-def test_create_board():
-    pass
+def test_create_board(client, auth_headers):
+    data = {
+        "name": "created"
+    }
+    response = client.post("/boards", headers=auth_headers(4), json=data)
+    assert response.json() == {
+        "id": 4,
+        "name": "created",
+        "icon": "default",
+        "owner_id": 4,
+        "public": False,
+    }
+    assert response.status_code == 201
 
-def test_update_board():
-    pass
+def test_update_board(client, auth_headers):
+    data = {
+        "icon": "sun",
+        "public": False
+    }
+    response = client.put("/boards/1", headers=auth_headers(1), json=data)
+    assert response.json() == {
+        "id": 1,
+        "name": "parent",
+        "icon": "sun",
+        "owner_id": 1,
+        "public": False
+    }
+    assert response.status_code == 200
 
-def test_update_board_unauthorized():
-    pass
+def test_update_board_as_editor(client, auth_headers, exception):
+    data = {
+        "icon": "sun",
+        "public": False
+    }
+    response = client.put("/boards/1", headers=auth_headers(2), json=data) # user 2 is an editor on this board but not an owner
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403
 
-def test_delete_board():
-    pass
+def test_update_board_unauthorized(client, auth_headers, exception):
+    data = {
+        "public": True
+    }
+    response = client.put("/boards/3", headers=auth_headers(4), json=data) # user 4 has no knowledge of this board
+    assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
+    assert response.status_code == 404
 
-def test_delete_board_unauthorized():
-    pass
+def test_delete_board(client, auth_headers):
+    response = client.delete("/boards/3", headers=auth_headers(2))
+    assert response.status_code == 204
+
+def test_delete_board_as_editor(client, auth_headers, exception):
+    response = client.delete("/boards/3", headers=auth_headers(1))
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403
+
+def test_delete_board_unauthorized(client, auth_headers, exception):
+    response = client.delete("/boards/3", headers=auth_headers(4)) # user 4 has no knowledge of this board
+    assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
+    assert response.status_code == 404

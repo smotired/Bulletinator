@@ -77,3 +77,26 @@ def get_current_user(
     return extract_user(session, access_token)
 
 CurrentUser = Annotated[DBUser, Depends(get_current_user)]
+
+# for times when authentication is not necessary but can change the results of a query
+
+def get_optional_access_token(
+    bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> str | None:
+    """Extracts the access token JWT from the authorization headers, if provided, or returns none"""
+    if bearer is not None:
+        return bearer.credentials
+    return None
+
+def get_optional_user(
+    session: Session = Depends(get_session),
+    access_token: str = Depends(get_optional_access_token),
+) -> Optional[DBUser]:
+    """Optional user dependency. Depends on the session and the access token. Returns the current user if one is logged in, or None if login fails.
+    
+    Used for routes that don't *require* a login, but can change the results if someone *is* logged in."""
+    if access_token is None:
+        return None
+    return extract_user(session, access_token)
+
+OptionalUser = Annotated[Optional[DBUser], Depends(get_optional_user)]

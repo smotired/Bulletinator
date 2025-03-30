@@ -15,7 +15,7 @@ def get_by_id(session: DBSession, board_id: int) -> DBBoard:
 def get_board(session: DBSession, user: DBUser | None, board_id: int) -> DBBoard:
     """Returns a board if it's public or the current user can edit it. Raise a 404 if private."""
     board = get_by_id(session, board_id)
-    if not board.public and user.id != board.owner_id and user.id not in [editor.id for editor in board.editors ]:
+    if not board.public and (user is None or ( user.id != board.owner_id and user.id not in [editor.id for editor in board.editors ])):
         raise EntityNotFound("board", "id", board_id)
     return board
 
@@ -24,10 +24,17 @@ def get_all(session: DBSession) -> list[DBBoard]:
     stmt = select(DBBoard).order_by(DBBoard.name)
     return list(session.execute(stmt).scalars().all())
 
-def get_public(session: DBSession) -> list[DBBoard]:
-    """Returns a list of all boards ordered by name"""
+def get_visible(session: DBSession, user: DBUser | None) -> list[DBBoard]:
+    """Returns a list of all boards, ordered by name, that the user can see.
+    
+    If not logged in, this is all public boards. If logged in, also includes private boards they can access."""
     stmt = select(DBBoard).where(DBBoard.public).order_by(DBBoard.name)
-    return list(session.execute(stmt).scalars().all())
+    public = list(session.execute(stmt).scalars().all())
+    editable = [] if user is None else get_editable(session, user)
+
+    # join them into a list making sure not to add duplicates
+    union = public + [ board for board in editable if board not in public ]
+    return sorted(union, key=lambda b: b.name)
 
 def get_editable(session: DBSession, user: DBUser) -> list[DBBoard]:
     """Returns a list of all boards editable by this user, ordered by name"""
@@ -35,7 +42,7 @@ def get_editable(session: DBSession, user: DBUser) -> list[DBBoard]:
     owned = list(session.execute(stmt).scalars().all())
     stmt = select(DBBoard).join(DBBoard.editors).where(DBUser.id == user.id).order_by(DBBoard.name)
     editable = list(session.execute(stmt).scalars().all())
-    return owned + editable # make sure owners cannot add themselves as editors
+    return sorted(owned + editable, key=lambda b: b.name) # later, make sure owners cannot add themselves as editors
 
 def create(session: DBSession, user: DBBoard, config: BoardCreate) -> DBBoard:
     """Create a board owned by this user"""

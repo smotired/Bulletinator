@@ -8,16 +8,16 @@ from fastapi import APIRouter, Depends
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
-from backend.dependencies import DBSession, CurrentUser
+from backend.dependencies import DBSession, CurrentUser, OptionalUser
 from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, convert_board_list
 from backend.models.shared import Metadata
 
 router = APIRouter(prefix="/boards", tags=["Board"])
 
 @router.get("/", status_code=200)
-def get_boards(session: DBSession) -> BoardCollection:
-    """Returns a BoardCollection of all public boards"""
-    boards = convert_board_list( boards_db.get_public(session) )
+def get_boards(session: DBSession, user: OptionalUser = None) -> BoardCollection:
+    """Returns a BoardCollection of all visible boards, including both public ones and editable ones"""
+    boards = convert_board_list( boards_db.get_visible(session, user) )
     return BoardCollection(
         metadata=Metadata(count=len(boards)),
         boards=boards
@@ -38,7 +38,7 @@ def create_board(session: DBSession, user: CurrentUser, config: BoardCreate) -> 
     return boards_db.create(session, user, config)
 
 @router.get("/{board_id}/", status_code=200, response_model=Board)
-def get_board(session: DBSession, board_id: int, user: CurrentUser | None = Depends(lambda _: None)) -> DBBoard:
+def get_board(session: DBSession, board_id: int, user: OptionalUser = None) -> DBBoard:
     """Returns the board with this ID if the user can access it"""
     return boards_db.get_board(session, user, board_id)
 

@@ -153,7 +153,7 @@ def get_board(boards):
 @pytest.fixture
 def get_item(items, todo_items):
     """Function to get an item by ID"""
-    def _get_item(id: int, includeBoardId: bool = False) -> dict:
+    def _get_item(id: int, includeBoardId: bool = True) -> dict:
         item = [ i for i in items if i["id"] == id ][0]
         # Also populate contents
         if item['type'] == "todo":

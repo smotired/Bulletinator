@@ -17,8 +17,18 @@ router = APIRouter(prefix="/boards/{board_id}/items", tags=["Item"])
 @router.get("/", status_code=200)
 def get_items(session: DBSession, board_id: int, user: OptionalUser) -> ItemCollection:
     """If the current user can see the board with this ID, return a collection of all items on this board."""
-    items = convert_item_list( items_db.get_items(session, board_id, user) )
+    items = items_db.get_items(session, board_id, user)
     return ItemCollection(
         metadata=Metadata(count=len(items)),
-        items=items
+        items=convert_item_list( items )
     )
+
+@router.get("/{item_id}", status_code=200)
+def get_item(session: DBSession, board_id: int, item_id: int, user: OptionalUser) -> SomeItem:
+    """If the user can edit this board, add an item."""
+    return convert_item( items_db.get_item(session, board_id, item_id, user) )
+
+@router.post("/", status_code=201)
+def add_item(session: DBSession, board_id: int, config: ItemCreate, user: CurrentUser) -> SomeItem:
+    """If the user can edit this board, add an item."""
+    return convert_item( items_db.create_item(session, board_id, config, user) )

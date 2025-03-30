@@ -10,8 +10,9 @@ from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia,
 class Item(BaseModel):
     """Response model for an item"""
     id: int
-    position: str | None = None
+    board_id: int
     list_id: int | None = None
+    position: str | None = None
     index: int | None = None
     type: str
     

@@ -14,10 +14,12 @@ loadlistcontents = selectinload(DBItemList.contents).options(polymorphic)
 
 def get_by_id(session: DBSession, item_id: int) -> DBItem:
     """Returns the item with this ID"""
-    item: DBItem | None = session.get(DBItem, item_id)
-    if item is None:
+    # tragically due to polymorphism session.get doesn't work
+    stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.id == item_id)
+    results = list(session.execute(stmt).scalars().all())
+    if len(results) == 0:
         raise EntityNotFound("item", "id", item_id)
-    return item
+    return results[0]
 
 def get_items(session: DBSession, board_id: int, user: DBUser | None) -> list[DBItem]:
     """Returns the items on the board with this ID, if the user can see them"""
@@ -26,3 +28,11 @@ def get_items(session: DBSession, board_id: int, user: DBUser | None) -> list[DB
     stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.board_id == board_id).where(DBItem.list_id == None)
     items = list(session.execute(stmt).scalars().all())
     return items
+
+def get_item(session: DBSession, board_id: int, item_id: int, user: DBUser | None) -> DBItem:
+    """Returns the item with this ID, if it's on the board with this ID and the user can see it."""
+    board: DBBoard = boards_db.get_for_viewer(session, board_id, user)
+    item = get_by_id(session, item_id)
+    if item.board != board:
+        raise EntityNotFound("item", "id", item_id)
+    return item

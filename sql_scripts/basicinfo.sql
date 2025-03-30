@@ -7,20 +7,20 @@ INSERT INTO boards VALUES (3, "other_board", "default", 2, true);
 
 INSERT INTO editor_table VALUES (1, 3);
 
-INSERT INTO items VALUES (1, 1, "0,0", null, null, "note");
+INSERT INTO items VALUES (1, 1, null, "0,0", null, "note");
 INSERT INTO items_note VALUES (1, "Example note", "300,200");
 
-INSERT INTO items VALUES (2, 1, "0,250", null, null, "link");
+INSERT INTO items VALUES (2, 1, null, "0,250", null, "link");
 INSERT INTO items_link VALUES (2, "Link to Child Board", "/boards/2");
 
-INSERT INTO items VALUES (3, 1, "350,0", null, null, "list");
+INSERT INTO items VALUES (3, 1, null, "350,0", null, "list");
 INSERT INTO items_list VALUES (3, "Example List");
-INSERT INTO items VALUES (4, 1, null, 3, 0, "note");
+INSERT INTO items VALUES (4, 1, 3, null, 0, "note");
 INSERT INTO items_note VALUES (4, "List Item 1", "300,200");
-INSERT INTO items VALUES (5, 1, null, 3, 1, "note");
+INSERT INTO items VALUES (5, 1, 3, null, 1, "note");
 INSERT INTO items_note VALUES (5, "List Item 2", "300,200");
 
-INSERT INTO items VALUES (6, 1, "700,0", null, null, "todo");
+INSERT INTO items VALUES (6, 1, null, "700,0", null, "todo");
 INSERT INTO items_todo VALUES (6, "Todo List");
 INSERT INTO todo_items VALUES (1, 6, "Plan API", null, true);
 INSERT INTO todo_items VALUES (2, 6, "Read Other Board", "/boards/3", false);

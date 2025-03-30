@@ -1,6 +1,6 @@
 """Request and response models for board functionality"""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from backend.models import shared
 
 class Board(BaseModel):

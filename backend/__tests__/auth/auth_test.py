@@ -79,12 +79,12 @@ def test_access_token_expiration(client, monkeypatch, auth_headers, exception):
     assert response.status_code == 401
 
 def test_refresh_access_token(client, monkeypatch, login_client, exception, get_response_user):
-    # make access tokens expire 1 second after issuance
-    monkeypatch.setattr(settings, 'jwt_access_duration', 1)
+    # make access tokens expire immediately after issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', 0)
     # Log in and get access to the refresh token
     auth_headers, response = login_client(client, 1)
-    # Wait 2 seconds and try accessing something
-    sleep(2)
+    # Wait 1 second and try accessing something
+    sleep(1)
     response = client.get("/users/me", headers=auth_headers)
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401
@@ -119,8 +119,8 @@ def test_logout(client, auth_headers):
     # access tokens can't actually be revoked which is why they only last 15 minutes
 
 def test_logout_deletes_and_invalidates_refresh_token(client, monkeypatch, login_client, exception):
-    # make access tokens expire 1 second after issuance
-    monkeypatch.setattr(settings, 'jwt_access_duration', 1)
+    # make access tokens expire immediately after issuance
+    monkeypatch.setattr(settings, 'jwt_access_duration', 0)
     # Log in and get access to the refresh token
     auth_headers, response = login_client(client, 1)
     # Save the refresh token for later
@@ -128,8 +128,8 @@ def test_logout_deletes_and_invalidates_refresh_token(client, monkeypatch, login
     # Log out
     response = client.post("/auth/logout", headers=auth_headers)
     assert response.status_code == 204
-    sleep(2)
-    # Try accessing something
+    # Wait one second and accessing something
+    sleep(1)
     response = client.get("/users/me", headers=auth_headers)
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401

@@ -19,12 +19,22 @@ def get_board(session: DBSession, user: DBUser | None, board_id: int) -> DBBoard
         raise EntityNotFound("board", "id", board_id)
     return board
 
+def get_all(session: DBSession) -> list[DBBoard]:
+    """Returns a list of all boards ordered by name"""
+    stmt = select(DBBoard).order_by(DBBoard.name)
+    return list(session.execute(stmt).scalars().all())
+
+def get_public(session: DBSession) -> list[DBBoard]:
+    """Returns a list of all boards ordered by name"""
+    stmt = select(DBBoard).where(DBBoard.public).order_by(DBBoard.name)
+    return list(session.execute(stmt).scalars().all())
+
 def get_editable(session: DBSession, user: DBUser) -> list[DBBoard]:
-    """Returns a list of all boards editable by this user"""
-    stmt = select(DBBoard).where(DBBoard.owner == user)
-    owned = list(session.execute(stmt).all())
-    stmt = select(DBBoard).where(user in DBBoard.editors)
-    editable = list(session.execute(stmt).all())
+    """Returns a list of all boards editable by this user, ordered by name"""
+    stmt = select(DBBoard).where(DBBoard.owner_id == user.id).order_by(DBBoard.name)
+    owned = list(session.execute(stmt).scalars().all())
+    stmt = select(DBBoard).join(DBBoard.editors).where(DBUser.id == user.id).order_by(DBBoard.name)
+    editable = list(session.execute(stmt).scalars().all())
     return owned + editable # make sure owners cannot add themselves as editors
 
 def create(session: DBSession, user: DBBoard, config: BoardCreate) -> DBBoard:

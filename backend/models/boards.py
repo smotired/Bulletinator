@@ -1,7 +1,8 @@
 """Request and response models for board functionality"""
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 from backend.models import shared
+from backend.database.schema import DBBoard
 
 class Board(BaseModel):
     """Response model for a board"""
@@ -27,3 +28,9 @@ class BoardUpdate(BaseModel):
     name: str | None = None
     icon: str | None = None
     public: bool | None = None
+
+def convert_board(db_board: DBBoard):
+    return Board.model_validate(db_board.__dict__)
+
+def convert_board_list(db_boards: list[DBBoard]):
+    return [ convert_board(db_board) for db_board in db_boards ]

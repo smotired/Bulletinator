@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentUser
-from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate
+from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, convert_board_list
 from backend.models.shared import Metadata
 
 router = APIRouter(prefix="/boards", tags=["Board"])
@@ -17,19 +17,19 @@ router = APIRouter(prefix="/boards", tags=["Board"])
 @router.get("/", status_code=200)
 def get_boards(session: DBSession) -> BoardCollection:
     """Returns a BoardCollection of all public boards"""
-    db_boards = boards_db.get_public(session)
+    boards = convert_board_list( boards_db.get_public(session) )
     return BoardCollection(
-        metadata=Metadata(count=len(db_boards)),
-        boards=[ Board.model_validate(dbboard.__dict__) for dbboard in db_boards ]
+        metadata=Metadata(count=len(boards)),
+        boards=boards
     )
 
 @router.get("/editable", status_code=200)
 def get_editable_boards(session: DBSession, user: CurrentUser) -> BoardCollection:
     """Returns a BoardCollection of boards that the currently logged-in user can edit"""
-    db_boards = boards_db.get_editable(session, user)
+    boards = convert_board_list( boards_db.get_editable(session, user) )
     return BoardCollection(
-        metadata=Metadata(count=len(db_boards)),
-        boards=[ Board.model_validate(dbboard.__dict__) for dbboard in db_boards ]
+        metadata=Metadata(count=len(boards)),
+        boards=boards
     )
 
 @router.post("/", status_code=201, response_model=Board)

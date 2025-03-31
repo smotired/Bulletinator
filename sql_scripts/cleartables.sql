@@ -1,5 +1,8 @@
 DELETE FROM todo_items;
 
+DELETE FROM connection_table;
+DELETE FROM pins;
+
 DELETE FROM items_note;
 DELETE FROM items_link;
 DELETE FROM items_media;

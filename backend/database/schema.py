@@ -44,7 +44,7 @@ class DBUser(Base):
     # relationships
     boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor
     editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table, back_populates="editors" )
-    uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id")
+    uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
 
 class DBBoard(Base):
     """Boards table. Each row represents a bulletin board.
@@ -61,6 +61,7 @@ class DBBoard(Base):
         - owner: User, many-to-one
         - editors: User, many-to-many
         - items: Item, one-to-many
+        - pins: Pin, one-to-many
     """
     
     __tablename__ = "boards"
@@ -74,6 +75,7 @@ class DBBoard(Base):
     owner: Mapped["DBUser"] = relationship( back_populates="boards" )
     editors: Mapped[List["DBUser"]] = relationship( secondary=editor_table, back_populates="editable" )
     items: Mapped[List["DBItem"]] = relationship( back_populates="board", cascade="all, delete-orphan" )
+    pins: Mapped[List["DBPin"]] = relationship( back_populates="board", cascade="all, delete-orphan", foreign_keys="DBPin.board_id" )
 
 class DBItem(Base):
     """Items table. Each row represents an item.
@@ -84,11 +86,13 @@ class DBItem(Base):
         - position: the position of this item on the board
         - list_id: the id of the list item this item may be in
         - index: the index of this item in a parent list
+        - pin_id: the id of the pin that may be attached to this
         - type: the type of item
         
     Relationships:
         - board: Board, many-to-one
         - list: List, many-to-one
+        - pin: Pin, one-to-one
     """
     __tablename__ = "items"
     
@@ -97,10 +101,12 @@ class DBItem(Base):
     list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("items_list.id"), default=None)
     position: Mapped[Optional[str]] # will be set conditionally
     index: Mapped[Optional[int]] # will be set conditionally
+    pin_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pins.id"), default=None)
     type: Mapped[str] # used for polymorphism
     
     board: Mapped["DBBoard"] = relationship(back_populates="items")
     list: Mapped["DBItemList"] = relationship(back_populates="contents", foreign_keys=[list_id])
+    pin: Mapped[Optional["DBPin"]] = relationship( back_populates="item", cascade="all, delete-orphan", foreign_keys="DBPin.item_id" )
     
     __mapper_args__ = {
         "polymorphic_identity": "item",
@@ -273,7 +279,7 @@ class DBImage(Base):
     uploader: Mapped["DBUser"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
     
 class DBRefreshToken(Base):
-    """Refresh token table. Each row represents a relationship between 
+    """Refresh token table. Each row represents a relationship between tokens and users.
     
     Fields:
         - token_id: the UUID of the token
@@ -285,3 +291,41 @@ class DBRefreshToken(Base):
     token_id: Mapped[str] = mapped_column(primary_key=True, unique=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     expires_at: Mapped[int]
+
+# Intermediate table for many-to-many relationship between connected Pins
+connection_table = Table(
+    "connection_table",
+    Base.metadata,
+    Column("source_id", ForeignKey("pins.id", ondelete="CASCADE")),
+    Column("destination_id", ForeignKey("pins.id", ondelete="CASCADE")),
+)
+
+class DBPin(Base):
+    """Pin table. Each row represents a pin. Pins can attact to items, have labels, and connect to other pins.
+    
+    Fields:
+        - id: primary key (auto-increments)
+        - label: the label of the pin
+        - board_id: The id of the Board containing this pin
+        - item_id: The id of the Item this pin is attached to (optional)
+    
+    Relationships:
+        - board: The Board containing this pin, many-to-one
+        - item: The Item this pin is attached to, one-to-one
+        - connections: The other Pins this Pin is attached to, many-to-many.
+            - Bidirectional, so make sure to add and remove both directions at once.
+    """
+    __tablename__ = "pins"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    label: Mapped[Optional[str]] = mapped_column( String(32) )
+    board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    
+    board: Mapped["DBBoard"] = relationship(back_populates="pins", foreign_keys=[board_id])
+    item: Mapped["DBItem"] = relationship(back_populates="pin", foreign_keys=[item_id])
+    connections: Mapped[List["DBPin"]] = relationship(
+        secondary=connection_table,
+        primaryjoin=id == connection_table.c.source_id,
+        secondaryjoin=id == connection_table.c.destination_id,
+        back_populates="connections" )

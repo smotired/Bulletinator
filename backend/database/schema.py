@@ -223,7 +223,7 @@ class DBItemList(DBItem):
     id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
     title: Mapped[str]
     
-    contents: Mapped[List["DBItem"]] = relationship(back_populates="list", cascade="all, delete-orphan", foreign_keys="DBItem.list_id")
+    contents: Mapped[List["DBItem"]] = relationship(back_populates="list", cascade="all, delete-orphan", foreign_keys="DBItem.list_id", order_by="DBItem.index")
     
     __mapper_args__ = {
         "polymorphic_identity": "list",

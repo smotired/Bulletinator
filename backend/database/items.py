@@ -50,12 +50,55 @@ def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBU
     missing = [ f for f in required_fields if config_dict[f] == None ]
     if len(missing) > 0:
         raise MissingItemFields(config.type, format_list(missing))
-    # Create a DBItem for the subclass and add it to the database
+    # If a list_id is provided, try to get the list from the database and make some space
+    if config_dict['list_id'] is not None:
+        list: DBItemList = get_by_id(session, config_dict['list_id'])
+        # make sure the other item is a list
+        if list.type != "list":
+            raise ItemTypeMismatch(list.id, 'list', list.type)
+        # make sure the list is also on this board
+        if list.board_id != board_id:
+            raise EntityNotFound('list_item', 'id', config_dict['list_id'])
+        # try to make space
+        target = config_dict['index'] or len(list.contents)
+        list = shift_list(session, list, target) # THIS MODIFIES THE DATABASE! IF MORE ERROR HANDLING IS ADDED TO THIS METHOD, IT MUST BE BEFORE THIS LINE!
+        config_dict['index'] = target
+    # Create a minimal dictionary
     dbclass: type = ITEMTYPES.get(config.type)['db']
-    stripped_dict = dict( (k, v) for k, v in config_dict.items() if k in ITEMFIELDS or v is not None ) # remove optional/not provided options
+    stripped_dict = dict( (k, v) for k, v in config_dict.items() if k in ITEMFIELDS or v is not None ) # remove fields for different subclasses
     stripped_dict['board_id'] = board_id
-    item = dbclass(**stripped_dict)
+    # Create a DBItem for the subclass and add it to the database
+    item: DBItem = dbclass(**stripped_dict)
+    # Make sure to override position and index based on list status
+    if item.list_id is not None:
+        item.position = None
+    else:
+        item.index = None
     session.add(item)
     session.commit()
     session.refresh(item)
     return item
+
+def shift_list(session: DBSession, list: DBItemList, start_index: int) -> DBItemList:
+    """Shifts the items on this list after this index by one, leaving an open space, and then return the list. Used for when you want to add something at this new index."""
+    if start_index < 0 or start_index > len(list.contents):
+        raise IndexOutOfRange("list_item", list.id, start_index)
+    # update all the item indices
+    for item in list.contents:
+        if item.index >= start_index:
+            item.index += 1
+            session.add(item)
+    session.commit()
+    session.refresh(list)
+    return list
+
+def collapse_list(session: DBSession, list: DBItemList) -> DBItemList:
+    """Refreshes a list's indices. Replaces them so they start at 0 and go up by 1."""
+    sorted_contents = sorted(list.contents, key=lambda item: item.index)
+    # update all the item indices
+    for i, item in enumerate(sorted_contents):
+        item.index = i
+        session.add(item)
+    session.commit()
+    session.refresh(list)
+    return list

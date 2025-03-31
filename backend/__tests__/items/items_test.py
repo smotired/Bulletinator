@@ -112,35 +112,27 @@ def test_create_invalid_item(client, auth_headers, exception):
     assert response.json() == exception("invalid_item_type", "Item type 'foo' is not valid")
     assert response.status_code == 422
 
-def test_create_item_default_values(client, auth_headers, exception):
+def test_create_item_default_values(client, auth_headers, def_item):
     item = {
         "type": "note",
         "text": "Created Note",
     }
     response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
     assert response.json() == {
-        "id": 9,
-        "board_id": 1,
-        "list_id": None,
-        "position": "0,0",
-        "index": None,
+        **def_item(1),
         **item,
         "size": "300,200",
     }
     assert response.status_code == 201
 
-def test_create_private_item(client, auth_headers):
+def test_create_private_item(client, auth_headers, def_item):
     item = {
         "type": "note",
         "text": "Private Note",
     }
     response = client.post("/boards/3/items", headers=auth_headers(3), json=item)
     assert response.json() == {
-        "id": 9,
-        "board_id": 3,
-        "list_id": None,
-        "position": "0,0",
-        "index": None,
+        **def_item(3),
         **item,
         "size": "300,200",
     }
@@ -160,4 +152,224 @@ def test_create_item_missing_fields(client, auth_headers, exception):
     item = { "type": "note" }
     response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
     assert response.json() == exception("missing_item_fields", "Item type 'note' was missing the following fields: text")
+    assert response.status_code == 422
+
+def test_create_link(client, auth_headers, def_item):
+    item = {
+        "type": "link",
+        "title": "Created Link",
+        "url": "/boards/2",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+    }
+    assert response.status_code == 201
+
+def test_create_link_default(client, auth_headers, def_item):
+    """Link has no optional fields but this is here in case we add some later"""
+    item = {
+        "type": "link",
+        "title": "Created Link",
+        "url": "/boards/2",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+    }
+    assert response.status_code == 201
+
+def test_create_link_missing(client, auth_headers, exception):
+    item = { "type": "link" }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("missing_item_fields", "Item type 'link' was missing the following fields: title, url")
+    assert response.status_code == 422
+
+# Add tests for creating media once item uploading is implemented.
+
+def test_create_todo(client, auth_headers, def_item, empty_collection):
+    item = {
+        "type": "todo",
+        "title": "Created Todo",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "contents": empty_collection("items")
+    }
+    assert response.status_code == 201
+
+def test_create_todo_default(client, auth_headers, def_item, empty_collection):
+    """Todo has no optional fields but this is here in case we add some later"""
+    item = {
+        "type": "todo",
+        "title": "Created Todo",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "contents": empty_collection("items")
+    }
+    assert response.status_code == 201
+
+def test_create_todo_missing(client, auth_headers, exception):
+    item = { "type": "todo" }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("missing_item_fields", "Item type 'todo' was missing the following fields: title")
+    assert response.status_code == 422
+
+def test_create_list(client, auth_headers, def_item, empty_collection):
+    item = {
+        "type": "list",
+        "title": "Created Todo",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "contents": empty_collection("items")
+    }
+    assert response.status_code == 201
+
+def test_create_list_default(client, auth_headers, def_item, empty_collection):
+    """List has no optional fields but this is here in case we add some later"""
+    item = {
+        "type": "list",
+        "title": "Created List",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "contents": empty_collection("items")
+    }
+    assert response.status_code == 201
+
+def test_create_list_missing(client, auth_headers, exception):
+    item = { "type": "list" }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("missing_item_fields", "Item type 'list' was missing the following fields: title")
+    assert response.status_code == 422
+
+def test_append_to_list(client, auth_headers, get_item):
+    # Add an item to the end of a list
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Appended Note"
+    }
+    updated_item = {
+        **item,
+        "id": 9,
+        "board_id": 2,
+        "position": None,
+        "index": 2, # there are 2 items in the list already
+        "size": "300,200"
+    }
+    response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
+    assert response.json() == updated_item
+    assert response.status_code == 201
+    # Try getting the list to make sure it's in there
+    response = client.get("/boards/2/items/2")
+    list_item = get_item(2)
+    list_item['contents']['metadata']['count'] = 3
+    list_item['contents']['items'].append(updated_item)
+    assert response.json() == list_item
+    assert response.status_code == 200
+
+def test_insert_into_list(client, auth_headers, get_item):
+    # Insert an item into the middle of a list
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Inserted Note",
+        "index": 1,
+    }
+    updated_item = {
+        **item,
+        "id": 9,
+        "board_id": 2,
+        "position": None,
+        "size": "300,200"
+    }
+    response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
+    assert response.json() == updated_item
+    assert response.status_code == 201
+    # Try getting the list to make sure it's in there
+    response = client.get("/boards/2/items/2")
+    list_item = get_item(2)
+    list_item['contents']['metadata']['count'] = 3
+    list_item['contents']['items'][1]['index'] = 2
+    list_item['contents']['items'].insert(1, updated_item)
+    assert response.json() == list_item
+    assert response.status_code == 200
+
+def test_insert_at_end(client, auth_headers, get_item):
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Inserted Note",
+        "index": 2,
+    }
+    updated_item = {
+        **item,
+        "id": 9,
+        "board_id": 2,
+        "position": None,
+        "size": "300,200"
+    }
+    response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
+    assert response.json() == updated_item
+    assert response.status_code == 201
+    response = client.get("/boards/2/items/2")
+    list_item = get_item(2)
+    list_item['contents']['metadata']['count'] = 3
+    list_item['contents']['items'].append(updated_item)
+    assert response.json() == list_item
+    assert response.status_code == 200
+
+def test_append_to_non_list(client, auth_headers, exception):
+    item = {
+        "list_id": 1,
+        "type": "note",
+        "text": "Appended Note"
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("item_type_mismatch", "Item with id=1 has type 'note', but was treated as if it had type 'list'")
+    assert response.status_code == 418
+
+def test_append_to_external_list(client, auth_headers, exception):
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Appended Note"
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item) # the list with id 2 is on board 1
+    assert response.json() == exception("entity_not_found", "Unable to find list_item with id=2")
+    assert response.status_code == 404
+
+def test_insert_out_of_range_l(client, auth_headers, exception):
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Inserted Note",
+        "index": 3,
+    }
+    response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("out_of_range", "Index 3 out of range for list_item with id=2")
+    assert response.status_code == 422
+
+def test_insert_out_of_range_s(client, auth_headers, exception):
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Inserted Note",
+        "index": -1,
+    }
+    response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("out_of_range", "Index -1 out of range for list_item with id=2")
     assert response.status_code == 422

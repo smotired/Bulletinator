@@ -102,16 +102,8 @@ def get_optional_user(
 OptionalUser = Annotated[Optional[DBUser], Depends(get_optional_user)]
 
 def format_list(items: list[str]):
-    """Formats a list nicely in alphabetical order. 'Alice, Bob, and Charlie'"""
+    """Formats a list nicely in alphabetical order. 'Alice, Bob, Charlie'"""
     items = sorted(items)
-    # trivial
     if len(items) == 0:
         return ""
-    if len(items) == 1:
-        return items[0]
-    # more complicated. return A, B, until there are 2 items left
-    listed = ""
-    while len(items) > 2:
-        listed = listed + items.pop(0) + ", "
-    # put the last 2 in
-    return listed + f"{items[0]} and {items[1]}"
+    return ', '.join(items)

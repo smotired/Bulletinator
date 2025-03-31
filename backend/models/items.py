@@ -79,7 +79,7 @@ class ItemLink(Item):
     
 class ItemLinkCreate(BaseItemCreate):
     """Request model for creating a Link item"""
-    title: str | None
+    title: str
     url: str
     
 class ItemLinkUpdate(BaseItemUpdate):
@@ -154,46 +154,26 @@ SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
 
 # List-related request models (both List items and Todo items)
 
-class TodoAdd(BaseModel):
+class TodoItemCreate(BaseModel):
     """Request model for adding to a todo list"""
     todo_id: int
     text: str
     link: str | None
+    done: bool | None
     
-class TodoRemove(BaseModel):
-    """Request model for removing from a todo list"""
-    todo_id: int
-    index: int
-    
-class TodoComplete(BaseModel):
-    """Request model for checking off in a todo list"""
-    todo_id: int
-    index: int
-
-class ItemListInsert(BaseModel):
-    """Request model for inserting an existing item into a list"""
-    item_id: int
-    list_id: int
-    index: int
-    
-class ItemListRemove(BaseModel):
-    """Request model for removing an item from a list"""
-    list_id: int
-    item_id: int | None = None # removing the item
-    index: int | None = None # removing the item at an index
-
-class ItemIndexChange(BaseModel):
-    """Request model for changing the index of an item within a List item"""
-    id: int # the id of the item
-    new_index: int | None = None # setting an exact index
-    index_offset: int | None = None # setting a relative index
+class TodoItemUpdate(BaseModel):
+    """Request model for updating a todo list item"""
+    id: int
+    text: str
+    link: str | None
+    done: bool | None
 
 # Fields for base item
 ITEMFIELDS = [ "board_id", "list_id", "position", "index", "type" ]
 # Mappings from type strings to various subclasses, and required fields.
 ITEMTYPES: dict[str, dict[str, type | list[str]]] = {
     "note": { "base": ItemNote, "db": DBItemNote, "create": ItemNoteCreate, "update": ItemNoteUpdate, "required_fields": [ "text" ] },
-    "link": { "base": ItemLink, "db": DBItemLink, "create": ItemLinkCreate, "update": ItemLinkUpdate, "required_fields": [ "url" ] },
+    "link": { "base": ItemLink, "db": DBItemLink, "create": ItemLinkCreate, "update": ItemLinkUpdate, "required_fields": [ "title", "url" ] },
     "media": { "base": ItemMedia, "db": DBItemMedia, "create": ItemMediaCreate, "update": ItemMediaUpdate, "required_fields": [ "url" ] },
     "todo": { "base": ItemTodo, "db": DBItemTodo, "create": ItemTodoCreate, "update": ItemTodoUpdate, "required_fields": [ "title" ] },
     "list": { "base": ItemList, "db": DBItemList, "create": ItemListCreate, "update": ItemListUpdate, "required_fields": [ "title" ] },

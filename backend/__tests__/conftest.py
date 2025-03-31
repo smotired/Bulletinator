@@ -207,3 +207,26 @@ def login_client(create_login, form_headers):
         token = response.json()["access_token"]
         return { "Authorization": f"Bearer {token}" }, response
     return _login_client
+
+@pytest.fixture()
+def def_item():
+    """Function to create the default values added when creating an item with this configuration"""
+    def _def_item(board_id: int) -> dict:
+        return {
+            "id": 9,
+            "board_id": board_id,
+            "list_id": None,
+            "position": "0,0",
+            "index": None,
+        }
+    return _def_item
+
+@pytest.fixture()
+def empty_collection():
+    """Function to generate an empty collection with this key"""
+    def _empty_collection(list_key: str) -> dict:
+        return {
+            "metadata": { "count": 0 },
+            list_key: []
+        }
+    return _empty_collection

@@ -436,6 +436,12 @@ def test_add_todo_item_to_non_todo(client, auth_headers, exception):
     assert response.json() == exception("item_type_mismatch", "Item with id=1 has type 'note', but was treated as if it had type 'todo'")
     assert response.status_code == 418
 
+def test_add_todo_item_unauthorized(client, auth_headers, exception):
+    item = { "list_id": 5, "text": "New Task", "link": "/boards/1/items/1", "done": False }
+    response = client.post("/boards/1/items/todo", headers=auth_headers(4), json=item)
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403
+
 def test_update_todo_item(client, auth_headers, get_item):
     update = { "done": True }
     response = client.put("/boards/1/items/todo/3", headers=auth_headers(1), json=update)
@@ -459,6 +465,12 @@ def test_update_todo_item_other_board(client, auth_headers, exception):
     assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=3")
     assert response.status_code == 404
 
+def test_update_todo_item_unauthorized(client, auth_headers, exception):
+    update = { "done": True }
+    response = client.put("/boards/1/items/todo/3", headers=auth_headers(4), json=update)
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403
+
 def test_delete_todo_item(client, auth_headers, get_item):
     response = client.delete("/boards/1/items/todo/3", headers=auth_headers(1))
     assert response.status_code == 204
@@ -478,3 +490,8 @@ def test_delete_todo_item_other_board(client, auth_headers, exception):
     response = client.delete("/boards/2/items/todo/3", headers=auth_headers(1))
     assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=3")
     assert response.status_code == 404
+
+def test_delete_todo_item_unauthorized(client, auth_headers, exception):
+    response = client.delete("/boards/1/items/todo/3", headers=auth_headers(4))
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403

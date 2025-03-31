@@ -124,7 +124,7 @@ class DBItem(Base):
         """If this item is not in a list, it should not have an index."""
         if self.list_id is None:
             return None
-        if value:
+        if value is not None:
             return value
         if self.list:
             return len(self.list.contents) - 1

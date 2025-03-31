@@ -33,6 +33,16 @@ def add_item(session: DBSession, board_id: int, config: ItemCreate, user: Curren
     """If the user can edit this board, add an item."""
     return convert_item( items_db.create_item(session, board_id, config, user) )
 
+@router.put("/{item_id}", status_code=200)
+def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpdate, user: CurrentUser) -> SomeItem:
+    """Updates an item on this board."""
+    return convert_item( items_db.update_item(session, board_id, item_id, config, user) )
+
+@router.delete("/{item_id}", status_code=204)
+def delete_item(session: DBSession, board_id: int, item_id: int, user: CurrentUser) -> None:
+    """Deletes an item on this board."""
+    items_db.delete_item(session, board_id, item_id, user)
+
 @router.post("/todo", status_code=201)
 def add_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, user: CurrentUser) -> TodoItem:
     """Add an item to a todo list on this board."""
@@ -46,4 +56,4 @@ def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, confi
 @router.delete("/todo/{todo_item_id}", status_code=204)
 def deletetodo_item(session: DBSession, board_id: int, todo_item_id: int, user: CurrentUser) -> None:
     """Add an item to a todo list on this board."""
-    return items_db.delete_todo_item(session, board_id, todo_item_id, user)
+    items_db.delete_todo_item(session, board_id, todo_item_id, user)

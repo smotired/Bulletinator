@@ -109,7 +109,7 @@ class AccessDenied(BadRequestException):
 
 class AddBoardOwnerAsEditor(BadRequestException):
     def __init__(self):
-        self.status_code = 403
+        self.status_code = 422
         self.error = "add_board_owner_as_editor"
         self.message = "Cannot add the board owner as an editor"
 
@@ -136,3 +136,9 @@ class IndexOutOfRange(BadRequestException):
         self.status_code = 422
         self.error = "out_of_range"
         self.message = f"Index {index} out of range for {entity} with id={id}"
+
+class AddListToList(BadRequestException):
+    def __init__(self):
+        self.status_code = 422
+        self.error = "add_list_to_list"
+        self.message = "Cannot add a list to another list"

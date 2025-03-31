@@ -76,6 +76,9 @@ def items():
         { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 2" },
         { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
         { "id": 8, "board_id": 3, "list_id": None, "position": "0,0", "index": None, "type": "note", "text": "Private Note", "size": "300,200" },
+        { "id": 9, "board_id": 2, "list_id": None, "position": "0,500", "index": None, "type": "list", "title": "Test List 2" },
+        { "id": 10, "board_id": 2, "list_id": 9, "position": None, "index": 0, "type": "note", "text": "List Item 3", "size": "300,200" },
+        { "id": 11, "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
     ]
 
 @pytest.fixture
@@ -209,11 +212,11 @@ def login_client(create_login, form_headers):
     return _login_client
 
 @pytest.fixture()
-def def_item():
+def def_item(items):
     """Function to create the default values added when creating an item with this configuration"""
     def _def_item(board_id: int) -> dict:
         return {
-            "id": 9,
+            "id": len(items) + 1,
             "board_id": board_id,
             "list_id": None,
             "position": "0,0",

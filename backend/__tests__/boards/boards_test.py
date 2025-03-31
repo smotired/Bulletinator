@@ -137,4 +137,4 @@ def test_remove_editor(client, auth_headers, get_response_user):
 def test_add_owner_as_editor(client, auth_headers, exception):
     response = client.put("/boards/3/editors/2", headers=auth_headers(2))
     assert response.json() == exception("add_board_owner_as_editor", "Cannot add the board owner as an editor")
-    assert response.status_code == 403
+    assert response.status_code == 422

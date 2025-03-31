@@ -82,6 +82,7 @@ def test_create_item(client, auth_headers, items, get_item):
     updated_item = {
         "id": len(items) + 1,
         "board_id": 1,
+        "pin": None,
         **item,
     }
     assert response.json() == updated_item
@@ -268,7 +269,8 @@ def test_append_to_list(client, auth_headers, items, get_item):
         "board_id": 2,
         "position": None,
         "index": 2, # there are 2 items in the list already
-        "size": "300,200"
+        "size": "300,200",
+        "pin": None,
     }
     response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
     assert response.json() == updated_item
@@ -294,7 +296,8 @@ def test_insert_into_list(client, auth_headers, items, get_item):
         "id": len(items) + 1,
         "board_id": 2,
         "position": None,
-        "size": "300,200"
+        "size": "300,200",
+        "pin": None,
     }
     response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
     assert response.json() == updated_item
@@ -320,7 +323,8 @@ def test_insert_at_end(client, auth_headers, items, get_item):
         "id": len(items) + 1,
         "board_id": 2,
         "position": None,
-        "size": "300,200"
+        "size": "300,200",
+        "pin": None,
     }
     response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
     assert response.json() == updated_item

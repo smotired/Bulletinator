@@ -68,17 +68,17 @@ def editors(): # board_ids and user_ids
 @pytest.fixture
 def items():
     return [
-        { "id": 1, "board_id": 1, "list_id": None, "position": "0,0", "index": None, "type": "note", "text": "Test Note", "size": "300,200" },
-        { "id": 2, "board_id": 2, "list_id": None, "position": "0,0", "index": None, "type": "list", "title": "Test List" },
-        { "id": 3, "board_id": 2, "list_id": 2, "position": None, "index": 0, "type": "note", "text": "List Item 1", "size": "300,200" },
-        { "id": 4, "board_id": 2, "list_id": 2, "position": None, "index": 1, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
-        { "id": 5, "board_id": 1, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 1" },
-        { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "type": "todo", "title": "Todo List 2" },
-        { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
-        { "id": 8, "board_id": 3, "list_id": None, "position": "0,0", "index": None, "type": "note", "text": "Private Note", "size": "300,200" },
-        { "id": 9, "board_id": 2, "list_id": None, "position": "0,500", "index": None, "type": "list", "title": "Test List 2" },
-        { "id": 10, "board_id": 2, "list_id": 9, "position": None, "index": 0, "type": "note", "text": "List Item 3", "size": "300,200" },
-        { "id": 11, "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
+        { "id": 1, "board_id": 1, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Test Note", "size": "300,200" },
+        { "id": 2, "board_id": 2, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "list", "title": "Test List" },
+        { "id": 3, "board_id": 2, "list_id": 2, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 1", "size": "300,200" },
+        { "id": 4, "board_id": 2, "list_id": 2, "position": None, "index": 1, "pin": None, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
+        { "id": 5, "board_id": 1, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 1" },
+        { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 2" },
+        { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "pin": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
+        { "id": 8, "board_id": 3, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Private Note", "size": "300,200" },
+        { "id": 9, "board_id": 2, "list_id": None, "position": "0,500", "index": None, "pin": None, "type": "list", "title": "Test List 2" },
+        { "id": 10, "board_id": 2, "list_id": 9, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 3", "size": "300,200" },
+        { "id": 11, "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "pin": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
     ]
 
 @pytest.fixture
@@ -221,6 +221,7 @@ def def_item(items):
             "list_id": None,
             "position": "0,0",
             "index": None,
+            "pin": None,
         }
     return _def_item
 

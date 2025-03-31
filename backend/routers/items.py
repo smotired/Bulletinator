@@ -54,6 +54,31 @@ def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, confi
     return items_db.update_todo_item(session, board_id, todo_item_id, config, user)
 
 @router.delete("/todo/{todo_item_id}", status_code=204)
-def deletetodo_item(session: DBSession, board_id: int, todo_item_id: int, user: CurrentUser) -> None:
+def delete_todo_item(session: DBSession, board_id: int, todo_item_id: int, user: CurrentUser) -> None:
     """Add an item to a todo list on this board."""
     items_db.delete_todo_item(session, board_id, todo_item_id, user)
+
+@router.post("/pins", status_code=201)
+def create_pin(session: DBSession, board_id: int, config: PinCreate, user: CurrentUser) -> Pin:
+    """Creates a pin on this board."""
+    return convert_pin( items_db.create_pin(session, board_id, config, user) )
+
+@router.put("/pins/{pin_id}", status_code=200)
+def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: CurrentUser) -> Pin:
+    """Updates a pin on this board."""
+    return convert_pin( items_db.create_pin(session, board_id, pin_id, config, user) )
+
+@router.delete("/pins/{pin_id}", status_code=204)
+def delete_pin(session: DBSession, board_id: int, pin_id: int, user: CurrentUser):
+    """Deletes a pin on this board."""
+    items_db.delete_pin(session, board_id, pin_id, user)
+
+@router.put("/pins/{pin_id}/connection", status_code=200)
+def connect_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: CurrentUser) -> Pin:
+    """Adds a connection between two pins on this board."""
+    return convert_pin( items_db.create_pin(session, board_id, pin_id, config, user) )
+
+@router.delete("/pins/{pin_id}/connection", status_code=204)
+def disconnect_pin(session: DBSession, board_id: int, pin_id: int, user: CurrentUser):
+    """Deletes a connection between two pins on this board."""
+    items_db.delete_pin(session, board_id, pin_id, user)

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectin_polymorphic, selectinload
 
 from backend.dependencies import DBSession, format_list
 from backend.database import boards as boards_db
-from backend.database.schema import DBItem, DBBoard, DBUser, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList
+from backend.database.schema import DBItem, DBBoard, DBUser, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBPin
 from backend.exceptions import *
 
 from backend.models.items import *
@@ -242,3 +242,81 @@ def collapse_list(session: DBSession, list: DBItemList) -> DBItemList:
     session.commit()
     session.refresh(list)
     return list
+
+def create_pin(session: DBSession, board_id: int, config: PinCreate, user: DBUser) -> DBPin:
+    """Adds a pin to an item."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    item: DBItem = get_by_id(session, config.item_id)
+    if item.board_id != board_id:
+        raise EntityNotFound('item', 'id', config.item_id)
+    pin = DBPin(
+        board_id=board_id,
+        item_id=config.item_id,
+        label=config.label,
+    )
+    session.add(pin)
+    session.commit()
+    session.refresh(pin)
+    return pin
+
+def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: DBUser) -> DBPin:
+    """Updates a pin."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    pin: DBPin = session.get(DBPin, pin_id)
+    if pin == None:
+        raise EntityNotFound('pin', 'id', pin_id)
+    if config.item_id is not None:
+        item: DBItem = get_by_id(session, config.item_id)
+        if item.board_id != board_id:
+            raise EntityNotFound('item', 'id', config.item_id)
+        pin.item_id = config.item_id
+    pin.label = config.label if config.label is not None else pin.label
+    session.add(pin)
+    session.commit()
+    session.refresh(pin)
+    return pin
+
+def delete_pin(session: DBSession, board_id: int, pin_id: int, user: DBUser) -> None:
+    """Deletes a pin."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    pin: DBPin = session.get(DBPin, pin_id)
+    if pin == None:
+        raise EntityNotFound('pin', 'id', pin_id)
+    session.delete(pin)
+    session.commit()
+
+def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, user: DBUser) -> list[DBPin]:
+    """Adds a connection between two pins."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    pin1: DBPin = session.get(DBPin, pin1_id)
+    if pin1 == None:
+        raise EntityNotFound('pin', 'id', pin1_id)
+    pin2: DBPin = session.get(DBPin, pin2_id)
+    if pin2 == None:
+        raise EntityNotFound('pin', 'id', pin2_id)
+    pin1.connections.append(pin2)
+    pin2.connections.append(pin1)
+    session.add(pin1)
+    session.add(pin2)
+    session.commit()
+    session.refresh(pin1)
+    session.refresh(pin2)
+    return [ pin1, pin2 ]
+
+def remove_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, user: DBUser) -> list[DBPin]:
+    """Removes a connection between two pins."""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    pin1: DBPin = session.get(DBPin, pin1_id)
+    if pin1 == None:
+        raise EntityNotFound('pin', 'id', pin1_id)
+    pin2: DBPin = session.get(DBPin, pin2_id)
+    if pin2 == None:
+        raise EntityNotFound('pin', 'id', pin2_id)
+    pin1.connections.remove(pin2)
+    pin2.connections.remove(pin1)
+    session.add(pin1)
+    session.add(pin2)
+    session.commit()
+    session.refresh(pin1)
+    session.refresh(pin2)
+    return [ pin1, pin2 ]

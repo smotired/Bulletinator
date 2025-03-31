@@ -1,9 +1,9 @@
 """Request and response models for item functionality"""
 
-from typing import Union
+from typing import Union, Optional
 from pydantic import BaseModel
 from backend.models import shared
-from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBTodoItem
+from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBTodoItem, DBPin
 
 # Base Item
 
@@ -14,6 +14,7 @@ class Item(BaseModel):
     list_id: int | None = None
     position: str | None = None
     index: int | None = None
+    pin: Optional["Pin"] = None
     type: str
     
 class ItemCollection(BaseModel):
@@ -137,17 +138,46 @@ class ItemListUpdate(BaseItemUpdate):
 # Items within a todo list
 
 class TodoItem(BaseModel):
-    """Request model for an item in a todo list"""
+    """Response model for an item in a todo list"""
     id: int
     list_id: int
     text: str
-    link: str | None
+    link: str | None = None
     done: bool
 
 class TodoItemCollection(BaseModel):
-    """Request model for a group of todo list items"""
+    """Response model for a group of todo list items"""
     metadata: shared.Metadata
     items: list[TodoItem]
+
+# Pins that can connect different items
+
+class Pin(BaseModel):
+    """Response model for a pin"""
+    id: int
+    board_id: int
+    item_id: int
+    label: str | None = None
+    connections: list[int] # not a pin collection because of the infinite recursion
+
+class PinCreate(BaseModel):
+    """Request model for creating a pin"""
+    item_id: int
+    label: str | None = None
+
+class PinUpdate(BaseModel):
+    """Request model for updating a pin"""
+    item_id: int | None = None
+    label: str | None = None
+
+def convert_pin(db_pin: DBPin) -> Pin:
+    return Pin(
+        id=db_pin.id,
+        board_id=db_pin.board_id,
+        item_id=db_pin.item_id,
+        label=db_pin.label,
+        connections=[ other.id for other in db_pin.connections ]
+    )
 
 # Union of all item types
 SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
@@ -181,12 +211,14 @@ ITEMTYPES: dict[str, dict[str, type | list[str]]] = {
 def convert_item(db_item: DBItem) -> SomeItem:
     item_type = ITEMTYPES.get(db_item.type, { "base": Item })['base']
     # Convert collections before validating
+    db_dict = db_item.__dict__
+    db_dict['pin'] = convert_pin( db_item.pin ).__dict__ if db_item.pin else None
     if item_type == ItemTodo:
         collection = TodoItemCollection(
             metadata=shared.Metadata(count=len(db_item.contents)),
             items=convert_todo_item_list(db_item.contents)
         )
-        item_dict = Item.model_validate(db_item.__dict__).model_dump()
+        item_dict = Item.model_validate(db_dict).model_dump()
         item_dict['title'] = db_item.title
         item_dict['contents'] = collection
         return ItemTodo(**item_dict)
@@ -196,12 +228,12 @@ def convert_item(db_item: DBItem) -> SomeItem:
             metadata=shared.Metadata(count=len(db_item.contents)),
             items=convert_item_list(db_item.contents) # no need to worry about recursion because lists cannot contain other lists
         )
-        item_dict = Item.model_validate(db_item.__dict__).model_dump()
+        item_dict = Item.model_validate(db_dict).model_dump()
         item_dict['title'] = db_item.title
         item_dict['contents'] = collection
         return ItemList(**item_dict)
     # Otherwise we can just validate
-    return item_type.model_validate(db_item.__dict__)
+    return item_type.model_validate(db_dict)
 
 def convert_item_list(db_items: list[DBItem]) -> list[SomeItem]:
     return [ convert_item(db_item) for db_item in db_items ]

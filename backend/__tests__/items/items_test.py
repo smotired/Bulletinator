@@ -332,6 +332,26 @@ def test_insert_at_end(client, auth_headers, get_item):
     assert response.json() == list_item
     assert response.status_code == 200
 
+def test_append_to_404_list(client, auth_headers, exception):
+    item = {
+        "list_id": 404,
+        "type": "note",
+        "text": "Appended Note"
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("entity_not_found", "Unable to find item_list with id=404")
+    assert response.status_code == 404
+
+def test_append_to_external_list(client, auth_headers, exception):
+    item = {
+        "list_id": 2,
+        "type": "note",
+        "text": "Appended Note"
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item) # the list with id 2 is on board 1
+    assert response.json() == exception("entity_not_found", "Unable to find item_list with id=2")
+    assert response.status_code == 404
+
 def test_append_to_non_list(client, auth_headers, exception):
     item = {
         "list_id": 1,
@@ -342,16 +362,6 @@ def test_append_to_non_list(client, auth_headers, exception):
     assert response.json() == exception("item_type_mismatch", "Item with id=1 has type 'note', but was treated as if it had type 'list'")
     assert response.status_code == 418
 
-def test_append_to_external_list(client, auth_headers, exception):
-    item = {
-        "list_id": 2,
-        "type": "note",
-        "text": "Appended Note"
-    }
-    response = client.post("/boards/1/items", headers=auth_headers(1), json=item) # the list with id 2 is on board 1
-    assert response.json() == exception("entity_not_found", "Unable to find list_item with id=2")
-    assert response.status_code == 404
-
 def test_insert_out_of_range_l(client, auth_headers, exception):
     item = {
         "list_id": 2,
@@ -360,7 +370,7 @@ def test_insert_out_of_range_l(client, auth_headers, exception):
         "index": 3,
     }
     response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
-    assert response.json() == exception("out_of_range", "Index 3 out of range for list_item with id=2")
+    assert response.json() == exception("out_of_range", "Index 3 out of range for item_list with id=2")
     assert response.status_code == 422
 
 def test_insert_out_of_range_s(client, auth_headers, exception):
@@ -371,5 +381,100 @@ def test_insert_out_of_range_s(client, auth_headers, exception):
         "index": -1,
     }
     response = client.post("/boards/2/items", headers=auth_headers(1), json=item)
-    assert response.json() == exception("out_of_range", "Index -1 out of range for list_item with id=2")
+    assert response.json() == exception("out_of_range", "Index -1 out of range for item_list with id=2")
     assert response.status_code == 422
+
+def test_add_todo_item(client, auth_headers, get_item):
+    item = { "list_id": 5, "text": "New Task", "link": "/boards/1/items/1", "done": False }
+    updated_item = {
+        "id": 7,
+        **item,
+    }
+    response = client.post("/boards/1/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == updated_item
+    assert response.status_code == 201
+    response = client.get("/boards/1/items/5")
+    todo = get_item(5)
+    todo['contents']['metadata']['count'] = 4
+    todo['contents']['items'].append(updated_item)
+    assert response.json() == todo
+    assert response.status_code == 200
+
+def test_add_todo_item_defaults(client, auth_headers, get_item):
+    item = { "list_id": 5, "text": "New Task" }
+    updated_item = {
+        "id": 7,
+        **item,
+        "link": None,
+        "done": False,
+    }
+    response = client.post("/boards/1/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == updated_item
+    assert response.status_code == 201
+    response = client.get("/boards/1/items/5")
+    todo = get_item(5)
+    todo['contents']['metadata']['count'] = 4
+    todo['contents']['items'].append(updated_item)
+    assert response.json() == todo
+    assert response.status_code == 200
+
+def test_add_todo_item_wrong_board(client, auth_headers, exception):
+    item = { "list_id": 5, "text": "New Task", "link": "/boards/2/items/2", "done": False }
+    response = client.post("/boards/2/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == exception("entity_not_found", "Unable to find item_todo with id=5")
+    assert response.status_code == 404
+
+def test_add_todo_item_to_404_todo(client, auth_headers, exception):
+    item = { "list_id": 404, "text": "New Task", "link": "/boards/1/items/5", "done": False }
+    response = client.post("/boards/1/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == exception("entity_not_found", "Unable to find item_todo with id=404")
+    assert response.status_code == 404
+
+def test_add_todo_item_to_non_todo(client, auth_headers, exception):
+    item = { "list_id": 1, "text": "New Task", "link": "/boards/1/items/5", "done": False }
+    response = client.post("/boards/1/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == exception("item_type_mismatch", "Item with id=1 has type 'note', but was treated as if it had type 'todo'")
+    assert response.status_code == 418
+
+def test_update_todo_item(client, auth_headers, get_item):
+    update = { "done": True }
+    response = client.put("/boards/1/items/todo/3", headers=auth_headers(1), json=update)
+    assert response.json() == { "id": 3, "list_id": 5, "text": "Item 3", "link": None, "done": True }
+    assert response.status_code == 200
+    response = client.get("/boards/1/items/5")
+    todo = get_item(5)
+    todo['contents']['items'][2]['done'] = True
+    assert response.json() == todo
+    assert response.status_code == 200
+
+def test_update_404_todo_item(client, auth_headers, exception):
+    update = { "done": True }
+    response = client.put("/boards/1/items/todo/404", headers=auth_headers(1), json=update)
+    assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=404")
+    assert response.status_code == 404
+
+def test_update_todo_item_other_board(client, auth_headers, exception):
+    update = { "done": True }
+    response = client.put("/boards/2/items/todo/3", headers=auth_headers(1), json=update)
+    assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=3")
+    assert response.status_code == 404
+
+def test_delete_todo_item(client, auth_headers, get_item):
+    response = client.delete("/boards/1/items/todo/3", headers=auth_headers(1))
+    assert response.status_code == 204
+    response = client.get("/boards/1/items/5")
+    todo = get_item(5)
+    todo['contents']['metadata']['count'] = 2
+    todo['contents']['items'].pop(2)
+    assert response.json() == todo
+    assert response.status_code == 200
+
+def test_delete_404_todo_item(client, auth_headers, exception):
+    response = client.delete("/boards/1/items/todo/404", headers=auth_headers(1))
+    assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=404")
+    assert response.status_code == 404
+
+def test_delete_todo_item_other_board(client, auth_headers, exception):
+    response = client.delete("/boards/2/items/todo/3", headers=auth_headers(1))
+    assert response.json() == exception("entity_not_found", "Unable to find todo_item with id=3")
+    assert response.status_code == 404

@@ -156,17 +156,16 @@ SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
 
 class TodoItemCreate(BaseModel):
     """Request model for adding to a todo list"""
-    todo_id: int
+    list_id: int
     text: str
-    link: str | None
-    done: bool | None
+    link: str | None = None
+    done: bool = False
     
 class TodoItemUpdate(BaseModel):
     """Request model for updating a todo list item"""
-    id: int
-    text: str
-    link: str | None
-    done: bool | None
+    text: str | None = None
+    link: str | None = None
+    done: bool | None = None
 
 # Fields for base item
 ITEMFIELDS = [ "board_id", "list_id", "position", "index", "type" ]

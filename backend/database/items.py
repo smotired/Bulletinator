@@ -12,13 +12,13 @@ from backend.models.items import *
 polymorphic = selectin_polymorphic(DBItem, [DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList])
 loadlistcontents = selectinload(DBItemList.contents).options(polymorphic)
 
-def get_by_id(session: DBSession, item_id: int) -> DBItem:
+def get_by_id(session: DBSession, item_id: int, typestr: str = 'item') -> DBItem:
     """Returns the item with this ID"""
     # tragically due to polymorphism session.get doesn't work
     stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.id == item_id)
     results = list(session.execute(stmt).scalars().all())
     if len(results) == 0:
-        raise EntityNotFound("item", "id", item_id)
+        raise EntityNotFound(typestr, "id", item_id)
     return results[0]
 
 def get_items(session: DBSession, board_id: int, user: DBUser | None) -> list[DBItem]:
@@ -52,13 +52,13 @@ def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBU
         raise MissingItemFields(config.type, format_list(missing))
     # If a list_id is provided, try to get the list from the database and make some space
     if config_dict['list_id'] is not None:
-        list: DBItemList = get_by_id(session, config_dict['list_id'])
+        list: DBItemList = get_by_id(session, config_dict['list_id'], 'item_list')
+        # make sure the list is also on this board
+        if list.board_id != board_id:
+            raise EntityNotFound('item_list', 'id', config_dict['list_id'])
         # make sure the other item is a list
         if list.type != "list":
             raise ItemTypeMismatch(list.id, 'list', list.type)
-        # make sure the list is also on this board
-        if list.board_id != board_id:
-            raise EntityNotFound('list_item', 'id', config_dict['list_id'])
         # try to make space
         target = config_dict['index'] or len(list.contents)
         list = shift_list(session, list, target) # THIS MODIFIES THE DATABASE! IF MORE ERROR HANDLING IS ADDED TO THIS METHOD, IT MUST BE BEFORE THIS LINE!
@@ -79,10 +79,63 @@ def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBU
     session.refresh(item)
     return item
 
+def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, user: DBUser) -> DBTodoItem:
+    """Creates and returns a TodoItem in this todo list"""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    todo: DBItemTodo = get_by_id(session, config.list_id, 'item_todo')
+    if todo.board_id != board_id:
+        raise EntityNotFound('item_todo', 'id', config.list_id)
+    if todo.type != 'todo':
+        raise ItemTypeMismatch(todo.id, 'todo', todo.type)
+    todo_item = DBTodoItem(
+        list_id = config.list_id,
+        text=config.text,
+        link=config.link,
+        done=config.done
+    )
+    session.add(todo_item)
+    session.commit()
+    session.refresh(todo_item)
+    return todo_item
+
+def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, config: TodoItemUpdate, user: DBUser) -> DBTodoItem:
+    """Creates and returns a TodoItem in this todo list"""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    todo_item = session.get(DBTodoItem, todo_item_id)
+    if todo_item == None:
+        raise EntityNotFound('todo_item', 'id', todo_item_id)
+    todo: DBItemTodo = get_by_id(session, todo_item.list_id, 'item_todo')
+    if todo.board_id != board_id:
+        raise EntityNotFound(f'todo_item', 'id', todo_item_id)
+    if todo.type != 'todo':
+        raise ItemTypeMismatch(todo.id, 'todo', todo.type)
+    # update fields
+    todo_item.text = config.text or todo_item.text
+    todo_item.link = config.link or todo_item.link
+    todo_item.done = config.done or todo_item.done
+    session.add(todo_item)
+    session.commit()
+    session.refresh(todo_item)
+    return todo_item
+
+def delete_todo_item(session: DBSession, board_id: int, todo_item_id: int, user: DBUser) -> None:
+    """Deletes a todo item"""
+    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    todo_item = session.get(DBTodoItem, todo_item_id)
+    if todo_item == None:
+        raise EntityNotFound('todo_item', 'id', todo_item_id)
+    todo: DBItemTodo = get_by_id(session, todo_item.list_id, 'item_todo')
+    if todo.board_id != board_id:
+        raise EntityNotFound('todo_item', 'id', todo_item_id)
+    if todo.type != 'todo':
+        raise ItemTypeMismatch(todo.id, 'todo', todo.type)
+    session.delete(todo_item)
+    session.commit()
+
 def shift_list(session: DBSession, list: DBItemList, start_index: int) -> DBItemList:
     """Shifts the items on this list after this index by one, leaving an open space, and then return the list. Used for when you want to add something at this new index."""
     if start_index < 0 or start_index > len(list.contents):
-        raise IndexOutOfRange("list_item", list.id, start_index)
+        raise IndexOutOfRange("item_list", list.id, start_index)
     # update all the item indices
     for item in list.contents:
         if item.index >= start_index:

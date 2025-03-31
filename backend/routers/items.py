@@ -32,3 +32,18 @@ def get_item(session: DBSession, board_id: int, item_id: int, user: OptionalUser
 def add_item(session: DBSession, board_id: int, config: ItemCreate, user: CurrentUser) -> SomeItem:
     """If the user can edit this board, add an item."""
     return convert_item( items_db.create_item(session, board_id, config, user) )
+
+@router.post("/todo", status_code=201)
+def add_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, user: CurrentUser) -> TodoItem:
+    """Add an item to a todo list on this board."""
+    return items_db.create_todo_item(session, board_id, config, user)
+
+@router.put("/todo/{todo_item_id}", status_code=200)
+def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, config: TodoItemUpdate, user: CurrentUser) -> TodoItem:
+    """Updates an item in a todo list on this board."""
+    return items_db.update_todo_item(session, board_id, todo_item_id, config, user)
+
+@router.delete("/todo/{todo_item_id}", status_code=204)
+def deletetodo_item(session: DBSession, board_id: int, todo_item_id: int, user: CurrentUser) -> None:
+    """Add an item to a todo list on this board."""
+    return items_db.delete_todo_item(session, board_id, todo_item_id, user)

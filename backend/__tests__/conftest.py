@@ -261,14 +261,19 @@ def empty_collection():
         }
     return _empty_collection
 
+@pytest.fixture
+def get_pin(pins):
+    """Function to get a pin by ID"""
+    def _get_pin(id: int) -> dict:
+        return [ p for p in pins if p["id"] == id ][0]
+    return _get_pin
+
 @pytest.fixture()
 def get_item_pin(pins):
     """Function that returns the pin object attached to an Item, or None"""
     def _get_item_pin(item_id: int):
-        match = None
         for pin in pins:
             if pin['item_id'] == item_id:
-                match = pin
-                break
-        return match
+                return pin
+        return None
     return _get_item_pin

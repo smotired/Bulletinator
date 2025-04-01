@@ -66,19 +66,19 @@ def create_pin(session: DBSession, board_id: int, config: PinCreate, user: Curre
 @router.put("/pins/{pin_id}", status_code=200)
 def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: CurrentUser) -> Pin:
     """Updates a pin on this board."""
-    return convert_pin( items_db.create_pin(session, board_id, pin_id, config, user) )
+    return convert_pin( items_db.update_pin(session, board_id, pin_id, config, user) )
 
 @router.delete("/pins/{pin_id}", status_code=204)
 def delete_pin(session: DBSession, board_id: int, pin_id: int, user: CurrentUser):
     """Deletes a pin on this board."""
     items_db.delete_pin(session, board_id, pin_id, user)
 
-@router.put("/pins/{pin_id}/connection", status_code=200)
-def connect_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: CurrentUser) -> Pin:
+@router.put("/pins/connect", status_code=200)
+def connect_pin(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, user: CurrentUser) -> list[Pin]:
     """Adds a connection between two pins on this board."""
-    return convert_pin( items_db.create_pin(session, board_id, pin_id, config, user) )
+    return [ convert_pin(pin) for pin in items_db.add_pin_connection(session, board_id, pin1_id, pin2_id, user) ]
 
-@router.delete("/pins/{pin_id}/connection", status_code=204)
-def disconnect_pin(session: DBSession, board_id: int, pin_id: int, user: CurrentUser):
+@router.delete("/pins/connect", status_code=200)
+def disconnect_pin(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, pin_id: int, user: CurrentUser) -> list[Pin]:
     """Deletes a connection between two pins on this board."""
-    items_db.delete_pin(session, board_id, pin_id, user)
+    return [ convert_pin(pin) for pin in items_db.remove_pin_connection(session, board_id, pin1_id, pin2_id, user) ]

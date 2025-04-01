@@ -176,3 +176,6 @@ cython_debug/
 
 # Test coverage
 .coverage
+
+# Various asset creation files
+/assets/*

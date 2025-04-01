@@ -26,8 +26,8 @@ INSERT INTO todo_items VALUES (1, 6, "Plan API", null, true);
 INSERT INTO todo_items VALUES (2, 6, "Read Other Board", "/boards/3", false);
 INSERT INTO todo_items VALUES (3, 6, "Finish API", null, false);
 
-INSERT INTO pins VALUES (1, "Home", 1, 1);
-INSERT INTO pins VALUES (2, "List", 1, 2);
-INSERT INTO pins VALUES (3, null, 1, 5);
+INSERT INTO pins VALUES (1, "Home", true, 1, 1);
+INSERT INTO pins VALUES (2, "List", false, 1, 2);
+INSERT INTO pins VALUES (3, null, false, 1, 5);
 INSERT INTO connection_table VALUES (1, 2);
 INSERT INTO connection_table VALUES (2, 1);

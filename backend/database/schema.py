@@ -306,6 +306,7 @@ class DBPin(Base):
     Fields:
         - id: primary key (auto-increments)
         - label: the label of the pin
+        - compass: if the pin should be usable for navigation
         - board_id: The id of the Board containing this pin
         - item_id: The id of the Item this pin is attached to (optional)
     
@@ -319,6 +320,7 @@ class DBPin(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     label: Mapped[Optional[str]] = mapped_column( String(32) )
+    compass: Mapped[bool] = mapped_column(default=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
     

@@ -249,10 +249,13 @@ def create_pin(session: DBSession, board_id: int, config: PinCreate, user: DBUse
     item: DBItem = get_by_id(session, config.item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', config.item_id)
+    if item.pin is not None:
+        raise DuplicateEntity('pin', 'item_id', config.item_id)
     pin = DBPin(
         board_id=board_id,
         item_id=config.item_id,
         label=config.label,
+        compass=config.compass,
     )
     session.add(pin)
     session.commit()
@@ -269,8 +272,11 @@ def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate
         item: DBItem = get_by_id(session, config.item_id)
         if item.board_id != board_id:
             raise EntityNotFound('item', 'id', config.item_id)
+        if item.pin is not None:
+            raise DuplicateEntity('pin', 'item_id', config.item_id)
         pin.item_id = config.item_id
     pin.label = config.label if config.label is not None else pin.label
+    pin.compass = config.compass if config.compass is not None else pin.compass
     session.add(pin)
     session.commit()
     session.refresh(pin)

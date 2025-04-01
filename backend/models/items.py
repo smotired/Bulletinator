@@ -158,26 +158,20 @@ class Pin(BaseModel):
     board_id: int
     item_id: int
     label: str | None = None
+    compass: bool
     connections: list[int] # not a pin collection because of the infinite recursion
 
 class PinCreate(BaseModel):
     """Request model for creating a pin"""
     item_id: int
     label: str | None = None
+    compass: bool = False
 
 class PinUpdate(BaseModel):
     """Request model for updating a pin"""
     item_id: int | None = None
     label: str | None = None
-
-def convert_pin(db_pin: DBPin) -> Pin:
-    return Pin(
-        id=db_pin.id,
-        board_id=db_pin.board_id,
-        item_id=db_pin.item_id,
-        label=db_pin.label,
-        connections=[ other.id for other in db_pin.connections ]
-    )
+    compass: bool | None = None
 
 # Union of all item types
 SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
@@ -243,3 +237,13 @@ def convert_todo_item(todo_item: DBTodoItem) -> TodoItem:
 
 def convert_todo_item_list(todo_items: list[DBTodoItem]) -> list[TodoItem]:
     return [ convert_todo_item(item) for item in todo_items ]
+
+def convert_pin(db_pin: DBPin) -> Pin:
+    return Pin(
+        id=db_pin.id,
+        board_id=db_pin.board_id,
+        item_id=db_pin.item_id,
+        label=db_pin.label,
+        compass=db_pin.compass,
+        connections=[ other.id for other in db_pin.connections ]
+    )

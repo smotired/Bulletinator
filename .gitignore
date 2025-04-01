@@ -179,3 +179,4 @@ cython_debug/
 
 # Various asset creation files
 /assets/*
+desktop.ini

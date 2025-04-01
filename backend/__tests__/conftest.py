@@ -92,10 +92,18 @@ def todo_items():
         { "id": 6, "list_id": 6, "text": "Item 3", "done": False, "link": None },
     ]
 
+@pytest.fixture
+def pins():
+    return [
+        { "id": 1, "board_id": 2, "item_id": 2, "label": "List 1", "compass": True, "connections": [ 2 ] },
+        { "id": 2, "board_id": 2, "item_id": 9, "label": "List 2", "compass": False, "connections": [ 1 ] },
+        { "id": 3, "board_id": 2, "item_id": 11, "label": None, "compass": False, "connections": [  ] },
+    ]
+
 # Set up database
 
 @pytest.fixture(autouse=True)
-def setup(session, users, boards, editors, items, todo_items):
+def setup(session, users, boards, editors, items, todo_items, pins):
     """Setup initial test data in database."""
 
     # Create accounts, with passwords equal to index (e.g. password1, password2, etc)
@@ -113,6 +121,7 @@ def setup(session, users, boards, editors, items, todo_items):
         session.add(db_board)
 
     # Create items
+    db_items = {}
     for i, item in enumerate(items):
         db_item = None
         match item['type']:
@@ -128,12 +137,28 @@ def setup(session, users, boards, editors, items, todo_items):
                 db_item = DBItemList(**item)
         if db_item is None:
             raise ValueError(f"'{item['type']}' could not be matched to an item type.")
+        db_items[db_item.id] = db_item
         session.add(db_item)
 
     # Create todo list items
     for i, item in enumerate(todo_items):
         db_todo_item = DBTodoItem(**item)
         session.add(db_todo_item)
+
+    # Create pins
+    db_pins: dict[int, DBPin] = {}
+    for i, pin in enumerate(pins):
+        d = pin.copy()
+        del d['connections']
+        db_pin = DBPin(**d)
+        session.add(db_pin)
+        db_pins[db_pin.id] = db_pin
+
+    # Connect pins to items and each other
+    for i, pin, in enumerate(pins):
+        db_items
+        for conn_id in pin['connections']:
+            db_pins[i+1].connections.append(db_pins[conn_id])
 
     session.commit()
 
@@ -154,11 +179,12 @@ def get_board(boards):
     return _get_board
 
 @pytest.fixture
-def get_item(items, todo_items):
+def get_item(items, todo_items, get_item_pin):
     """Function to get an item by ID"""
     def _get_item(id: int, includeBoardId: bool = True) -> dict:
         item = [ i for i in items if i["id"] == id ][0]
         # Also populate contents
+        item['pin'] = get_item_pin(id)
         if item['type'] == "todo":
             contents = sorted([ i for i in todo_items if i['list_id'] == id ], key=lambda i: i['id'])
             item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
@@ -234,3 +260,15 @@ def empty_collection():
             list_key: []
         }
     return _empty_collection
+
+@pytest.fixture()
+def get_item_pin(pins):
+    """Function that returns the pin object attached to an Item, or None"""
+    def _get_item_pin(item_id: int):
+        match = None
+        for pin in pins:
+            if pin['item_id'] == item_id:
+                match = pin
+                break
+        return match
+    return _get_item_pin

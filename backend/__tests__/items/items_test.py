@@ -605,9 +605,12 @@ def test_delete_list(client, auth_headers, get_item, exception):
     assert response.status_code == 204
     # make sure it and its items are deleted
     response = client.get("/boards/2/items")
+    expected_items = [ get_item(6), get_item(9), get_item(11) ]
+    # the list at id 9 connected to this, so make sure that connection vanishes
+    expected_items[1]['pin']['connections'].remove(1)
     assert response.json() == {
         "metadata": { "count": 3 },
-        "items": [ get_item(6), get_item(9), get_item(11) ]
+        "items": expected_items
     }
     assert response.status_code == 200
     response = client.delete("/boards/2/items/3", headers=auth_headers(1))

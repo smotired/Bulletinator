@@ -267,3 +267,85 @@ def test_delete_404_pin(client, auth_headers, exception):
     response = client.delete("/boards/2/items/pins/404", headers=auth_headers(1))
     assert response.json() == exception("entity_not_found", "Unable to find pin with id=404")
     assert response.status_code == 404
+
+def test_add_connection(client, auth_headers, get_pin):
+    response = client.put("/boards/2/items/pins/connect?p1=1&p2=3", headers=auth_headers(1))
+    p1, p3 = get_pin(1).copy(), get_pin(3).copy()
+    p1['connections'].append(3)
+    p3['connections'].append(1)
+    assert response.json() == [ p1, p3 ]
+    assert response.status_code == 200
+
+def test_remove_connection(client, auth_headers, get_pin):
+    response = client.delete("/boards/2/items/pins/connect?p1=1&p2=2", headers=auth_headers(1))
+    p1, p2 = get_pin(1).copy(), get_pin(2).copy()
+    p1['connections'].remove(2)
+    p2['connections'].remove(1)
+    assert response.json() == [ p1, p2 ]
+    assert response.status_code == 200
+
+def test_add_connection_reversed(client, auth_headers, get_pin):
+    response = client.put("/boards/2/items/pins/connect?p1=3&p2=1", headers=auth_headers(1))
+    p1, p3 = get_pin(1).copy(), get_pin(3).copy()
+    p1['connections'].append(3)
+    p3['connections'].append(1)
+    assert response.json() == [ p3, p1 ]
+    assert response.status_code == 200
+
+def test_remove_connection_reversed(client, auth_headers, get_pin):
+    response = client.delete("/boards/2/items/pins/connect?p1=2&p2=1", headers=auth_headers(1))
+    p1, p2 = get_pin(1).copy(), get_pin(2).copy()
+    p1['connections'].remove(2)
+    p2['connections'].remove(1)
+    assert response.json() == [ p2, p1 ]
+    assert response.status_code == 200
+
+def test_add_connection_existing_unchanged(client, auth_headers, get_pin):
+    response = client.put("/boards/2/items/pins/connect?p1=1&p2=2", headers=auth_headers(1))
+    assert response.json() == [ get_pin(1), get_pin(2) ]
+    assert response.status_code == 200
+
+def test_remove_connection_nonexisting_unchanged(client, auth_headers, get_pin):
+    response = client.delete("/boards/2/items/pins/connect?p1=1&p2=3", headers=auth_headers(1))
+    assert response.json() == [ get_pin(1), get_pin(3) ]
+    assert response.status_code == 200
+
+def test_add_connection_wrong_board(client, auth_headers, exception):
+    response = client.put("/boards/1/items/pins/connect?p1=1&p2=3", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=1')
+    assert response.status_code == 404
+
+def test_add_connection_from_404(client, auth_headers, exception):
+    response = client.put("/boards/2/items/pins/connect?p1=404&p2=3", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=404')
+    assert response.status_code == 404
+
+def test_add_connection_to_404(client, auth_headers, exception):
+    response = client.put("/boards/2/items/pins/connect?p1=1&p2=404", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=404')
+    assert response.status_code == 404
+
+def test_remove_connection_wrong_board(client, auth_headers, exception):
+    response = client.delete("/boards/1/items/pins/connect?p1=1&p2=2", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=1')
+    assert response.status_code == 404
+
+def test_remove_connection_from_404(client, auth_headers, exception):
+    response = client.delete("/boards/2/items/pins/connect?p1=404&p2=2", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=404')
+    assert response.status_code == 404
+
+def test_remove_connection_to_404(client, auth_headers, exception):
+    response = client.delete("/boards/2/items/pins/connect?p1=1&p2=404", headers=auth_headers(1))
+    assert response.json() == exception('entity_not_found', 'Unable to find pin with id=404')
+    assert response.status_code == 404
+
+def test_add_pin_unauthorized(client, auth_headers, exception):
+    response = client.post("/boards/3/items/pins", headers=auth_headers(4), json={ 'item_id': 8 })
+    assert response.json() == exception('entity_not_found', 'Unable to find board with id=3')
+    assert response.status_code == 404
+
+def test_add_connection_unauthorized(client, auth_headers, exception):
+    response = client.put("/boards/2/items/pins/connect?p1=1&p2=3", headers=auth_headers(4))
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403

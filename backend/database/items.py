@@ -295,7 +295,7 @@ def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id:
     """Adds a connection between two pins."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, user)
     pin1: DBPin = session.get(DBPin, pin1_id)
-    if pin1 == None or pin2.board_id != board_id:
+    if pin1 == None or pin1.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin1_id)
     pin2: DBPin = session.get(DBPin, pin2_id)
     if pin2 == None or pin2.board_id != board_id:
@@ -318,8 +318,10 @@ def remove_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_
     pin2: DBPin = session.get(DBPin, pin2_id)
     if pin2 == None or pin2.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin2_id)
-    pin1.connections.remove(pin2)
-    pin2.connections.remove(pin1)
+    if pin2 in pin1.connections:
+        pin1.connections.remove(pin2)
+    if pin1 in pin2.connections:
+        pin2.connections.remove(pin1)
     session.add(pin1)
     session.add(pin2)
     session.commit()

@@ -69,7 +69,7 @@ def handle_error(request: Request, exc: BadRequestException):
 
     return exc.response()
 
-app.mount("/static", StaticFiles(directory="backend/static"), name="static") # todo: remove backend in prod
+app.mount("/static", StaticFiles(directory="static"), name="static") # todo: remove backend in prod
 
 # DO NOT UNDER ANY CIRCUMSTANCES LET THIS ENTER PRODUCTION!!!!!
 app.add_middleware(

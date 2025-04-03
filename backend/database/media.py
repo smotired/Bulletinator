@@ -48,7 +48,7 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
     db_image = DBImage(
         uuid=id,
         uploader_id=user.id,
-        filename='/'.join(['static', 'images', filename]),
+        filename=filename,
     )
     session.add(db_image)
     session.commit()
@@ -58,3 +58,21 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
     image.save(filepath)
     # return
     return db_image
+
+def delete_image(session: DBSession, image_uuid: str, user: DBUser) -> None:
+    """Deletes an image in the database and from the static directory, if the user is the uploader."""
+    # Get the image and verify that this user uploaded it
+    image: DBImage = session.get(DBImage, image_uuid)
+    if image == None:
+        raise EntityNotFound('image', 'uuid', image_uuid)
+    if image.uploader != user:
+        raise AccessDenied()
+    # Delete file
+    filepath = os.path.join(settings.static_path, 'images', image.filename)
+    try:
+        os.remove(filepath)
+    except OSError:
+        pass
+    # Delete from database
+    session.delete(image)
+    session.commit()

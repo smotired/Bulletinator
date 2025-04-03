@@ -39,7 +39,7 @@ class DBUser(Base):
     username: Mapped[str] = mapped_column( String(32), unique=True, index=True )
     email: Mapped[str]
     hashed_password: Mapped[str]
-    profile_image_id: Mapped[Optional[int]] = mapped_column( ForeignKey("images.id") )
+    profile_image_id: Mapped[Optional[str]] = mapped_column( ForeignKey("images.uuid") )
 
     # relationships
     boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor
@@ -263,7 +263,7 @@ class DBImage(Base):
     """Image table. Each row represents an image that was uploaded.
     
     Fields:
-        - id: primary key (auto-increments)
+        - uuid: uuid4 primary key
         - uploader_id: the user that uploaded this
         - filename: the name of the file on the server
 
@@ -272,7 +272,7 @@ class DBImage(Base):
     """
     __tablename__ = "images"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    uuid: Mapped[str] = mapped_column(String(36), primary_key=True, unique=True)
     uploader_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     filename: Mapped[str]
     

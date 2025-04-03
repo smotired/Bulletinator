@@ -8,10 +8,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.dependencies import create_db_tables
 from backend.exceptions import BadRequestException
-from backend.routers import boards, users, items, auth
+from backend.routers import boards, users, items, auth, media
 from backend.config import settings
 
 # Set up the application lifecycle
@@ -46,7 +48,7 @@ app = FastAPI(
 )
 
 # Set up all of the routers
-for router in [ users.router, boards.router, items.router, auth.router ]:
+for router in [ users.router, boards.router, items.router, auth.router, media.router ]:
     app.include_router(router)
 
 # Basic routes
@@ -66,3 +68,13 @@ def handle_error(request: Request, exc: BadRequestException):
     """Handle BadRequestExceptions."""
 
     return exc.response()
+
+app.mount("/static", StaticFiles(directory="backend/static"), name="static") # todo: remove backend in prod
+
+# DO NOT UNDER ANY CIRCUMSTANCES LET THIS ENTER PRODUCTION!!!!!
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins, including null (not safe for production)
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

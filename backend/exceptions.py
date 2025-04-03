@@ -142,3 +142,15 @@ class AddListToList(BadRequestException):
         self.status_code = 422
         self.error = "add_list_to_list"
         self.message = "Cannot add a list to another list"
+
+class UnsupportedFileType(BadRequestException):
+    def __init__(self, type, target):
+        self.status_code = 422
+        self.error = "unsupported_file_type"
+        self.message = f"File type '{type}' is not a supported type of {target}"
+
+class FileTooLarge(BadRequestException):
+    def __init__(self, entity, limit_str):
+        self.status_code = 422
+        self.error = "file_too_large"
+        self.message = f"Files of type '{entity}' must be no larger than {limit_str}"

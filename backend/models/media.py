@@ -5,7 +5,7 @@ from backend.models import shared
 
 class Image(BaseModel):
     """Response model for images"""
-    id: int
+    uuid: str
     filename: str
     
 class ImageCollection(BaseModel):

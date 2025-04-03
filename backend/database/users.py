@@ -28,7 +28,7 @@ def get_by_username(session: DBSession, username: str) -> DBUser | None:
 
 def get_all(session: DBSession) -> list[DBUser]:
     """Retrieve all accounts"""
-    return list(session.execute(select(DBUser)).all())
+    return list(session.execute(select(DBUser)).scalars().all())
 
 def update(session: DBSession, user: DBUser, update: UserUpdate) -> DBUser:
     """Updates a user with non-sensitive information"""

@@ -10,7 +10,7 @@ from backend.database.schema import *
 from backend import auth
 from backend.database import users as users_db
 from backend.dependencies import DBSession, CurrentUser
-from backend.models.users import User, UserCollection, UserUpdateForm
+from backend.models.users import User, UserCollection, UserUpdateForm, convert_user, convert_user_list
 from backend.models.shared import Metadata
 from backend.config import settings
 
@@ -21,10 +21,10 @@ def get_users(
     session: DBSession
 ) -> UserCollection:
     """Get a list of all accounts"""
-    dbusers_list = users_db.get_all(session)
+    users = users_db.get_all(session)
     return UserCollection(
-        metadata=Metadata(count=len(dbusers_list)),
-        users=[ User(**dbuser.model_dump) for dbuser in dbusers_list ]
+        metadata=Metadata(count=len(users)),
+        users=convert_user_list( users )
     )
 
 @router.get("/me", status_code=200, response_model=User)

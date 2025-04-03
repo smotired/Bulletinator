@@ -25,7 +25,7 @@ class DBUser(Base):
         - username: unique identifier for account
         - email: the email associated with this account
         - hashed_password: the hashed password used to log in
-        - profile_image_id: the id of the profile image
+        - profile_image: the src of the profile image (usually links to static directory, but backend should support links to any image)
 
     Relationships:
         - boards: Board, one-to-many
@@ -39,7 +39,7 @@ class DBUser(Base):
     username: Mapped[str] = mapped_column( String(32), unique=True, index=True )
     email: Mapped[str]
     hashed_password: Mapped[str]
-    profile_image_id: Mapped[Optional[str]] = mapped_column( ForeignKey("images.uuid") )
+    profile_image: Mapped[Optional[str]] = mapped_column( String(120) )
 
     # relationships
     boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor

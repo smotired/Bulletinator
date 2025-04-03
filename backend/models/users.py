@@ -5,13 +5,13 @@ from typing import Annotated
 from fastapi import Form
 from backend.database.schema import DBUser
 
-from backend.models import media, shared
+from backend.models import  shared
 
 class User(BaseModel):
     """Response model for users"""
     id: int
     username: str
-    profile_image: media.Image | None = None
+    profile_image: str | None = None
     
 class UserCollection(BaseModel):
     """Response model for a collection of users"""

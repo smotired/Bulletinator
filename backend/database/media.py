@@ -13,8 +13,8 @@ from io import BytesIO
 import uuid
 import os
 
-async def upload_file(session: DBSession, user: DBUser, file: UploadFile, content_length: int) -> DBImage:
-    """Route to upload a file"""
+async def upload_image(session: DBSession, user: DBUser, file: UploadFile, content_length: int, mindim: int = 0, maxdim: int = 600) -> DBImage:
+    """Route to upload a file. Resizes it to the specified dimensions."""
     # Make sure it's the right size
     if content_length > settings.media_img_max_bytes:
         raise FileTooLarge('image', '1 MB')
@@ -27,15 +27,23 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
         raise FileTooLarge('image', '1 MB')
     # Convert to a PIL image
     image = Image.open(BytesIO(contents))
-    # Resize to no larger than 600x600
+    # Resize the image to below the max size, and then scale it back up if it's below the min size. this will need lots of testing
+    original_image = image.copy()
     largest_dim = max(image.size)
-    if largest_dim > 600:
-        aspect_ratio = float(image.size[0]) / float(image.size[1])
-        # if aspect ratio >= 1, then x is the largest dimension and is over 600px
+    aspect_ratio = float(image.size[0]) / float(image.size[1])
+    if largest_dim > maxdim:
+        # if aspect ratio >= 1, then x is the largest dimension and is over max_px
         if aspect_ratio >= 1:
-            image = image.resize(( 600, int(600 / aspect_ratio) ))
+            image = original_image.resize(( maxdim, int(maxdim / aspect_ratio) ))
         else:
-            image = image.resize(( int(600 * aspect_ratio), 600 ))
+            image = original_image.resize(( int(maxdim * aspect_ratio), maxdim ))
+    smallest_dim = min(image.size)
+    if smallest_dim < mindim:
+        # if aspect ratio >= 1, then y is the smallest dimension and is under min_px
+        if aspect_ratio >= 1:
+            image = original_image.resize(( int(mindim * aspect_ratio), mindim ))
+        else:
+            image = original_image.resize(( mindim, int(mindim / aspect_ratio) ))
     # Figure out the extension
     ext: str = {
         'image/jpg': 'jpg',
@@ -76,3 +84,14 @@ def delete_image(session: DBSession, image_uuid: str, user: DBUser) -> None:
     # Delete from database
     session.delete(image)
     session.commit()
+
+async def upload_avatar(session: DBSession, user: DBUser, image: UploadFile, content_length: int) -> DBUser:
+    """Uploads an image, resizes it to 64x64, sets the user's profile picture to that image, and returns the user."""
+    # Upload the image and resize to 64x64
+    image: DBImage = await upload_image(session, user, image, content_length, mindim=64, maxdim=64)
+    # Update the user
+    user.profile_image = image.filename
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user

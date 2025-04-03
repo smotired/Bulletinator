@@ -25,7 +25,7 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
     contents = await file.read()
     if len(contents) > settings.media_img_max_bytes:
         raise FileTooLarge('image', '1 MB')
-    # Convert to an image
+    # Convert to a PIL image
     image = Image.open(BytesIO(contents))
     # Resize to no larger than 600x600
     largest_dim = max(image.size)
@@ -41,16 +41,9 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
         'image/jpg': 'jpg',
         'image/png': 'png',
     }[file.content_type]
-    # Generate a UUID and make sure it's unique
-    id: str = None
-    while True:
-        id = str(uuid.uuid4())
-        if session.get(DBImage, id) is None:
-            break
+    # Generate a UUID 
+    id = str(uuid.uuid4())
     filename = f"{id}.{ext}"
-    # Save to static directory
-    filepath = os.path.join(settings.static_path, 'images', filename)
-    image.save(filepath)
     # Save the image to the database
     db_image = DBImage(
         uuid=id,
@@ -60,4 +53,8 @@ async def upload_file(session: DBSession, user: DBUser, file: UploadFile, conten
     session.add(db_image)
     session.commit()
     session.refresh(db_image)
+    # Save to static directory (after trying to insert, on the one in a quintillion chance that we get a collision)
+    filepath = os.path.join(settings.static_path, 'images', filename)
+    image.save(filepath)
+    # return
     return db_image

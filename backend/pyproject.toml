@@ -6,7 +6,6 @@ authors = [
     {name = "Sam Hill",email = "smotired@gmail.com"}
 ]
 license = {text = "GPL-3.0-or-later"}
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi (>=0.115.11,<0.116.0)",

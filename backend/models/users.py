@@ -23,7 +23,7 @@ class UserUpdate(BaseModel):
     old_password: str | None = None # not necessary unless updating email or password
     
     username: str | None = None
-    profile_image_filename: str | None = None # requires uploading the image beforehand
+    profile_image: str | None = None # requires uploading the image beforehand
     email: str | None = None
     new_password: str | None = None
     

@@ -37,7 +37,9 @@ def update(session: DBSession, user: DBUser, update: UserUpdate) -> DBUser:
         if get_by_username(session, update.username) is not None:
             raise DuplicateEntity("user", "username", update.username)
         user.username = update.username
-    # TODO: Once image uploading is implemented, make sure the image at this filename exists and is owned by the user
+    # Update the filename for the image (so they can just link to images hosted elsewhere)
+    if update.profile_image is not None:
+        user.profile_image = update.profile_image
     
     # Check if the password is correct
     verified = (auth.verify_user(user, update.old_password) is not None) if update.old_password is not None else False

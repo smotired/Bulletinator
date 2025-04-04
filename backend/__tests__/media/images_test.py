@@ -389,3 +389,135 @@ def test_upload_image_jpg(client, monkeypatch, auth_headers, create_image, stati
     assert image.getpixel((199,0)) == (245, 245, 245)
     assert image.getpixel((0,199)) == (245, 245, 245)
     assert image.getpixel((199,199)) == (245, 245, 245)
+
+def test_delete_image(client, monkeypatch, auth_headers, create_image, static_path):
+    id = 'test_delete_image'
+    filename = id + '.png'
+    # override elements for verification
+    old_uuid4 = uuid.uuid4
+    monkeypatch.setattr(uuid, 'uuid4', lambda: id)
+    monkeypatch.setattr(settings, 'static_path', static_path)
+    # delete the image if it exists
+    try:
+        os.remove(os.path.join(static_path, 'images', filename))
+    except OSError:
+        pass
+    # create an image
+    image: Image = create_image(200, 200)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    # try to upload
+    response = client.post(
+        "/media/images/upload",
+        headers=auth_headers(1),
+        files={
+            "file": (filename, buffer, 'image/png')
+        }
+    )
+    # assert response
+    assert response.json() == {
+        'uuid': id,
+        'filename': filename
+    }
+    assert response.status_code == 201
+    # delete it
+    monkeypatch.setattr(uuid, 'uuid4', old_uuid4) # making another request so we need to fix uuid
+    response = client.delete(f"/media/images/{id}", headers=auth_headers(1))
+    assert response.status_code == 204
+    # make sure the file disappears
+    raised = False
+    try:
+        os.remove(os.path.join(static_path, 'images', filename))
+    except OSError:
+        raised = True
+    assert raised
+
+def test_delete_image_unauthorized(client, monkeypatch, auth_headers, create_image, static_path, exception):
+    id = 'test_delete_image_unauthorized'
+    filename = id + '.png'
+    # override elements for verification
+    old_uuid4 = uuid.uuid4
+    monkeypatch.setattr(uuid, 'uuid4', lambda: id)
+    monkeypatch.setattr(settings, 'static_path', static_path)
+    # delete the image if it exists
+    try:
+        os.remove(os.path.join(static_path, 'images', filename))
+    except OSError:
+        pass
+    # create an image
+    image: Image = create_image(200, 200)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    # try to upload
+    response = client.post(
+        "/media/images/upload",
+        headers=auth_headers(1),
+        files={
+            "file": (filename, buffer, 'image/png')
+        }
+    )
+    # assert response
+    assert response.json() == {
+        'uuid': id,
+        'filename': filename
+    }
+    assert response.status_code == 201
+    # tryt to delete it
+    monkeypatch.setattr(uuid, 'uuid4', old_uuid4) # making another request so we need to fix uuid
+    response = client.delete(f"/media/images/{id}", headers=auth_headers(2))
+    assert response.json() == exception("access_denied", "Access denied")
+    assert response.status_code == 403
+    # make sure the file does not disappear
+    safe = True
+    try:
+        os.remove(os.path.join(static_path, 'images', filename))
+    except OSError:
+        safe = False
+    assert safe
+
+def test_get_user_images(client, monkeypatch, auth_headers, create_image, static_path):
+    id = 'test_get_user_images'
+    filename = id + '.png'
+    # override elements for verification
+    old_uuid4 = uuid.uuid4
+    monkeypatch.setattr(uuid, 'uuid4', lambda: id)
+    monkeypatch.setattr(settings, 'static_path', static_path)
+    # delete the image if it exists
+    try:
+        os.remove(os.path.join(static_path, 'images', filename))
+    except OSError:
+        pass
+    # create an image
+    image: Image = create_image(600, 600)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+    # try to upload
+    response = client.post(
+        "/media/images/upload",
+        headers=auth_headers(1),
+        files={
+            "file": (filename, buffer, 'image/png')
+        }
+    )
+    # assert response
+    assert response.json() == {
+        'uuid': id,
+        'filename': filename
+    }
+    assert response.status_code == 201
+    # check it in the uploaded images
+    monkeypatch.setattr(uuid, 'uuid4', old_uuid4) # making another request so we need to fix uuid
+    response = client.get("/users/me/uploads/images", headers=auth_headers(1))
+    assert response.json() == {
+        "metadata": { "count": 1 },
+        "images": [
+            {
+                'uuid': id,
+                'filename': filename
+            }
+        ]
+    }
+    assert response.status_code == 200

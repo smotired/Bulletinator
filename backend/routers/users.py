@@ -9,8 +9,10 @@ from fastapi import APIRouter, Response
 from backend.database.schema import *
 from backend import auth
 from backend.database import users as users_db
+from backend.database import media as media_db
 from backend.dependencies import DBSession, CurrentUser
 from backend.models.users import User, UserCollection, UserUpdateForm, convert_user, convert_user_list
+from backend.models.media import Image, ImageCollection
 from backend.models.shared import Metadata
 from backend.config import settings
 
@@ -54,3 +56,15 @@ def delete_current_user(
     users_db.delete(session, user)
     auth.revoke_refresh_tokens(session, user)
     response.delete_cookie(settings.jwt_cookie_key)
+
+@router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
+def get_current_user(
+    session: DBSession,
+    user: CurrentUser
+) -> ImageCollection:
+    """Get a list of images uploaded by the current account"""
+    images = media_db.get_user_images(session, user)
+    return ImageCollection(
+        metadata=Metadata(count=len(images)),
+        images=[ Image.model_validate(image.__dict__) for image in images ]
+    )

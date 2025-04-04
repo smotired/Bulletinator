@@ -95,3 +95,8 @@ async def upload_avatar(session: DBSession, user: DBUser, image: UploadFile, con
     session.commit()
     session.refresh(user)
     return user
+
+def get_user_images(session: DBSession, user: DBUser) -> list[DBImage]:
+    """Gets a list of images uploaded by a user"""
+    stmt = select(DBImage).where(DBImage.uploader_id == user.id)
+    return list( session.execute(stmt).scalars().all() )

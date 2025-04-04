@@ -176,6 +176,7 @@ cython_debug/
 
 # User-uploaded images
 backend/static/images/*
+backend/__tests__/media/static/images/*
 
 # Test coverage
 .coverage

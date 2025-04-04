@@ -1,11 +1,15 @@
 import pytest
+
 from sqlalchemy import create_engine, StaticPool
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
 from backend import app, auth
 from backend.dependencies import get_session
 from backend.database.schema import *
+
+from PIL import Image
+import os
 
 @pytest.fixture
 def session():
@@ -40,6 +44,10 @@ def exception():
 @pytest.fixture
 def form_headers():
     return { "Content-Type": "application/x-www-form-urlencoded" }
+
+@pytest.fixture
+def static_path():
+    return os.path.join(os.getcwd(), '__tests__', 'media', 'static')
 
 # Initial database contents
 
@@ -277,3 +285,16 @@ def get_item_pin(pins):
                 return pin
         return None
     return _get_item_pin
+
+@pytest.fixture()
+def create_image():
+    """Function that takes in dimensions and creates a PNG image"""
+    def _create_image(w: int, h: int) -> Image:
+        image = Image.new('RGB', (w, h), color='black')
+        # put white pixels in each corner to ensure the image gets resized correctly
+        image.putpixel((0,0), (255,255,255))
+        image.putpixel((w-1,0), (255,255,255))
+        image.putpixel((0,h-1), (255,255,255))
+        image.putpixel((w-1,h-1), (255,255,255))
+        return image
+    return _create_image

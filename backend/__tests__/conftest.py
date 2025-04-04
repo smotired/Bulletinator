@@ -10,6 +10,7 @@ from backend.database.schema import *
 
 from PIL import Image
 import os
+from random import random
 
 @pytest.fixture
 def session():
@@ -289,12 +290,17 @@ def get_item_pin(pins):
 @pytest.fixture()
 def create_image():
     """Function that takes in dimensions and creates a PNG image"""
-    def _create_image(w: int, h: int) -> Image:
+    def _create_image(w: int, h: int, randomized: bool = False) -> Image:
         image = Image.new('RGB', (w, h), color='black')
-        # put white pixels in each corner to ensure the image gets resized correctly
-        image.putpixel((0,0), (255,255,255))
-        image.putpixel((w-1,0), (255,255,255))
-        image.putpixel((0,h-1), (255,255,255))
-        image.putpixel((w-1,h-1), (255,255,255))
+        # set randomized contents to minimize compression
+        if randomized:
+            for x in range(w):
+                for y in range(h):
+                    image.putpixel((x, y), (int(random() * 255), int(random() * 255), int(random() * 255)))
+        # put white pixels in each corner to ensure the image gets resized correctly. draw a 2x2 to ensure they stay there when shrunk
+        square = lambda s: [ (s[0], s[1]), (s[0]+1, s[1]), (s[0], s[1]+1), (s[0]+1, s[1]+1) ]
+        coords = square((0, 0)) + square((w-2, 0)) + square((0, h-2)) + square((w-2, h-2))
+        for c in coords:
+            image.putpixel(c, (255,255,255))
         return image
     return _create_image

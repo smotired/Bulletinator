@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from backend.database.schema import *
 from backend.database import media as media_db
 from backend.dependencies import DBSession, CurrentUser, OptionalUser
-from backend.models.users import User
+from backend.models.auth import AuthenticatedUser
 from backend.models.media import Image
 from backend.models.shared import Metadata
 
@@ -25,7 +25,7 @@ async def upload_image_file(session: DBSession, user: CurrentUser, file: UploadF
 def delete_image(session: DBSession, user: CurrentUser, uuid: str):
     media_db.delete_image(session, uuid, user)
 
-@router.post('/avatar/upload', status_code=201, response_model=User)
+@router.post('/avatar/upload', status_code=201, response_model=AuthenticatedUser)
 async def upload_image_file(session: DBSession, user: CurrentUser, file: UploadFile, content_length: int = Header(None)) -> DBUser:
     """Route to upload an image file as the user's avatar"""
     return await media_db.upload_avatar(session, user, file, content_length)

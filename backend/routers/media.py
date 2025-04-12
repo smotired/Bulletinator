@@ -17,15 +17,29 @@ from backend.models.shared import Metadata
 router = APIRouter(prefix="/media", tags=["Media"])
 
 @router.post('/images/upload', status_code=201, response_model=Image)
-async def upload_image_file(session: DBSession, account: CurrentAccount, file: UploadFile, content_length: int = Header(None)) -> DBImage:
+async def upload_image_file(
+    session: DBSession, # type: ignore
+    account: CurrentAccount,
+    file: UploadFile,
+    content_length: int = Header(None)
+) -> DBImage:
     """Route to upload an image file"""
     return await media_db.upload_image(session, account, file, content_length)
 
 @router.delete('/images/{uuid}', status_code=204)
-def delete_image(session: DBSession, account: CurrentAccount, uuid: str):
+def delete_image(
+    session: DBSession, # type: ignore
+    account: CurrentAccount,
+    uuid: str
+):
     media_db.delete_image(session, uuid, account)
 
 @router.post('/avatar/upload', status_code=201, response_model=AuthenticatedAccount)
-async def upload_image_file(session: DBSession, account: CurrentAccount, file: UploadFile, content_length: int = Header(None)) -> DBAccount:
+async def upload_image_file(
+    session: DBSession, # type: ignore
+    account: CurrentAccount,
+    file: UploadFile,
+    content_length: int = Header(None)
+) -> DBAccount:
     """Route to upload an image file as the account's avatar"""
     return await media_db.upload_avatar(session, account, file, content_length)

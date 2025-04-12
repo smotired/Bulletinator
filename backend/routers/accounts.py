@@ -20,7 +20,7 @@ router = APIRouter(prefix="/accounts", tags=["Account"])
 
 @router.get("/", status_code=200)
 def get_accounts(
-    session: DBSession
+    session: DBSession # type: ignore
 ) -> AccountCollection:
     """Get a list of all accounts"""
     accounts = accounts_db.get_all(session)
@@ -31,7 +31,7 @@ def get_accounts(
 
 @router.get("/me", status_code=200, response_model=AuthenticatedAccount)
 def get_current_account(
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount
 ) -> DBAccount:
     """Get the currently authenticated account"""
@@ -39,7 +39,7 @@ def get_current_account(
 
 @router.put("/me", status_code=200, response_model=AuthenticatedAccount)
 def update_current_account(
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount,
     update: AccountUpdate
 ) -> DBAccount:
@@ -49,7 +49,7 @@ def update_current_account(
 @router.delete("/me", status_code=204)
 def delete_current_account(
     response: Response,
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount
 ) -> None:
     """Delete the currently authenticated account and log out"""
@@ -59,7 +59,7 @@ def delete_current_account(
 
 @router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
 def get_current_account(
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount
 ) -> ImageCollection:
     """Get a list of images uploaded by the current account"""
@@ -71,7 +71,7 @@ def get_current_account(
 
 @router.get("/{account_id}", status_code=200, response_model=Account)
 def get_account(
-    session: DBSession,
+    session: DBSession, # type: ignore
     account_id: int
 ) -> DBAccount:
     """Gets an account object"""

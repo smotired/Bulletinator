@@ -19,7 +19,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/registration", status_code=201, response_model=Account)
 def register_account(
-    session: DBSession,
+    session: DBSession, # type: ignore
     form: Annotated[Registration, Form()]
 ) -> DBAccount:
     """Register new account"""
@@ -28,7 +28,7 @@ def register_account(
 @router.post("/login", status_code=200)
 def login_account(
     response: Response,
-    session: DBSession,
+    session: DBSession, # type: ignore
     form: Annotated[Login, Form()]
 ) -> AccessToken:
     """Given an account login, generate access and refresh tokens.
@@ -40,7 +40,7 @@ def login_account(
 
 @router.post("/refresh", status_code=200)
 def refresh_access_token(
-    session: DBSession,
+    session: DBSession, # type: ignore
     refresh_token: RefreshToken
 ) -> AccessToken:
     """Generate a new access token using the refresh token."""
@@ -50,7 +50,7 @@ def refresh_access_token(
 @router.post("/logout", status_code=204)
 def logout_account(
     response: Response,
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount,
     token: RefreshToken
 ) -> None:
@@ -61,7 +61,7 @@ def logout_account(
 @router.post("/forcelogout", status_code=204)
 def force_logout_account(
     response: Response,
-    session: DBSession,
+    session: DBSession, # type: ignore
     account: CurrentAccount,
 ) -> None:
     """Authenticated route. Log out an account and invalidate ALL refresh tokens."""

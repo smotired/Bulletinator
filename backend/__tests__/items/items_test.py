@@ -188,7 +188,37 @@ def test_create_link_missing(client, auth_headers, exception):
     assert response.json() == exception("missing_item_fields", "Item type 'link' was missing the following fields: title, url")
     assert response.status_code == 422
 
-# Add tests for creating media once item uploading is implemented.
+def test_create_media_image(client, auth_headers, def_item):
+    item = {
+        "type": "media",
+        "url": "/static/images/test_image.png",
+        "size": "600,400",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+    }
+    assert response.status_code == 201
+
+def test_create_media_image_default(client, auth_headers, def_item):
+    item = {
+        "type": "media",
+        "url": "/static/images/test_image.png",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "size": None, # default to just the image size
+    }
+    assert response.status_code == 201
+
+def test_create_media_image_missing(client, auth_headers, exception):
+    item = { "type": "media" }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("missing_item_fields", "Item type 'media' was missing the following fields: url")
+    assert response.status_code == 422
 
 def test_create_todo(client, auth_headers, def_item, empty_collection):
     item = {

@@ -178,13 +178,13 @@ class DBItemMedia(DBItem):
     
     Fields:
         - id: primary key - the id of the parent item
-        - src: The link to the image, whether uploaded by the user or not.
+        - url: The link to the image, whether uploaded by the user or not.
         - size: The resized image size (overridden if in list)
     """
     __tablename__ = "items_media"
     
     id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    src: Mapped[str]
+    url: Mapped[str]
     size: Mapped[Optional[str]] = mapped_column(default=None)
     
     __mapper_args__ = {

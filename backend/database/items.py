@@ -1,4 +1,5 @@
 from random import random
+from datetime import datetime, UTC
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectin_polymorphic, selectinload
@@ -142,6 +143,7 @@ def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpd
         item.index = config.index
     # OTHERWISE nothing about the item's location was provided, so leave that alone.
     # Update in database.
+    item.updated_at = datetime.now(UTC)
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -179,6 +181,8 @@ def create_todo_item(session: DBSession, board_id: str, config: TodoItemCreate, 
         link=config.link,
         done=config.done
     )
+    todo.updated_at = datetime.now(UTC)
+    session.add(todo)
     session.add(todo_item)
     session.commit()
     session.refresh(todo_item)
@@ -196,6 +200,8 @@ def update_todo_item(session: DBSession, board_id: str, todo_item_id: str, confi
     if todo.type != 'todo':
         raise ItemTypeMismatch(todo.id, 'todo', todo.type)
     # update fields
+    todo.updated_at = datetime.now(UTC)
+    session.add(todo)
     todo_item.text = config.text or todo_item.text
     todo_item.link = config.link or todo_item.link
     todo_item.done = config.done or todo_item.done
@@ -228,6 +234,8 @@ def shift_list(session: DBSession, list: DBItemList, start_index: int) -> DBItem
         if i >= start_index:
             item.index = i + 1
             session.add(item)
+    list.updated_at = datetime.now(UTC)
+    session.add(list)
     session.commit()
     session.refresh(list)
     return list
@@ -239,6 +247,8 @@ def collapse_list(session: DBSession, list: DBItemList) -> DBItemList:
     for i, item in enumerate(sorted_contents):
         item.index = i
         session.add(item)
+    list.updated_at = datetime.now(UTC)
+    session.add(list)
     session.commit()
     session.refresh(list)
     return list
@@ -257,6 +267,8 @@ def create_pin(session: DBSession, board_id: str, config: PinCreate, account: DB
         label=config.label,
         compass=config.compass,
     )
+    item.updated_at = datetime.now(UTC) 
+    session.add(item)
     session.add(pin)
     session.commit()
     session.refresh(pin)
@@ -288,6 +300,8 @@ def delete_pin(session: DBSession, board_id: str, pin_id: str, account: DBAccoun
     pin: DBPin = session.get(DBPin, pin_id)
     if pin == None:
         raise EntityNotFound('pin', 'id', pin_id)
+    pin.item.updated_at = datetime.now(UTC) 
+    session.add(pin.item)
     session.delete(pin)
     session.commit()
 

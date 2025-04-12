@@ -1,12 +1,14 @@
 """Database table models."""
 
 from sqlalchemy import (
-    Integer, Float, String, Text,
-    ForeignKey, Table, Column
+    Integer, Float, String, Text, DateTime,
+    ForeignKey, Table, Column,
+    func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, validates
 from typing import List, Optional
 from uuid import uuid4
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -31,6 +33,7 @@ class DBAccount(Base):
         - email: the email associated with this account
         - hashed_password: the hashed password used to log in
         - profile_image: the src of the profile image (usually links to static directory, but backend should support links to any image)
+        - created_at: the time at which this was created
 
     Relationships:
         - boards: Board, one-to-many
@@ -45,6 +48,7 @@ class DBAccount(Base):
     email: Mapped[str]
     hashed_password: Mapped[str]
     profile_image: Mapped[Optional[str]] = mapped_column( String(120) )
+    created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
 
     # relationships
     boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor
@@ -61,6 +65,7 @@ class DBBoard(Base):
         - owner_id: the ID of the account that created the board.
             - deleting an account will cascade-delete boards
         - public: if the board can be viewed regardless of account
+        - created_at: the time at which this was created
 
     Relationships:
         - owner: Account, many-to-one
@@ -76,6 +81,7 @@ class DBBoard(Base):
     icon: Mapped[str] = mapped_column( default="default" ) # later should these have their own table? probably not
     owner_id: Mapped[int] = mapped_column( ForeignKey("accounts.id") )
     public: Mapped[bool] = mapped_column( default=False )
+    created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     owner: Mapped["DBAccount"] = relationship( back_populates="boards" )
     editors: Mapped[List["DBAccount"]] = relationship( secondary=editor_table, back_populates="editable" )
@@ -93,6 +99,8 @@ class DBItem(Base):
         - index: the index of this item in a parent list
         - pin_id: the id of the pin that may be attached to this
         - type: the type of item
+        - created_at: the time at which this was created
+        - updated_at: the time at which this was last updated
         
     Relationships:
         - board: Board, many-to-one
@@ -108,6 +116,8 @@ class DBItem(Base):
     index: Mapped[Optional[int]] # will be set conditionally
     pin_id: Mapped[Optional[int]] = mapped_column(ForeignKey("pins.id"), default=None)
     type: Mapped[str] # used for polymorphism
+    created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
+    updated_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     board: Mapped["DBBoard"] = relationship(back_populates="items")
     list: Mapped["DBItemList"] = relationship(back_populates="contents", foreign_keys=[list_id])
@@ -272,6 +282,7 @@ class DBTodoItem(Base):
         - text: the short text representing this item
         - link: a link for this entry. can link to an item on this board.
         - done: true if this is checked off
+        - created_at: the time at which this was created
 
     Relationships:
         - list: TodoList, many-to-one
@@ -283,6 +294,7 @@ class DBTodoItem(Base):
     text: Mapped[str]
     link: Mapped[Optional[str]] = mapped_column(default=None)
     done: Mapped[bool]
+    created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     todo: Mapped["DBItemTodo"] = relationship(back_populates="contents")
 
@@ -293,6 +305,7 @@ class DBImage(Base):
         - uuid: uuid4 primary key
         - uploader_id: the account that uploaded this
         - filename: the name of the file on the server
+        - created_at: the time at which this was created
 
     Relationships:
         - uploader: Account, many-to-one
@@ -302,6 +315,7 @@ class DBImage(Base):
     uuid: Mapped[str] = mapped_column(String(36), primary_key=True, unique=True)
     uploader_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
     filename: Mapped[str]
+    uploaded_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     uploader: Mapped["DBAccount"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
     
@@ -336,6 +350,7 @@ class DBPin(Base):
         - compass: if the pin should be usable for navigation
         - board_id: The id of the Board containing this pin
         - item_id: The id of the Item this pin is attached to (optional)
+        - created_at: the time at which this was created
     
     Relationships:
         - board: The Board containing this pin, many-to-one
@@ -350,6 +365,7 @@ class DBPin(Base):
     compass: Mapped[bool] = mapped_column(default=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     board: Mapped["DBBoard"] = relationship(back_populates="pins", foreign_keys=[board_id])
     item: Mapped["DBItem"] = relationship(back_populates="pin", foreign_keys=[item_id])

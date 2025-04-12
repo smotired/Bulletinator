@@ -286,6 +286,39 @@ def test_create_list_missing(client, auth_headers, exception):
     assert response.json() == exception("missing_item_fields", "Item type 'list' was missing the following fields: title")
     assert response.status_code == 422
 
+def test_create_document(client, auth_headers, def_item):
+    item = {
+        "type": "document",
+        "title": "Created Document",
+        "text": "Text in a _document_ can be formatted *richly*.",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+    }
+    assert response.status_code == 201
+
+def test_create_document_default(client, auth_headers, def_item):
+    """Document has no optional fields but this is here in case we add some later"""
+    item = {
+        "type": "document",
+        "title": "Created Document",
+    }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == {
+        **def_item(1),
+        **item,
+        "text": "",
+    }
+    assert response.status_code == 201
+
+def test_create_document_missing(client, auth_headers, exception):
+    item = { "type": "document" }
+    response = client.post("/boards/1/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("missing_item_fields", "Item type 'document' was missing the following fields: title")
+    assert response.status_code == 422
+
 def test_append_to_list(client, auth_headers, items, get_item):
     # Add an item to the end of a list
     item = {

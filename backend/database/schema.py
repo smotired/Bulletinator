@@ -236,6 +236,28 @@ class DBItemList(DBItem):
         "inherit_condition": id == DBItem.id  # specify the condition for inheritance
     }
 
+class DBItemDocument(DBItem):
+    """Document table. Each row represents a document item.
+    
+    Fields:
+        - id: primary key - the id of the parent item
+        - title: The title of the document
+        - text: The text of the document
+
+    Relationships:
+        - contents: Item, one-to-many.
+    """
+    __tablename__ = "items_document"
+    
+    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    title: Mapped[str] = mapped_column( String(64) )
+    text: Mapped[str] = mapped_column( Text, default="" )
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "document",
+        "inherit_condition": id == DBItem.id  # specify the condition for inheritance
+    }
+
 class DBTodoItem(Base):
     """Todo item table. Each row represents an item in a todo list item.
     

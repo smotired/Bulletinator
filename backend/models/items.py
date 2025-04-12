@@ -3,7 +3,7 @@
 from typing import Union, Optional
 from pydantic import BaseModel
 from backend.models import shared
-from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBTodoItem, DBPin
+from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBItemDocument, DBTodoItem, DBPin
 
 # Base Item
 
@@ -134,6 +134,23 @@ class ItemListCreate(BaseItemCreate):
 class ItemListUpdate(BaseItemUpdate):
     """Request model for updating a List item"""
     title: str | None = None
+
+# Document Items
+
+class ItemDocument(Item):
+    """Response model for a Document Item"""
+    title: str
+    text: str
+
+class ItemDocumentCreate(BaseItemCreate):
+    """Request model for creating a Document Item"""
+    title: str
+    text: str = ""
+
+class ItemDocumentUpdate(BaseItemUpdate):
+    """Request model for creating a Document Item"""
+    title: str | None = None
+    text: str | None = None
     
 # Items within a todo list
 
@@ -174,7 +191,7 @@ class PinUpdate(BaseModel):
     compass: bool | None = None
 
 # Union of all item types
-SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList]
+SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList, ItemDocument]
 
 # List-related request models (both List items and Todo items)
 
@@ -200,6 +217,7 @@ ITEMTYPES: dict[str, dict[str, type | list[str]]] = {
     "media": { "base": ItemMedia, "db": DBItemMedia, "create": ItemMediaCreate, "update": ItemMediaUpdate, "required_fields": [ "url" ] },
     "todo": { "base": ItemTodo, "db": DBItemTodo, "create": ItemTodoCreate, "update": ItemTodoUpdate, "required_fields": [ "title" ] },
     "list": { "base": ItemList, "db": DBItemList, "create": ItemListCreate, "update": ItemListUpdate, "required_fields": [ "title" ] },
+    "document": { "base": ItemDocument, "db": DBItemDocument, "create": ItemDocumentCreate, "update": ItemDocumentUpdate, "required_fields": [ "title" ] }
 }
 
 def convert_item(db_item: DBItem) -> SomeItem:

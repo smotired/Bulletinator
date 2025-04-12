@@ -21,11 +21,13 @@ class Settings(BaseSettings):
     favicon_path: str
 
     jwt_algorithm: str
-    jwt_cookie_key: str
+    jwt_access_cookie_key: str
+    jwt_refresh_cookie_key: str
     jwt_access_duration: int
     jwt_refresh_duration: int
     jwt_issuer: str
     jwt_secret_key: str = "jwt-secret-key-dev"
+    cookie_max_age: int
 
     static_path: str
     media_img_max_bytes: int
@@ -45,10 +47,12 @@ def get_settings() -> Settings:
         favicon_path="favicon.ico",
 
         jwt_algorithm="HS256",
-        jwt_cookie_key="bulletinator_refresh_token",
+        jwt_access_cookie_key="bulletinator_access_token",
+        jwt_refresh_cookie_key="bulletinator_refresh_token",
         jwt_access_duration=900,
         jwt_refresh_duration=3600*24*14,
         jwt_issuer="http://127.0.0.1",
+        cookie_max_age=3600*24*14,
 
         static_path=os.path.join(os.getcwd(), 'static'),
         media_img_max_bytes=1024*1024,

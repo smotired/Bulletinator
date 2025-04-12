@@ -2,8 +2,9 @@
 
 Args:
     engine (sqlalchemy.engine.Engine): The database engine
-    cookie_scheme (APIKeyCookie): The scheme to extract JWT from cookies
-    bearer_scheme (HTTPBearer): The scheme to extract JWT from authorization headers
+    access_cookie_scheme (APIKeyCookie): The scheme to extract access token JWT from cookies
+    refresh_cookie_scheme (APIKeyCookie): The scheme to extract refresh token JWT from cookies
+    bearer_scheme (HTTPBearer): The scheme to extract access token JWT from authorization headers
     DBSession (Session): A database session as a dependency
     CurrentAccount (DBAccount): The current account as a dependency
     RefreshToken (str): The refresh token as a dependency
@@ -12,7 +13,7 @@ Args:
 from typing import Annotated
 import re
 
-from fastapi import Depends
+from fastapi import Depends, Response
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
 from sqlalchemy import create_engine, text
@@ -25,7 +26,8 @@ from backend.exceptions import *
 engine = create_engine(settings.db_url, echo=True)
 Session = sessionmaker(bind=engine)
 
-cookie_scheme = APIKeyCookie(name=settings.jwt_cookie_key, auto_error=False)
+access_cookie_scheme = APIKeyCookie(name=settings.jwt_access_cookie_key, auto_error=False)
+refresh_cookie_scheme = APIKeyCookie(name=settings.jwt_refresh_cookie_key, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 def create_db_tables():
@@ -46,17 +48,20 @@ def get_session():
 DBSession = Annotated[Session, Depends(get_session)]
         
 def get_access_token(
+    cookie_token: str | None = Depends(access_cookie_scheme),
     bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> str:
     """Access token extraction dependency. Depends on the bearer scheme.
     
     Extracts the access token JWT from the authorization headers."""
+    if cookie_token is not None:
+        return cookie_token
     if bearer is not None:
         return bearer.credentials
     raise NotAuthenticated()
         
 def get_refresh_token(
-    cookie_token: str | None = Depends(cookie_scheme),
+    cookie_token: str | None = Depends(refresh_cookie_scheme),
 ) -> str:
     """Refresh token extraction dependency. Depends on the cookie scheme.
     
@@ -118,3 +123,13 @@ def name_to_identifier(name: str):
     # collapse underscores
     identifier = re.sub(r"__+", "_", identifier)
     return identifier
+
+def set_cookie_secure(response: Response, key: str, value: str):
+    response.set_cookie(
+        key=key,
+        value=value,
+        max_age=settings.cookie_max_age,
+        httponly=True,
+        secure=False, # change to True once we serve over HTTPS
+        samesite='lax'
+    )

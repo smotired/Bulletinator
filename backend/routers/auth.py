@@ -9,7 +9,7 @@ from fastapi import APIRouter, Response, Form
 from backend import auth
 from backend.config import settings
 from backend.database.schema import *
-from backend.dependencies import DBSession, CurrentAccount, RefreshToken
+from backend.dependencies import DBSession, CurrentAccount, RefreshToken, set_cookie_secure
 from backend.models.auth import AccessToken, Registration, Login
 from backend.models.accounts import Account
 
@@ -25,29 +25,31 @@ def register_account(
     """Register new account"""
     return auth.register_account(session, form)
 
-@router.post("/login", status_code=200)
+@router.post("/web/login", status_code=204)
 def login_account(
     response: Response,
     session: DBSession, # type: ignore
     form: Annotated[Login, Form()]
-) -> AccessToken:
+) -> None:
     """Given an account login, generate access and refresh tokens.
     
     Access tokens are returned in the body and refresh tokens are added as a cookie."""
     access_token, refresh_token = auth.generate_tokens(session, form)
-    response.set_cookie(settings.jwt_cookie_key, refresh_token, httponly=True)
+    set_cookie_secure(response, settings.jwt_access_cookie_key, access_token)
+    set_cookie_secure(response, settings.jwt_refresh_cookie_key, refresh_token)
     return AccessToken(access_token=access_token, token_type="bearer")
 
-@router.post("/refresh", status_code=200)
+@router.post("/web/refresh", status_code=204)
 def refresh_access_token(
+    response: Response,
     session: DBSession, # type: ignore
     refresh_token: RefreshToken
-) -> AccessToken:
+) -> None:
     """Generate a new access token using the refresh token."""
     access_token = auth.refresh_access_token(session, refresh_token)
-    return AccessToken(access_token=access_token, token_type="bearer")
+    set_cookie_secure(response, settings.jwt_access_cookie_key, access_token)
 
-@router.post("/logout", status_code=204)
+@router.post("/web/logout", status_code=204)
 def logout_account(
     response: Response,
     session: DBSession, # type: ignore
@@ -56,7 +58,19 @@ def logout_account(
 ) -> None:
     """Authenticated route. Log out an account and invalidate the supplied refresh token."""
     auth.revoke_one_refresh_token(session, token)
-    response.delete_cookie(settings.jwt_cookie_key)
+    response.delete_cookie(settings.jwt_access_cookie_key)
+    response.delete_cookie(settings.jwt_refresh_cookie_key)
+
+@router.post("/token", status_code=200)
+def login_account(
+    session: DBSession, # type: ignore
+    form: Annotated[Login, Form()]
+) -> AccessToken:
+    """Given an account login, generate access and refresh tokens.
+    
+    Access tokens are returned in the body and refresh tokens are added as a cookie."""
+    access_token, _ = auth.generate_tokens(session, form)
+    return AccessToken(access_token=access_token, token_type="bearer")
     
 @router.post("/forcelogout", status_code=204)
 def force_logout_account(
@@ -66,4 +80,5 @@ def force_logout_account(
 ) -> None:
     """Authenticated route. Log out an account and invalidate ALL refresh tokens."""
     auth.revoke_refresh_tokens(session, account)
-    response.delete_cookie(settings.jwt_cookie_key)
+    response.delete_cookie(settings.jwt_access_cookie_key)
+    response.delete_cookie(settings.jwt_refresh_cookie_key)

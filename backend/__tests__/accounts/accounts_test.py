@@ -75,11 +75,11 @@ def test_update_password(client, auth_headers, get_account):
     }
     assert response.status_code == 200
     # Try logging in with the new information
-    response = client.post('/auth/login', data={
+    response = client.post('/auth/web/login', data={
         'identifier': 'alice2@example.com',
         'password': 'newpassword'
     })
-    assert response.status_code == 200
+    assert response.status_code == 204
 
 def test_update_password_incorrect(client, auth_headers, exception):
     update = {
@@ -90,7 +90,7 @@ def test_update_password_incorrect(client, auth_headers, exception):
     assert response.json() == exception("invalid_credentials", "Authentication failed: invalid credentials")
     assert response.status_code == 401
     # Try logging in with the new information
-    response = client.post('/auth/login', data={
+    response = client.post('/auth/web/login', data={
         'identifier': 'alice@example.com',
         'password': 'newpassword'
     })
@@ -130,23 +130,23 @@ def test_update_account_email_invalid(client, auth_headers, exception):
     assert response.json() == exception('invalid_field', "Value 'aliceinvalidemail' is invalid for field 'email'")
     assert response.status_code == 422
 
-def test_delete_account(client, login_client, exception):
+def test_delete_account(client, login, exception):
     # Log in and get access to the refresh token
-    auth_headers, response = login_client(client, 1)
-    refresh_token = response.cookies.get(settings.jwt_cookie_key)
+    response = login(client, 1)
+    refresh_token = response.cookies.get(settings.jwt_refresh_cookie_key)
     # Delete the account
-    response = client.delete("/accounts/me", headers=auth_headers)
+    response = client.delete("/accounts/me")
     assert response.status_code == 204
     # Try accessing something
-    response = client.get("/accounts/me", headers=auth_headers)
+    response = client.get("/accounts/me")
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401
     # Try refreshing (cookie should have been deleted)
-    response = client.post("/auth/refresh")
+    response = client.post("/auth/web/refresh")
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
     # Add the cookie and try again
-    client.cookies.set(settings.jwt_cookie_key, refresh_token)
-    response = client.post("/auth/refresh")
+    client.cookies.set(settings.jwt_refresh_cookie_key, refresh_token)
+    response = client.post("/auth/web/refresh")
     assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
     assert response.status_code == 401

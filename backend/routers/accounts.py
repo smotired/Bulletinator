@@ -56,7 +56,7 @@ def delete_current_account(
     """Delete the currently authenticated account and log out"""
     accounts_db.delete(session, account)
     auth.revoke_refresh_tokens(session, account)
-    response.delete_cookie(settings.jwt_cookie_key)
+    response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
 def get_current_account(

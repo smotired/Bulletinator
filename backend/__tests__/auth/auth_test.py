@@ -85,17 +85,32 @@ def test_login(client, form_headers, create_login, get_account):
     assert response.json() == get_account(1)
     assert response.status_code == 200
 
+def test_login_by_username(client, form_headers, get_account):
+    # log in
+    login = { "identifier": "alice", "password": "password1" }
+    response = client.post("/auth/login", headers=form_headers, data=login)
+    access_token = response.json()['access_token']
+    assert response.status_code == 200
+    refresh_token = response.cookies.get(settings.jwt_cookie_key)
+    assert refresh_token is not None
+    # create auth headers
+    auth_headers = { "Authorization": f"Bearer {access_token}" }
+    # try an authenticated route
+    response = client.get("/accounts/me", headers=auth_headers)
+    assert response.json() == get_account(1)
+    assert response.status_code == 200
+
 def test_login_incorrect_password(client, form_headers, create_login, exception):
     login = create_login(1)
     login['password'] = "incorrect password"
     response = client.post("/auth/login", headers=form_headers, data=login)
-    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid username or password")
+    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid credentials")
     assert response.status_code == 401
 
 def test_login_nonexistent_account(client, form_headers, exception):
-    login = { "email": "nobody@example.com", "password": "nonexistent" }
+    login = { "identifier": "nobody@example.com", "password": "nonexistent" }
     response = client.post("/auth/login", headers=form_headers, data=login)
-    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid username or password")
+    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid credentials")
     assert response.status_code == 401
 
 def test_access_token_expiration(client, monkeypatch, auth_headers, exception):

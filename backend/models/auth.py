@@ -1,8 +1,6 @@
 """Request and response models for authentication functionality"""
 
 from pydantic import BaseModel
-from typing import Annotated, Union
-from fastapi import Form
     
 class Registration(BaseModel):
     """Request model for registering an account"""
@@ -11,8 +9,8 @@ class Registration(BaseModel):
     password: str
     
 class Login(BaseModel):
-    """Request model for logging in an account with the email"""
-    email: str
+    """Request model for logging in an account with email or password"""
+    identifier: str
     password: str
     
 class AccessToken(BaseModel):

@@ -76,7 +76,7 @@ def test_update_password(client, auth_headers, get_account):
     assert response.status_code == 200
     # Try logging in with the new information
     response = client.post('/auth/login', data={
-        'email': 'alice2@example.com',
+        'identifier': 'alice2@example.com',
         'password': 'newpassword'
     })
     assert response.status_code == 200
@@ -87,11 +87,11 @@ def test_update_password_incorrect(client, auth_headers, exception):
         "new_password": "newpassword",
     }
     response = client.put('/accounts/me', headers=auth_headers(1), json=update)
-    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid username or password")
+    assert response.json() == exception("invalid_credentials", "Authentication failed: invalid credentials")
     assert response.status_code == 401
     # Try logging in with the new information
     response = client.post('/auth/login', data={
-        'email': 'alice@example.com',
+        'identifier': 'alice@example.com',
         'password': 'newpassword'
     })
     assert response.status_code == 401

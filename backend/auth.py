@@ -108,7 +108,9 @@ def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]: # type:
         InvalidCredentials: if the username or password is invalid
     """
     # Verify login
-    account: DBAccount = get_by_email(session, form.email)
+    account: DBAccount = get_by_email(session, form.identifier)
+    if account is None:
+        account = get_by_username(session, form.identifier)
     if account is None:
         raise InvalidCredentials()
     account = verify_account(account, form.password)

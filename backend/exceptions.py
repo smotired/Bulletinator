@@ -81,7 +81,7 @@ class InvalidCredentials(BadRequestException):
     def __init__(self):
         self.status_code = 401
         self.error = "invalid_credentials"
-        self.message = "Authentication failed: invalid username or password"
+        self.message = "Authentication failed: invalid credentials"
         
 class InvalidAccessToken(BadRequestException):
     def __init__(self):

@@ -273,7 +273,7 @@ def create_login(get_account):
     def _create_login(id: int) -> dict:
         email: str = get_account(id)["email"]
         password: str = "password" + str(id)
-        return { "email": email, "password": password }
+        return { "identifier": email, "password": password }
     return _create_login
 
 @pytest.fixture

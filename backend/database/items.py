@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectin_polymorphic, selectinload
 
 from backend.dependencies import DBSession, format_list
 from backend.database import boards as boards_db
-from backend.database.schema import DBItem, DBBoard, DBUser, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBPin
+from backend.database.schema import DBItem, DBBoard, DBAccount, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBPin
 from backend.exceptions import *
 
 from backend.models.items import *
@@ -23,25 +23,25 @@ def get_by_id(session: DBSession, item_id: int, typestr: str = 'item') -> DBItem
         raise EntityNotFound(typestr, "id", item_id)
     return results[0]
 
-def get_items(session: DBSession, board_id: int, user: DBUser | None) -> list[DBItem]:
-    """Returns the items on the board with this ID, if the user can see them"""
-    board: DBBoard = boards_db.get_for_viewer(session, board_id, user)
+def get_items(session: DBSession, board_id: int, account: DBAccount | None) -> list[DBItem]:
+    """Returns the items on the board with this ID, if the account can see them"""
+    board: DBBoard = boards_db.get_for_viewer(session, board_id, account)
     # Get a list of top-level items
     stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.board_id == board_id).where(DBItem.list_id == None)
     items = list(session.execute(stmt).scalars().all())
     return items
 
-def get_item(session: DBSession, board_id: int, item_id: int, user: DBUser | None) -> DBItem:
-    """Returns the item with this ID, if it's on the board with this ID and the user can see it."""
-    board: DBBoard = boards_db.get_for_viewer(session, board_id, user)
+def get_item(session: DBSession, board_id: int, item_id: int, account: DBAccount | None) -> DBItem:
+    """Returns the item with this ID, if it's on the board with this ID and the account can see it."""
+    board: DBBoard = boards_db.get_for_viewer(session, board_id, account)
     item = get_by_id(session, item_id)
     if item.board != board:
         raise EntityNotFound("item", "id", item_id)
     return item
 
-def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBUser | None) -> DBItem:
+def create_item(session: DBSession, board_id: int, config: ItemCreate, account: DBAccount | None) -> DBItem:
     """Creates an item on this board."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     # Figure out what type of config this is
     subclass: type = ITEMTYPES.get(config.type, { "create": BaseItemCreate })['create']
     if subclass == BaseItemCreate:
@@ -84,10 +84,10 @@ def create_item(session: DBSession, board_id: int, config: ItemCreate, user: DBU
     session.refresh(item)
     return item
 
-def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpdate, user: DBUser) -> DBItem:
+def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpdate, account: DBAccount) -> DBItem:
     """Updates an item."""
-    # Make sure the user can edit this board, and the item exists and is on this board.
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    # Make sure the account can edit this board, and the item exists and is on this board.
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
@@ -150,10 +150,10 @@ def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpd
         collapse_list(session, l)
     return item
 
-def delete_item(session: DBSession, board_id: int, item_id: int, user: DBUser) -> None:
+def delete_item(session: DBSession, board_id: int, item_id: int, account: DBAccount) -> None:
     """Delets an item."""
-    # Make sure the user can edit this board, and the item exists and is on this board.
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    # Make sure the account can edit this board, and the item exists and is on this board.
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
@@ -165,9 +165,9 @@ def delete_item(session: DBSession, board_id: int, item_id: int, user: DBUser) -
     if item_list:
         collapse_list(session, item_list)
 
-def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, user: DBUser) -> DBTodoItem:
+def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, account: DBAccount) -> DBTodoItem:
     """Creates and returns a TodoItem in this todo list"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo: DBItemTodo = get_by_id(session, config.list_id, 'item_todo')
     if todo.board_id != board_id:
         raise EntityNotFound('item_todo', 'id', config.list_id)
@@ -184,9 +184,9 @@ def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, 
     session.refresh(todo_item)
     return todo_item
 
-def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, config: TodoItemUpdate, user: DBUser) -> DBTodoItem:
+def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, config: TodoItemUpdate, account: DBAccount) -> DBTodoItem:
     """Creates and returns a TodoItem in this todo list"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo_item = session.get(DBTodoItem, todo_item_id)
     if todo_item == None:
         raise EntityNotFound('todo_item', 'id', todo_item_id)
@@ -204,9 +204,9 @@ def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, confi
     session.refresh(todo_item)
     return todo_item
 
-def delete_todo_item(session: DBSession, board_id: int, todo_item_id: int, user: DBUser) -> None:
+def delete_todo_item(session: DBSession, board_id: int, todo_item_id: int, account: DBAccount) -> None:
     """Deletes a todo item"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo_item = session.get(DBTodoItem, todo_item_id)
     if todo_item == None:
         raise EntityNotFound('todo_item', 'id', todo_item_id)
@@ -243,9 +243,9 @@ def collapse_list(session: DBSession, list: DBItemList) -> DBItemList:
     session.refresh(list)
     return list
 
-def create_pin(session: DBSession, board_id: int, config: PinCreate, user: DBUser) -> DBPin:
+def create_pin(session: DBSession, board_id: int, config: PinCreate, account: DBAccount) -> DBPin:
     """Adds a pin to an item."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     item: DBItem = get_by_id(session, config.item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', config.item_id)
@@ -262,9 +262,9 @@ def create_pin(session: DBSession, board_id: int, config: PinCreate, user: DBUse
     session.refresh(pin)
     return pin
 
-def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, user: DBUser) -> DBPin:
+def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, account: DBAccount) -> DBPin:
     """Updates a pin."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin: DBPin = session.get(DBPin, pin_id)
     if pin == None:
         raise EntityNotFound('pin', 'id', pin_id)
@@ -282,18 +282,18 @@ def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate
     session.refresh(pin)
     return pin
 
-def delete_pin(session: DBSession, board_id: int, pin_id: int, user: DBUser) -> None:
+def delete_pin(session: DBSession, board_id: int, pin_id: int, account: DBAccount) -> None:
     """Deletes a pin."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin: DBPin = session.get(DBPin, pin_id)
     if pin == None:
         raise EntityNotFound('pin', 'id', pin_id)
     session.delete(pin)
     session.commit()
 
-def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, user: DBUser) -> list[DBPin]:
+def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, account: DBAccount) -> list[DBPin]:
     """Adds a connection between two pins."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin1: DBPin = session.get(DBPin, pin1_id)
     if pin1 == None or pin1.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin1_id)
@@ -309,9 +309,9 @@ def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id:
     session.refresh(pin2)
     return [ pin1, pin2 ]
 
-def remove_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, user: DBUser) -> list[DBPin]:
+def remove_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, account: DBAccount) -> list[DBPin]:
     """Removes a connection between two pins."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, user)
+    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin1: DBPin = session.get(DBPin, pin1_id)
     if pin1 == None or pin1.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin1_id)

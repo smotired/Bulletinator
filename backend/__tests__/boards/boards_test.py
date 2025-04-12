@@ -10,7 +10,7 @@ def test_get_public(client, get_board):
     assert response.status_code == 200
 
 def test_get_visible(client, get_board, auth_headers):
-    # boards 1 and 2 are public, and user 2 owns board 3
+    # boards 1 and 2 are public, and account 2 owns board 3
     response = client.get("/boards", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 3 },
@@ -19,7 +19,7 @@ def test_get_visible(client, get_board, auth_headers):
     assert response.status_code == 200
 
 def test_get_editable(client, auth_headers, get_board):
-    # user 2 is the owner of board 3 and an editor on board 1, and thus should not see board 2
+    # account 2 is the owner of board 3 and an editor on board 1, and thus should not see board 2
     response = client.get("/boards/editable", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 2 },
@@ -81,7 +81,7 @@ def test_update_board_as_editor(client, auth_headers, exception):
         "icon": "sun",
         "public": False
     }
-    response = client.put("/boards/1", headers=auth_headers(2), json=data) # user 2 is an editor on this board but not an owner
+    response = client.put("/boards/1", headers=auth_headers(2), json=data) # account 2 is an editor on this board but not an owner
     assert response.json() == exception("access_denied", "Access denied")
     assert response.status_code == 403
 
@@ -89,7 +89,7 @@ def test_update_board_unauthorized(client, auth_headers, exception):
     data = {
         "public": True
     }
-    response = client.put("/boards/3", headers=auth_headers(4), json=data) # user 4 has no knowledge of this board
+    response = client.put("/boards/3", headers=auth_headers(4), json=data) # account 4 has no knowledge of this board
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
     assert response.status_code == 404
 
@@ -106,31 +106,31 @@ def test_delete_board_as_editor(client, auth_headers, exception):
     assert response.status_code == 403
 
 def test_delete_board_unauthorized(client, auth_headers, exception):
-    response = client.delete("/boards/3", headers=auth_headers(4)) # user 4 has no knowledge of this board
+    response = client.delete("/boards/3", headers=auth_headers(4)) # account 4 has no knowledge of this board
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
     assert response.status_code == 404
 
-def test_get_editors(client, auth_headers, get_response_user):
+def test_get_editors(client, auth_headers, get_response_account):
     response = client.get("/boards/3/editors", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 2 }, 
-        "users": [ get_response_user(1), get_response_user(3) ]
+        "accounts": [ get_response_account(1), get_response_account(3) ]
     }
     assert response.status_code == 200
 
-def test_add_editor(client, auth_headers, get_response_user):
+def test_add_editor(client, auth_headers, get_response_account):
     response = client.put("/boards/3/editors/4", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 3 }, 
-        "users": [ get_response_user(1), get_response_user(3), get_response_user(4) ]
+        "accounts": [ get_response_account(1), get_response_account(3), get_response_account(4) ]
     }
     assert response.status_code == 201
 
-def test_remove_editor(client, auth_headers, get_response_user):
+def test_remove_editor(client, auth_headers, get_response_account):
     response = client.delete("/boards/3/editors/3", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 }, 
-        "users": [ get_response_user(1) ]
+        "accounts": [ get_response_account(1) ]
     }
     assert response.status_code == 200
 

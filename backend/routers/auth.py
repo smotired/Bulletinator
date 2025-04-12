@@ -9,24 +9,24 @@ from fastapi import APIRouter, Response, Form
 from backend import auth
 from backend.config import settings
 from backend.database.schema import *
-from backend.dependencies import DBSession, CurrentUser, RefreshToken
+from backend.dependencies import DBSession, CurrentAccount, RefreshToken
 from backend.models.auth import AccessToken, Registration, Login
-from backend.models.users import User
+from backend.models.accounts import Account
 
 from typing import Annotated
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/registration", status_code=201, response_model=User)
+@router.post("/registration", status_code=201, response_model=Account)
 def register_account(
     session: DBSession,
     form: Annotated[Registration, Form()]
-) -> DBUser:
+) -> DBAccount:
     """Register new account"""
     return auth.register_account(session, form)
 
 @router.post("/login", status_code=200)
-def login_user(
+def login_account(
     response: Response,
     session: DBSession,
     form: Annotated[Login, Form()]
@@ -48,22 +48,22 @@ def refresh_access_token(
     return AccessToken(access_token=access_token, token_type="bearer")
 
 @router.post("/logout", status_code=204)
-def logout_user(
+def logout_account(
     response: Response,
     session: DBSession,
-    user: CurrentUser,
+    account: CurrentAccount,
     token: RefreshToken
 ) -> None:
-    """Authenticated route. Log out a user and invalidate the supplied refresh token."""
+    """Authenticated route. Log out an account and invalidate the supplied refresh token."""
     auth.revoke_one_refresh_token(session, token)
     response.delete_cookie(settings.jwt_cookie_key)
     
 @router.post("/forcelogout", status_code=204)
-def force_logout_user(
+def force_logout_account(
     response: Response,
     session: DBSession,
-    user: CurrentUser,
+    account: CurrentAccount,
 ) -> None:
-    """Authenticated route. Log out a user and invalidate ALL refresh tokens."""
-    auth.revoke_refresh_tokens(session, user)
+    """Authenticated route. Log out an account and invalidate ALL refresh tokens."""
+    auth.revoke_refresh_tokens(session, account)
     response.delete_cookie(settings.jwt_cookie_key)

@@ -53,7 +53,7 @@ def static_path():
 # Initial database contents
 
 @pytest.fixture
-def users():
+def accounts():
     return [
         { "id": 1, "username": "alice", "email": "alice@example.com", "profile_image": None },
         { "id": 2, "username": "bob", "email": "bob@example.com", "profile_image": None },
@@ -71,7 +71,7 @@ def boards():
     ]
 
 @pytest.fixture
-def editors(): # board_ids and user_ids
+def editors(): # board_ids and account_ids
     return { 1: [2], 2: [3], 3: [1, 3] }
 
 @pytest.fixture
@@ -112,21 +112,21 @@ def pins():
 # Set up database
 
 @pytest.fixture(autouse=True)
-def setup(session, users, boards, editors, items, todo_items, pins):
+def setup(session, accounts, boards, editors, items, todo_items, pins):
     """Setup initial test data in database."""
 
     # Create accounts, with passwords equal to index (e.g. password1, password2, etc)
-    db_users = {}
-    for i, user in enumerate(users):
-        db_user = DBUser(**user, hashed_password=f"hashed_password{i+1}")
-        db_users[db_user.id] = db_user
-        session.add(db_user)
+    db_accounts = {}
+    for i, account in enumerate(accounts):
+        db_account = DBAccount(**account, hashed_password=f"hashed_password{i+1}")
+        db_accounts[db_account.id] = db_account
+        session.add(db_account)
 
     # Create boards
     for i, board in enumerate(boards):
         db_board = DBBoard(**board)
         for editor_id in editors[db_board.id]:
-            db_board.editors.append(db_users[editor_id])
+            db_board.editors.append(db_accounts[editor_id])
         session.add(db_board)
 
     # Create items
@@ -174,11 +174,11 @@ def setup(session, users, boards, editors, items, todo_items, pins):
 # Helpful methods
 
 @pytest.fixture
-def get_user(users):
-    """Function to get a user by ID"""
-    def _get_user(id: int) -> dict:
-        return [ u for u in users if u["id"] == id ][0]
-    return _get_user
+def get_account(accounts):
+    """Function to get an account by ID"""
+    def _get_account(id: int) -> dict:
+        return [ u for u in accounts if u["id"] == id ][0]
+    return _get_account
 
 @pytest.fixture
 def get_board(boards):
@@ -210,20 +210,20 @@ def get_item(items, todo_items, get_item_pin):
     return _get_item
 
 @pytest.fixture
-def get_response_user(get_user):
-    """Function to get a user's response model by ID"""
-    def _get_response_user(id: int, profile_image: dict | None = None) -> dict:
-        base = get_user(id)
+def get_response_account(get_account):
+    """Function to get an account's response model by ID"""
+    def _get_response_account(id: int, profile_image: dict | None = None) -> dict:
+        base = get_account(id)
         del base['email']
         base['profile_image'] = profile_image
         return base
-    return _get_response_user
+    return _get_response_account
 
 @pytest.fixture
-def create_login(get_user):
-    """Function to create a Login object (email and password) for this user id"""
+def create_login(get_account):
+    """Function to create a Login object (email and password) for this account id"""
     def _create_login(id: int) -> dict:
-        email: str = get_user(id)["email"]
+        email: str = get_account(id)["email"]
         password: str = "password" + str(id)
         return { "email": email, "password": password }
     return _create_login

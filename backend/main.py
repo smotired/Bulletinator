@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.dependencies import create_db_tables
 from backend.exceptions import BadRequestException
-from backend.routers import boards, users, items, auth, media
+from backend.routers import boards, accounts, items, auth, media
 from backend.config import settings
 
 # Set up the application lifecycle
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 # Setup and start the application
 
 description = """
-Bulletinator is a project management and collaboration application. Users can
+Bulletinator is a project management and collaboration application. Accounts can
 create bulletin boards and add and rearrange notes, images, and more to plan
 out their projects and brainstorm development.
 """
@@ -48,7 +48,7 @@ app = FastAPI(
 )
 
 # Set up all of the routers
-for router in [ users.router, boards.router, items.router, auth.router, media.router ]:
+for router in [ accounts.router, boards.router, items.router, auth.router, media.router ]:
     app.include_router(router)
 
 # Basic routes

@@ -1,5 +1,5 @@
-INSERT INTO users VALUES (1, "john_doe", "john@example.com", "hashed_password1", NULL);
-INSERT INTO users VALUES (2, "jane_doe", "jane@example.com", "hashed_password2", NULL);
+INSERT INTO accounts VALUES (1, "john_doe", "john@example.com", "hashed_password1", NULL);
+INSERT INTO accounts VALUES (2, "jane_doe", "jane@example.com", "hashed_password2", NULL);
 
 INSERT INTO boards VALUES (1, "main_board", "default", 1, true);
 INSERT INTO boards VALUES (2, "child_board", "default", 1, false);

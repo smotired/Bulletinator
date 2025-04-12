@@ -1,0 +1,69 @@
+from sqlalchemy import select
+
+from backend.dependencies import DBSession
+from backend.database.schema import DBAccount
+from backend.exceptions import *
+
+from backend import auth
+from backend.models.accounts import AccountUpdate
+
+# Account creation logic will be handled only by authentication module
+
+def get_by_id(session: DBSession, account_id: int) -> DBAccount:
+    """Retrieve account by email"""
+    account = session.get(DBAccount, account_id)
+    if account is None:
+        raise EntityNotFound("account", "id", account_id)
+    return account
+
+def get_by_email(session: DBSession, email: str) -> DBAccount | None:
+    """Retrieve account by email"""
+    stmt = select(DBAccount).where(DBAccount.email == email)
+    return session.execute(stmt).scalars().one_or_none()
+
+def get_by_username(session: DBSession, username: str) -> DBAccount | None:
+    """Retrieve account by email"""
+    stmt = select(DBAccount).where(DBAccount.username == username)
+    return session.execute(stmt).scalars().one_or_none()
+
+def get_all(session: DBSession) -> list[DBAccount]:
+    """Retrieve all accounts"""
+    return list(session.execute(select(DBAccount)).scalars().all())
+
+def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount:
+    """Updates an account with non-sensitive information"""
+    # Make sure the username isn't taken, and update it
+    if update.username is not None and update.username != account.username:
+        if get_by_username(session, update.username) is not None:
+            raise DuplicateEntity("account", "username", update.username)
+        account.username = update.username
+    # Update the filename for the image (so they can just link to images hosted elsewhere)
+    if update.profile_image is not None:
+        account.profile_image = update.profile_image
+    
+    # Check if the password is correct
+    verified = (auth.verify_account(account, update.old_password) is not None) if update.old_password is not None else False
+    
+    # Make sure the email isn't taken, and update it
+    if update.email is not None and update.email != account.email:
+        if not verified:
+            raise InvalidCredentials()
+        if get_by_email(session, update.email) is not None:
+            raise DuplicateEntity("account", "email", update.email)
+        account.email = update.email
+    # Update the password
+    if update.new_password is not None:
+        if not verified:
+            raise InvalidCredentials()
+        account.hashed_password = auth.hash_password(update.new_password)
+        
+    # Update in DB
+    session.add(account)
+    session.commit()
+    session.refresh(account)
+    return account
+
+def delete(session: DBSession, account: DBAccount) -> None:
+    """Delete an account."""
+    session.delete(account)
+    session.commit()

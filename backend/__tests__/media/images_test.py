@@ -209,7 +209,7 @@ def test_upload_image_oversize_y(client, monkeypatch, auth_headers, create_image
     assert image.getpixel((0,599)) == (255, 255, 255)
     assert image.getpixel((399,599)) == (255, 255, 255)
 
-def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_path, get_user):
+def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_path, get_account):
     id = 'test_upload_avatar'
     filename = id + '.png'
     # override elements for verification
@@ -234,7 +234,7 @@ def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_p
         }
     )
     # assert response
-    expected = get_user(1).copy()
+    expected = get_account(1).copy()
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -245,7 +245,7 @@ def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_p
     assert image.getpixel((0,63)) == (255, 255, 255)
     assert image.getpixel((63,63)) == (255, 255, 255)
 
-def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image, static_path, get_user):
+def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image, static_path, get_account):
     id = 'test_upload_avatar_oversize'
     filename = id + '.png'
     # override elements for verification
@@ -270,7 +270,7 @@ def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image,
         }
     )
     # assert response
-    expected = get_user(1).copy()
+    expected = get_account(1).copy()
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -281,7 +281,7 @@ def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image,
     assert image.getpixel((0,63)) == (255, 255, 255)
     assert image.getpixel((63,63)) == (255, 255, 255)
 
-def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_image, static_path, get_user):
+def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_image, static_path, get_account):
     id = 'test_upload_avatar_oversize_x'
     filename = id + '.png'
     # override elements for verification
@@ -306,7 +306,7 @@ def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_imag
         }
     )
     # assert response
-    expected = get_user(1).copy()
+    expected = get_account(1).copy()
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -317,7 +317,7 @@ def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_imag
     assert image.getpixel((0,63)) == (255, 255, 255)
     assert image.getpixel((95,63)) == (255, 255, 255)
 
-def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_image, static_path, get_user):
+def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_image, static_path, get_account):
     id = 'test_upload_avatar_oversize_y'
     filename = id + '.png'
     # override elements for verification
@@ -342,7 +342,7 @@ def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_imag
         }
     )
     # assert response
-    expected = get_user(1).copy()
+    expected = get_account(1).copy()
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -477,8 +477,8 @@ def test_delete_image_unauthorized(client, monkeypatch, auth_headers, create_ima
         safe = False
     assert safe
 
-def test_get_user_images(client, monkeypatch, auth_headers, create_image, static_path):
-    id = 'test_get_user_images'
+def test_get_account_images(client, monkeypatch, auth_headers, create_image, static_path):
+    id = 'test_get_account_images'
     filename = id + '.png'
     # override elements for verification
     old_uuid4 = uuid.uuid4
@@ -510,7 +510,7 @@ def test_get_user_images(client, monkeypatch, auth_headers, create_image, static
     assert response.status_code == 201
     # check it in the uploaded images
     monkeypatch.setattr(uuid, 'uuid4', old_uuid4) # making another request so we need to fix uuid
-    response = client.get("/users/me/uploads/images", headers=auth_headers(1))
+    response = client.get("/accounts/me/uploads/images", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 1 },
         "images": [

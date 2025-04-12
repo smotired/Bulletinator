@@ -25,7 +25,7 @@ def test_get_private_items(client, auth_headers, get_item):
     assert response.status_code == 200
 
 def test_get_private_items_unauthorized(client, auth_headers, exception):
-    response = client.get("/boards/3/items", headers=auth_headers(4)) # user 4 should have no knowledge of board 3
+    response = client.get("/boards/3/items", headers=auth_headers(4)) # account 4 should have no knowledge of board 3
     assert response.json() == exception("entity_not_found", "Unable to find board with id=3")
     assert response.status_code == 404
 

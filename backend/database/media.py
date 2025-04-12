@@ -3,7 +3,7 @@ from sqlalchemy import select
 from fastapi import UploadFile
 
 from backend.dependencies import DBSession
-from backend.database.schema import DBUser, DBImage
+from backend.database.schema import DBAccount, DBImage
 from backend.exceptions import *
 
 from backend.config import settings
@@ -13,7 +13,7 @@ from io import BytesIO
 import uuid
 import os
 
-async def upload_image(session: DBSession, user: DBUser, file: UploadFile, content_length: int, mindim: int = 0, maxdim: int = 600) -> DBImage:
+async def upload_image(session: DBSession, account: DBAccount, file: UploadFile, content_length: int, mindim: int = 0, maxdim: int = 600) -> DBImage:
     """Route to upload a file. Resizes it to the specified dimensions."""
     # Make sure it's the right size
     if content_length > settings.media_img_max_bytes:
@@ -55,7 +55,7 @@ async def upload_image(session: DBSession, user: DBUser, file: UploadFile, conte
     # Save the image to the database
     db_image = DBImage(
         uuid=id,
-        uploader_id=user.id,
+        uploader_id=account.id,
         filename=filename,
     )
     session.add(db_image)
@@ -67,13 +67,13 @@ async def upload_image(session: DBSession, user: DBUser, file: UploadFile, conte
     # return
     return db_image
 
-def delete_image(session: DBSession, image_uuid: str, user: DBUser) -> None:
-    """Deletes an image in the database and from the static directory, if the user is the uploader."""
-    # Get the image and verify that this user uploaded it
+def delete_image(session: DBSession, image_uuid: str, account: DBAccount) -> None:
+    """Deletes an image in the database and from the static directory, if the account is the uploader."""
+    # Get the image and verify that this account uploaded it
     image: DBImage = session.get(DBImage, image_uuid)
     if image == None:
         raise EntityNotFound('image', 'uuid', image_uuid)
-    if image.uploader != user:
+    if image.uploader != account:
         raise AccessDenied()
     # Delete file
     filepath = os.path.join(settings.static_path, 'images', image.filename)
@@ -85,18 +85,18 @@ def delete_image(session: DBSession, image_uuid: str, user: DBUser) -> None:
     session.delete(image)
     session.commit()
 
-async def upload_avatar(session: DBSession, user: DBUser, image: UploadFile, content_length: int) -> DBUser:
-    """Uploads an image, resizes it to 64x64, sets the user's profile picture to that image, and returns the user."""
+async def upload_avatar(session: DBSession, account: DBAccount, image: UploadFile, content_length: int) -> DBAccount:
+    """Uploads an image, resizes it to 64x64, sets the account's profile picture to that image, and returns the account."""
     # Upload the image and resize to 64x64
-    image: DBImage = await upload_image(session, user, image, content_length, mindim=64, maxdim=64)
-    # Update the user
-    user.profile_image = image.filename
-    session.add(user)
+    image: DBImage = await upload_image(session, account, image, content_length, mindim=64, maxdim=64)
+    # Update the account
+    account.profile_image = image.filename
+    session.add(account)
     session.commit()
-    session.refresh(user)
-    return user
+    session.refresh(account)
+    return account
 
-def get_user_images(session: DBSession, user: DBUser) -> list[DBImage]:
-    """Gets a list of images uploaded by a user"""
-    stmt = select(DBImage).where(DBImage.uploader_id == user.id)
+def get_account_images(session: DBSession, account: DBAccount) -> list[DBImage]:
+    """Gets a list of images uploaded by an account"""
+    stmt = select(DBImage).where(DBImage.uploader_id == account.id)
     return list( session.execute(stmt).scalars().all() )

@@ -15,4 +15,4 @@ DELETE FROM editor_table;
 DELETE FROM refresh_tokens;
 DELETE FROM images;
 DELETE FROM boards;
-DELETE FROM users;
+DELETE FROM accounts;

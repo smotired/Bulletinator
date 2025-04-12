@@ -5,13 +5,13 @@ from typing import Annotated, Union
 from fastapi import Form
     
 class Registration(BaseModel):
-    """Request model for registering a user"""
+    """Request model for registering an account"""
     username: str
     email: str
     password: str
     
 class Login(BaseModel):
-    """Request model for logging in a user with the email"""
+    """Request model for logging in an account with the email"""
     email: str
     password: str
     
@@ -22,14 +22,14 @@ class AccessToken(BaseModel):
     
 class AccessPayload(BaseModel):
     """Model for JWT access token payload"""
-    sub: str # subject. user ID as string
+    sub: str # subject. account ID as string
     iss: str # issuer domain
     iat: int # time this token was issued
     exp: int # time after which this token has expired
     
 class RefreshPayload(BaseModel):
     """Model for JWT refresh token payload"""
-    sub: str # subject. user ID as string.
+    sub: str # subject. account ID as string.
     uid: str # unique ID of this token so we can manually revoke it
     iss: str # issuer domain
     iat: int # time this token was issued

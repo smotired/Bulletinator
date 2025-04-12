@@ -9,16 +9,16 @@ from typing import List, Optional
 
 Base = declarative_base()
 
-# Intermediate table for many-to-many relationship between Users and the Boards they are allowed to edit
+# Intermediate table for many-to-many relationship between Accounts and the Boards they are allowed to edit
 editor_table = Table(
     "editor_table",
     Base.metadata,
-    Column("user_id", ForeignKey("users.id", ondelete="CASCADE")),
+    Column("account_id", ForeignKey("accounts.id", ondelete="CASCADE")),
     Column("board_id", ForeignKey("boards.id", ondelete="CASCADE")),
 )
 
-class DBUser(Base):
-    """Users table. Each row represents a user account.
+class DBAccount(Base):
+    """Accounts table. Each row represents an account account.
 
     Fields:
         - id: primary key (auto-increments)
@@ -32,7 +32,7 @@ class DBUser(Base):
         - editable: Board, many-to-many
         - uploaded: Image, one-to-many
     """
-    __tablename__ = "users"
+    __tablename__ = "accounts"
 
     # fields
     id: Mapped[int] = mapped_column( primary_key=True )
@@ -53,13 +53,13 @@ class DBBoard(Base):
         - id: primary key (auto-increments)
         - name: the name of the board
         - icon: the string icon name that is being used
-        - owner_id: the ID of the user that created the board.
-            - deleting a user will cascade-delete boards
+        - owner_id: the ID of the account that created the board.
+            - deleting an account will cascade-delete boards
         - public: if the board can be viewed regardless of account
 
     Relationships:
-        - owner: User, many-to-one
-        - editors: User, many-to-many
+        - owner: Account, many-to-one
+        - editors: Account, many-to-many
         - items: Item, one-to-many
         - pins: Pin, one-to-many
     """
@@ -69,11 +69,11 @@ class DBBoard(Base):
     id: Mapped[int] = mapped_column( primary_key=True )
     name: Mapped[str]
     icon: Mapped[str] = mapped_column( default="default" ) # later should these have their own table? probably not
-    owner_id: Mapped[int] = mapped_column( ForeignKey("users.id") )
+    owner_id: Mapped[int] = mapped_column( ForeignKey("accounts.id") )
     public: Mapped[bool] = mapped_column( default=False )
     
-    owner: Mapped["DBUser"] = relationship( back_populates="boards" )
-    editors: Mapped[List["DBUser"]] = relationship( secondary=editor_table, back_populates="editable" )
+    owner: Mapped["DBAccount"] = relationship( back_populates="boards" )
+    editors: Mapped[List["DBAccount"]] = relationship( secondary=editor_table, back_populates="editable" )
     items: Mapped[List["DBItem"]] = relationship( back_populates="board", cascade="all, delete-orphan" )
     pins: Mapped[List["DBPin"]] = relationship( back_populates="board", cascade="all, delete-orphan", foreign_keys="DBPin.board_id" )
 
@@ -178,7 +178,7 @@ class DBItemMedia(DBItem):
     
     Fields:
         - id: primary key - the id of the parent item
-        - url: The link to the image, whether uploaded by the user or not.
+        - url: The link to the image, whether uploaded by the account or not.
         - size: The resized image size (overridden if in list)
     """
     __tablename__ = "items_media"
@@ -264,32 +264,32 @@ class DBImage(Base):
     
     Fields:
         - uuid: uuid4 primary key
-        - uploader_id: the user that uploaded this
+        - uploader_id: the account that uploaded this
         - filename: the name of the file on the server
 
     Relationships:
-        - uploader: User, many-to-one
+        - uploader: Account, many-to-one
     """
     __tablename__ = "images"
     
     uuid: Mapped[str] = mapped_column(String(36), primary_key=True, unique=True)
-    uploader_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    uploader_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
     filename: Mapped[str]
     
-    uploader: Mapped["DBUser"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
+    uploader: Mapped["DBAccount"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
     
 class DBRefreshToken(Base):
-    """Refresh token table. Each row represents a relationship between tokens and users.
+    """Refresh token table. Each row represents a relationship between tokens and accounts.
     
     Fields:
         - token_id: the UUID of the token
-        - user_id: the user the token belongs to
+        - account_id: the account the token belongs to
         - expires_at: the time at which this token should automatically expire
     """
     __tablename__ = "refresh_tokens"
     
     token_id: Mapped[str] = mapped_column(primary_key=True, unique=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
     expires_at: Mapped[int]
 
 # Intermediate table for many-to-many relationship between connected Pins

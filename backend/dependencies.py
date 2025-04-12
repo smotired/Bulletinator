@@ -67,16 +67,16 @@ def get_refresh_token(
 RefreshToken = Annotated[str, Depends(get_refresh_token)]
 
 # gotta import this down here
-from backend.auth import extract_user
+from backend.auth import extract_account
 
-def get_current_user(
+def get_current_account(
     session: Session = Depends(get_session),
     access_token: str = Depends(get_access_token),
-) -> DBUser:
-    """Current user dependency. Depends on the session and the access token."""
-    return extract_user(session, access_token)
+) -> DBAccount:
+    """Current account dependency. Depends on the session and the access token."""
+    return extract_account(session, access_token)
 
-CurrentUser = Annotated[DBUser, Depends(get_current_user)]
+CurrentAccount = Annotated[DBAccount, Depends(get_current_account)]
 
 # for times when authentication is not necessary but can change the results of a query
 
@@ -88,18 +88,18 @@ def get_optional_access_token(
         return bearer.credentials
     return None
 
-def get_optional_user(
+def get_optional_account(
     session: Session = Depends(get_session),
     access_token: str = Depends(get_optional_access_token),
-) -> Optional[DBUser]:
-    """Optional user dependency. Depends on the session and the access token. Returns the current user if one is logged in, or None if login fails.
+) -> Optional[DBAccount]:
+    """Optional account dependency. Depends on the session and the access token. Returns the current account if one is logged in, or None if login fails.
     
     Used for routes that don't *require* a login, but can change the results if someone *is* logged in."""
     if access_token is None:
         return None
-    return extract_user(session, access_token)
+    return extract_account(session, access_token)
 
-OptionalUser = Annotated[Optional[DBUser], Depends(get_optional_user)]
+OptionalAccount = Annotated[Optional[DBAccount], Depends(get_optional_account)]
 
 def format_list(items: list[str]):
     """Formats a list nicely in alphabetical order. 'Alice, Bob, Charlie'"""

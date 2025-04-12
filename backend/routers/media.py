@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from backend.database.schema import *
 from backend.database import media as media_db
 from backend.dependencies import DBSession, CurrentUser, OptionalUser
-from backend.models.auth import AuthenticatedUser
+from backend.models.users import AuthenticatedUser
 from backend.models.media import Image
 from backend.models.shared import Metadata
 

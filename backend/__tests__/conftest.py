@@ -55,11 +55,11 @@ def static_path():
 @pytest.fixture
 def users():
     return [
-        { "id": 1, "username": "alice", "email": "alice@example.com" },
-        { "id": 2, "username": "bob", "email": "bob@example.com" },
-        { "id": 3, "username": "charlie", "email": "charlie@example.com" },
-        { "id": 4, "username": "david", "email": "david@example.com" },
-        { "id": 5, "username": "eve", "email": "eve@example.com" },
+        { "id": 1, "username": "alice", "email": "alice@example.com", "profile_image": None },
+        { "id": 2, "username": "bob", "email": "bob@example.com", "profile_image": None },
+        { "id": 3, "username": "charlie", "email": "charlie@example.com", "profile_image": None },
+        { "id": 4, "username": "david", "email": "david@example.com", "profile_image": None },
+        { "id": 5, "username": "eve", "email": "eve@example.com", "profile_image": None },
     ]
 
 @pytest.fixture

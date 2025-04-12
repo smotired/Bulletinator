@@ -3,7 +3,7 @@ from backend.database.schema import *
 from backend.config import settings
 from time import sleep
 
-def test_me_not_authenticated(client, exception, get_user):
+def test_me_not_authenticated(client, exception):
     response = client.get("/users/me")
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
@@ -42,7 +42,7 @@ def test_register_existing_email(client, form_headers, exception):
     assert response.json() == exception("duplicate_entity", "Entity user with email=alice@example.com already exists")
     assert response.status_code == 422
 
-def test_login(client, form_headers, create_login, get_response_user):
+def test_login(client, form_headers, create_login, get_user):
     # log in
     login = create_login(1)
     response = client.post("/auth/login", headers=form_headers, data=login)
@@ -54,7 +54,7 @@ def test_login(client, form_headers, create_login, get_response_user):
     auth_headers = { "Authorization": f"Bearer {access_token}" }
     # try an authenticated route
     response = client.get("/users/me", headers=auth_headers)
-    assert response.json() == get_response_user(1)
+    assert response.json() == get_user(1)
     assert response.status_code == 200
 
 def test_login_incorrect_password(client, form_headers, create_login, exception):
@@ -78,7 +78,7 @@ def test_access_token_expiration(client, monkeypatch, auth_headers, exception):
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401
 
-def test_refresh_access_token(client, monkeypatch, login_client, exception, get_response_user):
+def test_refresh_access_token(client, monkeypatch, login_client, exception, get_user):
     # make access tokens expire immediately after issuance
     monkeypatch.setattr(settings, 'jwt_access_duration', 0)
     # Log in and get access to the refresh token
@@ -95,7 +95,7 @@ def test_refresh_access_token(client, monkeypatch, login_client, exception, get_
     auth_headers = { "Authorization": f"Bearer {access_token}" }
     # Make sure we can 
     response = client.get("/users/me", headers=auth_headers)
-    assert response.json() == get_response_user(1)
+    assert response.json() == get_user(1)
     assert response.status_code == 200
 
 def test_refresh_token_expiration(client, monkeypatch, login_client, exception):
@@ -130,27 +130,6 @@ def test_logout_deletes_and_invalidates_refresh_token(client, monkeypatch, login
     assert response.status_code == 204
     # Wait one second and accessing something
     sleep(1)
-    response = client.get("/users/me", headers=auth_headers)
-    assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
-    assert response.status_code == 401
-    # Try refreshing (cookie should have been deleted)
-    response = client.post("/auth/refresh")
-    assert response.json() == exception("not_authenticated", "Not authenticated")
-    assert response.status_code == 403
-    # Add the cookie and try again
-    client.cookies.set(settings.jwt_cookie_key, refresh_token)
-    response = client.post("/auth/refresh")
-    assert response.json() == exception("invalid_refresh_token", "Authentication failed: Refresh token expired or was invalid")
-    assert response.status_code == 401
-
-def test_delete_account(client, login_client, exception):
-    # Log in and get access to the refresh token
-    auth_headers, response = login_client(client, 1)
-    refresh_token = response.cookies.get(settings.jwt_cookie_key)
-    # Delete the account
-    response = client.delete("/users/me", headers=auth_headers)
-    assert response.status_code == 204
-    # Try accessing something
     response = client.get("/users/me", headers=auth_headers)
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401

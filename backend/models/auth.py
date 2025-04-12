@@ -4,13 +4,6 @@ from pydantic import BaseModel
 from typing import Annotated, Union
 from fastapi import Form
     
-class AuthenticatedUser(BaseModel):
-    """Response model for authenticated users which provides more information"""
-    id: int
-    username: str
-    email: str
-    profile_image: str | None = None
-    
 class Registration(BaseModel):
     """Request model for registering a user"""
     username: str

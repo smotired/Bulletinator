@@ -13,6 +13,13 @@ class User(BaseModel):
     username: str
     profile_image: str | None = None
     
+class AuthenticatedUser(BaseModel):
+    """Response model for authenticated users which provides more information"""
+    id: int
+    username: str
+    email: str
+    profile_image: str | None = None
+    
 class UserCollection(BaseModel):
     """Response model for a collection of users"""
     metadata: shared.Metadata
@@ -31,6 +38,9 @@ UserUpdateForm = Annotated[UserUpdate, Form()]
 
 def convert_user(db_user: DBUser):
     return User.model_validate(db_user.__dict__)
+
+def convert_auth_user(db_user: DBUser):
+    return AuthenticatedUser.model_validate(db_user.__dict__)
 
 def convert_user_list(db_users: list[DBUser]):
     return [ convert_user(db_user) for db_user in db_users ]

@@ -11,7 +11,7 @@ from backend import auth
 from backend.database import users as users_db
 from backend.database import media as media_db
 from backend.dependencies import DBSession, CurrentUser
-from backend.models.users import User, UserCollection, UserUpdateForm, convert_user, convert_user_list
+from backend.models.users import User, AuthenticatedUser, UserCollection, UserUpdate, convert_user, convert_user_list, convert_auth_user
 from backend.models.media import Image, ImageCollection
 from backend.models.shared import Metadata
 from backend.config import settings
@@ -29,7 +29,7 @@ def get_users(
         users=convert_user_list( users )
     )
 
-@router.get("/me", status_code=200, response_model=User)
+@router.get("/me", status_code=200, response_model=AuthenticatedUser)
 def get_current_user(
     session: DBSession,
     user: CurrentUser
@@ -37,11 +37,11 @@ def get_current_user(
     """Get the currently authenticated account"""
     return users_db.get_by_id(session, user.id)
 
-@router.put("/me", status_code=200, response_model=User)
+@router.put("/me", status_code=200, response_model=AuthenticatedUser)
 def update_current_user(
     session: DBSession,
     user: CurrentUser,
-    update: UserUpdateForm
+    update: UserUpdate
 ) -> DBUser:
     """Update the currently authenticated account"""
     return users_db.update(session, user, update)
@@ -68,3 +68,11 @@ def get_current_user(
         metadata=Metadata(count=len(images)),
         images=[ Image.model_validate(image.__dict__) for image in images ]
     )
+
+@router.get("/{user_id}", status_code=200, response_model=User)
+def get_user(
+    session: DBSession,
+    user_id: int
+) -> DBUser:
+    """Gets a user object"""
+    return users_db.get_by_id(session, user_id)

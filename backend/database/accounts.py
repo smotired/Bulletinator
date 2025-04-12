@@ -50,6 +50,8 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
             raise InvalidCredentials()
         if get_by_email(session, update.email) is not None:
             raise DuplicateEntity("account", "email", update.email)
+        if update.email.count('@') != 1: # this is all we will do for validation
+            raise InvalidField(update.email, 'email')
         account.email = update.email
     # Update the password
     if update.new_password is not None:

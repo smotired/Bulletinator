@@ -42,6 +42,16 @@ def test_register_existing_email(client, form_headers, exception):
     assert response.json() == exception("duplicate_entity", "Entity account with email=alice@example.com already exists")
     assert response.status_code == 422
 
+def test_register_invalid_email(client, form_headers, exception):
+    form = {
+        "username": "alicenew",
+        "email": "aliceinvalidemail",
+        "password": "drowssap1",
+    }
+    response = client.post("/auth/registration", headers=form_headers, data=form)
+    assert response.json() == exception('invalid_field', "Value 'aliceinvalidemail' is invalid for field 'email'")
+    assert response.status_code == 422
+
 def test_login(client, form_headers, create_login, get_account):
     # log in
     login = create_login(1)

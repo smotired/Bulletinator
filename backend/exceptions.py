@@ -154,3 +154,9 @@ class FileTooLarge(BadRequestException):
         self.status_code = 422
         self.error = "file_too_large"
         self.message = f"Files of type '{entity}' must be no larger than {limit_str}"
+
+class InvalidField(BadRequestException):
+    def __init__(self, value: str, field: str):
+        self.status_code = 422
+        self.error = "invalid_field"
+        self.message = f"Value '{value}' is invalid for field '{field}'"

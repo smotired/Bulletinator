@@ -82,6 +82,15 @@ def test_update_account_email_taken(client, auth_headers, exception):
     assert response.json() == exception('duplicate_entity', "Entity account with email=bob@example.com already exists")
     assert response.status_code == 422
 
+def test_update_account_email_invalid(client, auth_headers, exception):
+    update = {
+        "email": "aliceinvalidemail",
+        "old_password": "password1"
+    }
+    response = client.put('/accounts/me', headers=auth_headers(1), json=update)
+    assert response.json() == exception('invalid_field', "Value 'aliceinvalidemail' is invalid for field 'email'")
+    assert response.status_code == 422
+
 def test_delete_account(client, login_client, exception):
     # Log in and get access to the refresh token
     auth_headers, response = login_client(client, 1)

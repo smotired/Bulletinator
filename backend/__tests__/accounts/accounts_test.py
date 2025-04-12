@@ -40,6 +40,26 @@ def test_update_account(client, auth_headers, get_account):
     }
     assert response.status_code == 200
 
+def test_update_display_name(client, auth_headers, get_account):
+    update = {
+        "display_name": "Account of Bob",
+    }
+    response = client.put('/accounts/me', headers=auth_headers(2), json=update)
+    assert response.json() == {
+        **get_account(2),
+        **update,
+    }
+
+def test_update_reset_display_name(client, auth_headers, get_account):
+    update = {
+        "display_name": "",
+    }
+    response = client.put('/accounts/me', headers=auth_headers(1), json=update)
+    assert response.json() == {
+        **get_account(1),
+        "display_name": None
+    }
+
 def test_update_password(client, auth_headers, get_account):
     update = {
         "username": "updated_alice",

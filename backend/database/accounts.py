@@ -50,6 +50,8 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     # Update the filename for the image (so they can just link to images hosted elsewhere)
     if update.profile_image is not None:
         account.profile_image = update.profile_image
+    if update.display_name is not None:
+        account.display_name = update.display_name if len(update.display_name) > 0 else None
     
     # Check if the password is correct
     verified = (auth.verify_account(account, update.old_password) is not None) if update.old_password is not None else False

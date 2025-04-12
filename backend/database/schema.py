@@ -30,6 +30,7 @@ class DBAccount(Base):
     Fields:
         - id: UUID primary key
         - username: unique identifier for account
+        - display_name: Account display name 
         - email: the email associated with this account
         - hashed_password: the hashed password used to log in
         - profile_image: the src of the profile image (usually links to static directory, but backend should support links to any image)
@@ -46,6 +47,7 @@ class DBAccount(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     username: Mapped[str] = mapped_column( String(32), unique=True, index=True )
     email: Mapped[str]
+    display_name: Mapped[Optional[str]] = mapped_column( String(64), default=None )
     hashed_password: Mapped[str]
     profile_image: Mapped[Optional[str]] = mapped_column( String(120) )
     created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )

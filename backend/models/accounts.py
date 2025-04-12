@@ -12,6 +12,7 @@ class Account(BaseModel):
     id: str
     username: str
     profile_image: str | None = None
+    display_name: str | None = None
     
 class AuthenticatedAccount(BaseModel):
     """Response model for authenticated accounts which provides more information"""
@@ -19,6 +20,7 @@ class AuthenticatedAccount(BaseModel):
     username: str
     email: str
     profile_image: str | None = None
+    display_name: str | None = None
     
 class AccountCollection(BaseModel):
     """Response model for a collection of accounts"""
@@ -31,6 +33,7 @@ class AccountUpdate(BaseModel):
     
     username: str | None = None
     profile_image: str | None = None # requires uploading the image beforehand
+    display_name: str | None = None # set to the empty string to reset to none
     email: str | None = None
     new_password: str | None = None
     

@@ -22,6 +22,7 @@ def test_register_account(client, accounts, form_headers):
         "id": mock.to_uuid(6, 'account'),
         "username": "fred",
         "profile_image": None,
+        "display_name": None
     }
     assert response.status_code == 201
 

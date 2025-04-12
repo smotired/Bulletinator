@@ -53,6 +53,24 @@ def create_item(session: DBSession, board_id: str, config: ItemCreate, account: 
     missing = [ f for f in required_fields if config_dict[f] == None ]
     if len(missing) > 0:
         raise MissingItemFields(config.type, format_list(missing))
+    # Verify subclass fields
+    if 'text' in config_dict and config_dict['text'] is not None and config.type in [ 'note', 'document' ]:
+        if len(config_dict['text']) > { 'note': 300, 'document': 65536 }[ config.type ]:
+            raise FieldTooLong('text')
+    if 'size' in config_dict and config_dict['size'] is not None and config.type in [ 'note', 'media' ]:
+        try:
+            x, y, = config_dict['size'].split(',')
+            xi, yi = int(x), int(y)
+            if x != str(xi) or y != str(yi):
+                raise InvalidField(config_dict['size'], 'size')
+        except:
+            raise InvalidField(config_dict['size'], 'size')
+    if 'title' in config_dict and config_dict['title'] is not None and config.type in [ 'link', 'todo', 'list', 'document' ]:
+        if len(config_dict['title']) > { 'link': 64, 'todo': 64, 'list': 64, 'document': 64 }[ config.type ]:
+            raise FieldTooLong('title')
+    if 'url' in config_dict and config_dict['url'] is not None and config.type in [ 'link', 'media' ]:
+        if len(config_dict['url']) > { 'link': 128, 'media': 128 }[ config.type ]:
+            raise FieldTooLong('url')
     # If a list_id is provided, try to get the list from the database and make some space
     if config_dict['list_id'] is not None:
         # make sure we aren't adding a list to a list
@@ -93,13 +111,26 @@ def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpd
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
     # Update subclass-specific item fields
-    if config.text is not None and item.type in [ 'note' ]:
+    if config.text is not None and item.type in [ 'note', 'document' ]:
+        if len(config.text) > { 'note': 300, 'document': 65536 }[ item.type ]:
+            raise FieldTooLong('text')
         item.text = config.text
     if config.size is not None and item.type in [ 'note', 'media' ]:
+        try:
+            x, y, = config.size.split(',')
+            xi, yi = int(x), int(y)
+            if x != str(xi) or y != str(yi):
+                raise InvalidField(config.size, 'size')
+        except:
+            raise InvalidField(config.size, 'size')
         item.size = config.size
-    if config.title is not None and item.type in [ 'link', 'todo', 'list' ]:
+    if config.title is not None and item.type in [ 'link', 'todo', 'list', 'document' ]:
+        if len(config.title) > { 'link': 64, 'todo': 64, 'list': 64, 'document': 64 }[ item.type ]:
+            raise FieldTooLong('title')
         item.title = config.title
     if config.url is not None and item.type in [ 'link', 'media' ]:
+        if len(config.url) > { 'link': 128, 'media': 128  }[ item.type ]:
+            raise FieldTooLong('url')
         item.url = config.url
     # Only universal fields that can be updated are position, link and index.
     lists_to_collapse: list[DBItemList] = [] # lists that had things removed or swapped around and should be collapsed after items are updated
@@ -175,6 +206,10 @@ def create_todo_item(session: DBSession, board_id: str, config: TodoItemCreate, 
         raise EntityNotFound('item_todo', 'id', config.list_id)
     if todo.type != 'todo':
         raise ItemTypeMismatch(todo.id, 'todo', todo.type)
+    if len(config.text) > 128:
+        raise FieldTooLong('text')
+    if config.link is not None and len(config.link) > 128:
+        raise FieldTooLong('link')
     todo_item = DBTodoItem(
         list_id = config.list_id,
         text=config.text,
@@ -202,9 +237,16 @@ def update_todo_item(session: DBSession, board_id: str, todo_item_id: str, confi
     # update fields
     todo.updated_at = datetime.now(UTC)
     session.add(todo)
-    todo_item.text = config.text or todo_item.text
-    todo_item.link = config.link or todo_item.link
-    todo_item.done = config.done or todo_item.done
+    if config.text is not None:
+        if len(config.text) > 128:
+            raise FieldTooLong('text')
+        todo_item.text = config.text
+    if config.link is not None:
+        if len(config.link) > 128:
+            raise FieldTooLong('link')
+        todo_item.link = config.link
+    if config.done is not None:
+        todo_item.done = config.done
     session.add(todo_item)
     session.commit()
     session.refresh(todo_item)
@@ -261,6 +303,8 @@ def create_pin(session: DBSession, board_id: str, config: PinCreate, account: DB
         raise EntityNotFound('item', 'id', config.item_id)
     if item.pin is not None:
         raise DuplicateEntity('pin', 'item_id', config.item_id)
+    if config.label is not None and len(config.label) > 64:
+        raise FieldTooLong('label')
     pin = DBPin(
         board_id=board_id,
         item_id=config.item_id,
@@ -287,8 +331,12 @@ def update_pin(session: DBSession, board_id: str, pin_id: str, config: PinUpdate
         if item.pin is not None:
             raise DuplicateEntity('pin', 'item_id', config.item_id)
         pin.item_id = config.item_id
-    pin.label = config.label if config.label is not None else pin.label
-    pin.compass = config.compass if config.compass is not None else pin.compass
+    if config.label is not None:
+        if len(config.label) > 64:
+            raise FieldTooLong('label')
+        pin.label = config.label
+    if config.compass is not None:
+        pin.compass = config.compass
     session.add(pin)
     session.commit()
     session.refresh(pin)

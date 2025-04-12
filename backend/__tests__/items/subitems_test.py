@@ -38,6 +38,20 @@ def test_add_todo_item_defaults(client, auth_headers, todo_items, get_item):
     assert response.json() == todo
     assert response.status_code == 200
 
+def test_add_todo_item_text_too_long(client, auth_headers, items, exception):
+    item = { "list_id": mock.to_uuid(5, 'item'), "text": "a"*129 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'text' exceeded the maximum length")
+    assert response.status_code == 422
+
+def test_add_todo_item_link_too_long(client, auth_headers, items, exception):
+    item = { "list_id": mock.to_uuid(5, 'item'), "text": "a"*128, "link": "a"*129 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items/todo", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'link' exceeded the maximum length")
+    assert response.status_code == 422
+
 def test_add_todo_item_wrong_board(client, auth_headers, todo_items, exception):
     item = { "list_id": mock.to_uuid(5, 'item'), "text": "New Task", "link": f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}", "done": False }
     mock.last_uuid = mock.OFFSETS['sub_item'] + len(todo_items)
@@ -153,6 +167,13 @@ def test_create_pin_defaults(client, auth_headers, pins):
     response = client.post(f"/boards/{mock.to_uuid(2, 'board')}/items/pins", headers=auth_headers(1), json=config)
     assert response.json() == updated
     assert response.status_code == 201
+
+def test_create_pin_label_too_long(client, auth_headers, items, exception):
+    config = { 'item_id': mock.to_uuid(6, 'item'), "label": "a"*65 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(2, 'board')}/items/pins", headers=auth_headers(1), json=config)
+    assert response.json() == exception("field_too_long", "Input to field 'label' exceeded the maximum length")
+    assert response.status_code == 422
 
 def test_create_pin_wrongboard(client, auth_headers, pins, exception):
     config = {

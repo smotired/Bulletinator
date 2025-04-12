@@ -44,11 +44,11 @@ class DBAccount(Base):
     __tablename__ = "accounts"
 
     # fields
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
-    username: Mapped[str] = mapped_column( String(32), unique=True, index=True )
-    email: Mapped[str]
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    username: Mapped[str] = mapped_column( String(64), unique=True, index=True )
+    email: Mapped[str] = mapped_column( String(64), unique=True, index=True )
     display_name: Mapped[Optional[str]] = mapped_column( String(64), default=None )
-    hashed_password: Mapped[str]
+    hashed_password: Mapped[str] = mapped_column( String(72), unique=True, index=True )
     profile_image: Mapped[Optional[str]] = mapped_column( String(120) )
     created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
 
@@ -79,10 +79,10 @@ class DBBoard(Base):
     
     __tablename__ = "boards"
 
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     identifier: Mapped[str] = mapped_column(String(64))
-    name: Mapped[str]
-    icon: Mapped[str] = mapped_column( default="default" ) # later should these have their own table? probably not
+    name: Mapped[str] = mapped_column( String(64) )
+    icon: Mapped[str] = mapped_column( String(32), default="default" )
     owner_id: Mapped[int] = mapped_column( ForeignKey("accounts.id") )
     public: Mapped[bool] = mapped_column( default=False )
     created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
@@ -113,7 +113,7 @@ class DBItem(Base):
     """
     __tablename__ = "items"
     
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
     list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("items_list.id"), default=None)
     position: Mapped[Optional[str]] # will be set conditionally
@@ -166,7 +166,7 @@ class DBItemNote(DBItem):
     __tablename__ = "items_note"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    text: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text(300))
     size: Mapped[str] = mapped_column(default="300,200")
     
     __mapper_args__ = {
@@ -184,8 +184,8 @@ class DBItemLink(DBItem):
     __tablename__ = "items_link"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    title: Mapped[str]
-    url: Mapped[str]
+    title: Mapped[str] = mapped_column( String(64) )
+    url: Mapped[str] = mapped_column( String(128) )
     
     __mapper_args__ = {
         "polymorphic_identity": "link",
@@ -203,7 +203,7 @@ class DBItemMedia(DBItem):
     __tablename__ = "items_media"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    url: Mapped[str]
+    url: Mapped[str] = mapped_column( String(128) )
     size: Mapped[Optional[str]] = mapped_column(default=None)
     
     __mapper_args__ = {
@@ -223,7 +223,7 @@ class DBItemTodo(DBItem):
     __tablename__ = "items_todo"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    title: Mapped[str]
+    title: Mapped[str] = mapped_column( String(64) )
     
     contents: Mapped[List["DBTodoItem"]] = relationship(back_populates="todo", cascade="all, delete-orphan")
     
@@ -246,7 +246,7 @@ class DBItemList(DBItem):
     __tablename__ = "items_list"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
-    title: Mapped[str]
+    title: Mapped[str] = mapped_column( String(64) )
     
     contents: Mapped[List["DBItem"]] = relationship(back_populates="list", cascade="all, delete-orphan", foreign_keys="DBItem.list_id", order_by="DBItem.index")
     
@@ -293,10 +293,10 @@ class DBTodoItem(Base):
     """
     __tablename__ = "todo_items"
     
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     list_id: Mapped[int] = mapped_column(ForeignKey("items_todo.id"))
-    text: Mapped[str]
-    link: Mapped[Optional[str]] = mapped_column(default=None)
+    text: Mapped[str] = mapped_column( String(128) )
+    link: Mapped[Optional[str]] = mapped_column( String(128), default=None)
     done: Mapped[bool]
     created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
@@ -318,7 +318,7 @@ class DBImage(Base):
     
     uuid: Mapped[str] = mapped_column(String(36), primary_key=True, unique=True)
     uploader_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
-    filename: Mapped[str]
+    filename: Mapped[str] = mapped_column( String(64) )
     uploaded_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
     
     uploader: Mapped["DBAccount"] = relationship(back_populates="uploaded", foreign_keys=[uploader_id])
@@ -364,8 +364,8 @@ class DBPin(Base):
     """
     __tablename__ = "pins"
     
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
-    label: Mapped[Optional[str]] = mapped_column( String(32) )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    label: Mapped[Optional[str]] = mapped_column( String(64) )
     compass: Mapped[bool] = mapped_column(default=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))

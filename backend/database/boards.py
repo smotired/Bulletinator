@@ -93,21 +93,28 @@ def get_by_name_identifier(session: DBSession, username: str, identifier: str, a
 
 def create(session: DBSession, account: DBBoard, config: BoardCreate) -> DBBoard: # type: ignore
     """Create a board owned by this account"""
+    identifier = config.identifier or name_to_identifier(config.name)
+    if re.fullmatch(r"[A-Za-z0-9_]+", identifier) is None:
+        raise InvalidField(identifier, 'identifier')
+    # Make sure identifier is unique for this user
+    statement = select(DBBoard).where(DBBoard.owner_id == account.id)
+    account_boards = list( session.execute(statement).scalars().all() )
+    if any([ board.identifier == identifier for board in account_boards ]):
+        raise DuplicateEntity('board', 'identifier', identifier)
+    if config.identifier is not None and len(config.identifier) > 64:
+        raise FieldTooLong('identifier')
+    if len(config.name) > 64:
+        raise FieldTooLong('name')
+    if len(config.icon) > 64:
+        raise FieldTooLong('icon')
+    # Add it
     new_board = DBBoard(
-        identifier = config.identifier or name_to_identifier(config.name),
+        identifier = identifier,
         name=config.name,
         icon=config.icon,
         public=config.public,
         owner=account
     )
-    if re.fullmatch(r"[A-Za-z0-9_]+", new_board.identifier) is None:
-        raise InvalidField(new_board.identifier, 'identifier')
-    # Make sure identifier is unique for this user
-    statement = select(DBBoard).where(DBBoard.owner_id == account.id)
-    account_boards = list( session.execute(statement).scalars().all() )
-    if any([ board.identifier == new_board.identifier for board in account_boards ]):
-        raise DuplicateEntity('board', 'identifier', new_board.identifier)
-    # Add it
     session.add(new_board)
     session.commit()
     session.refresh(new_board)
@@ -125,10 +132,16 @@ def update(session: DBSession, account: DBAccount, board_id: str, config: BoardU
         account_boards = list( session.execute(statement).scalars().all() )
         if any([ board.identifier == config.identifier for board in account_boards ]):
             raise DuplicateEntity('board', 'identifier', config.identifier)
+        if len(config.identifier) > 64:
+            raise FieldTooLong('identifier')
         board.identifier = config.identifier
     if config.name is not None:
+        if len(config.name) > 64:
+            raise FieldTooLong('name')
         board.name = config.name
     if config.icon is not None:
+        if len(config.icon) > 64:
+            raise FieldTooLong('icon')
         board.icon = config.icon
     if config.public is not None:
         board.public = config.public

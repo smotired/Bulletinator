@@ -160,3 +160,9 @@ class InvalidField(BadRequestException):
         self.status_code = 422
         self.error = "invalid_field"
         self.message = f"Value '{value}' is invalid for field '{field}'"
+
+class FieldTooLong(BadRequestException):
+    def __init__(self, field: str):
+        self.status_code = 422
+        self.error = "field_too_long"
+        self.message = f"Input to field '{field}' exceeded the maximum length"

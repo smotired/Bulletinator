@@ -44,6 +44,8 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     if update.username is not None and update.username != account.username:
         if get_by_username(session, update.username) is not None:
             raise DuplicateEntity("account", "username", update.username)
+        if len(update.username) > 64:
+            raise FieldTooLong('username')
         if not re.fullmatch(r'[A-Za-z0-9_]+', update.username):
             raise InvalidField(update.username, 'username')
         account.username = update.username
@@ -62,6 +64,8 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
             raise InvalidCredentials()
         if get_by_email(session, update.email) is not None:
             raise DuplicateEntity("account", "email", update.email)
+        if len(update.email) > 64:
+            raise FieldTooLong('email')
         if update.email.count('@') != 1: # this is all we will do for validation
             raise InvalidField(update.email, 'email')
         account.email = update.email

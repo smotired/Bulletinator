@@ -164,6 +164,13 @@ def test_create_item_missing_fields(client, auth_headers, items, exception):
     assert response.json() == exception("missing_item_fields", "Item type 'note' was missing the following fields: text")
     assert response.status_code == 422
 
+def test_create_note_too_long(client, auth_headers, items, exception):
+    item = { "type": "note", "text": "a"*301 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'text' exceeded the maximum length")
+    assert response.status_code == 422
+
 def test_create_link(client, auth_headers, items, def_item):
     item = {
         "type": "link",
@@ -200,6 +207,20 @@ def test_create_link_missing(client, auth_headers, items, exception):
     assert response.json() == exception("missing_item_fields", "Item type 'link' was missing the following fields: title, url")
     assert response.status_code == 422
 
+def test_create_link_title_too_long(client, auth_headers, items, exception):
+    item = { "type": "link", "title": "a"*129, "url": "/" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'title' exceeded the maximum length")
+    assert response.status_code == 422
+
+def test_create_link_url_too_long(client, auth_headers, items, exception):
+    item = { "type": "link", "title": "Link", "url": "a"*129 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'url' exceeded the maximum length")
+    assert response.status_code == 422
+
 def test_create_media_image(client, auth_headers, items, def_item):
     item = {
         "type": "media",
@@ -213,6 +234,48 @@ def test_create_media_image(client, auth_headers, items, def_item):
         **item,
     }
     assert response.status_code == 201
+
+def test_create_media_url_too_long(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "a"*129 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'url' exceeded the maximum length")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size1(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "invalid" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size2(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "fifty,onehunderd" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size3(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "235.2,643.5" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size4(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "100,200,300" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size5(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "600" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
 
 def test_create_media_image_default(client, auth_headers, items, def_item):
     item = {
@@ -248,6 +311,13 @@ def test_create_todo(client, auth_headers, def_item, items, empty_collection):
         "contents": empty_collection("items")
     }
     assert response.status_code == 201
+
+def test_create_todo_title_too_long(client, auth_headers, items, exception):
+    item = { "type": "todo", "title": "a"*65 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'title' exceeded the maximum length")
+    assert response.status_code == 422
 
 def test_create_todo_default(client, auth_headers, def_item, items, empty_collection):
     """Todo has no optional fields but this is here in case we add some later"""
@@ -307,6 +377,13 @@ def test_create_list_missing(client, items, auth_headers, exception):
     assert response.json() == exception("missing_item_fields", "Item type 'list' was missing the following fields: title")
     assert response.status_code == 422
 
+def test_create_list_title_too_long(client, auth_headers, items, exception):
+    item = { "type": "list", "title": "a"*65 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'title' exceeded the maximum length")
+    assert response.status_code == 422
+
 def test_create_document(client, auth_headers, items, def_item):
     item = {
         "type": "document",
@@ -341,6 +418,13 @@ def test_create_document_missing(client, auth_headers, items, exception):
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
     assert response.json() == exception("missing_item_fields", "Item type 'document' was missing the following fields: title")
+    assert response.status_code == 422
+
+def test_create_document_title_too_long(client, auth_headers, items, exception):
+    item = { "type": "todo", "title": "a"*65 }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("field_too_long", "Input to field 'title' exceeded the maximum length")
     assert response.status_code == 422
 
 def test_create_append_to_list(client, auth_headers, items, get_item):

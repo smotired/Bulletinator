@@ -73,8 +73,13 @@ def register_account(session: DBSession, form: Registration) -> DBAccount: # typ
         raise DuplicateEntity("account", "email", form.email)
     if get_by_username(session, form.username) is not None:
         raise DuplicateEntity("account", "username", form.username)
+    # Validation
+    if len(form.email) > 64:
+        raise FieldTooLong('email')
     if form.email.count('@') != 1:
         raise InvalidField(form.email, 'email')
+    if len(form.username) > 64:
+        raise FieldTooLong('username')
     if not re.fullmatch(r'[A-Za-z0-9_]+', form.username):
         raise InvalidField(form.username, 'username')
     # Create the account

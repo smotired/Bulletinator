@@ -73,6 +73,14 @@ def test_update_account_username_taken(client, auth_headers, exception):
     assert response.json() == exception('duplicate_entity', "Entity account with username=bob already exists")
     assert response.status_code == 422
 
+def test_update_account_username_invalid(client, auth_headers, exception):
+    update = {
+        "username": "al ic e",
+    }
+    response = client.put('/accounts/me', headers=auth_headers(1), json=update)
+    assert response.json() == exception('invalid_field', "Value 'al ic e' is invalid for field 'username'")
+    assert response.status_code == 422
+
 def test_update_account_email_taken(client, auth_headers, exception):
     update = {
         "email": "bob@example.com",

@@ -1,4 +1,5 @@
 from sqlalchemy import select
+import re
 
 from backend.dependencies import DBSession
 from backend.database.schema import DBAccount
@@ -36,6 +37,8 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     if update.username is not None and update.username != account.username:
         if get_by_username(session, update.username) is not None:
             raise DuplicateEntity("account", "username", update.username)
+        if not re.fullmatch(r'[A-z0-9_]+', update.username):
+            raise InvalidField(update.username, 'username')
         account.username = update.username
     # Update the filename for the image (so they can just link to images hosted elsewhere)
     if update.profile_image is not None:

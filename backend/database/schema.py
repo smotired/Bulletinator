@@ -6,8 +6,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, validates
 from typing import List, Optional
+from uuid import uuid4
 
 Base = declarative_base()
+
+def gen_uuid() -> str:
+    # Function to generate a UUID string
+    return str(uuid4())
 
 # Intermediate table for many-to-many relationship between Accounts and the Boards they are allowed to edit
 editor_table = Table(
@@ -21,7 +26,7 @@ class DBAccount(Base):
     """Accounts table. Each row represents an account account.
 
     Fields:
-        - id: primary key (auto-increments)
+        - id: UUID primary key
         - username: unique identifier for account
         - email: the email associated with this account
         - hashed_password: the hashed password used to log in
@@ -35,7 +40,7 @@ class DBAccount(Base):
     __tablename__ = "accounts"
 
     # fields
-    id: Mapped[int] = mapped_column( primary_key=True )
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     username: Mapped[str] = mapped_column( String(32), unique=True, index=True )
     email: Mapped[str]
     hashed_password: Mapped[str]
@@ -50,7 +55,7 @@ class DBBoard(Base):
     """Boards table. Each row represents a bulletin board.
 
     Fields:
-        - id: primary key (auto-increments)
+        - id: UUID primary key
         - name: the name of the board
         - icon: the string icon name that is being used
         - owner_id: the ID of the account that created the board.
@@ -66,7 +71,7 @@ class DBBoard(Base):
     
     __tablename__ = "boards"
 
-    id: Mapped[int] = mapped_column( primary_key=True )
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     name: Mapped[str]
     icon: Mapped[str] = mapped_column( default="default" ) # later should these have their own table? probably not
     owner_id: Mapped[int] = mapped_column( ForeignKey("accounts.id") )
@@ -81,7 +86,7 @@ class DBItem(Base):
     """Items table. Each row represents an item.
     
     Fields:
-        - id: primary key (auto-increments)
+        - id: UUID primary key
         - board_id: the id of the board this item is on
         - position: the position of this item on the board
         - list_id: the id of the list item this item may be in
@@ -96,7 +101,7 @@ class DBItem(Base):
     """
     __tablename__ = "items"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
     list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("items_list.id"), default=None)
     position: Mapped[Optional[str]] # will be set conditionally
@@ -146,7 +151,7 @@ class DBItemNote(DBItem):
     """
     __tablename__ = "items_note"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     text: Mapped[str] = mapped_column(Text)
     size: Mapped[str] = mapped_column(default="300,200")
     
@@ -164,7 +169,7 @@ class DBItemLink(DBItem):
     """
     __tablename__ = "items_link"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     title: Mapped[str]
     url: Mapped[str]
     
@@ -183,7 +188,7 @@ class DBItemMedia(DBItem):
     """
     __tablename__ = "items_media"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     url: Mapped[str]
     size: Mapped[Optional[str]] = mapped_column(default=None)
     
@@ -203,7 +208,7 @@ class DBItemTodo(DBItem):
     """
     __tablename__ = "items_todo"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     title: Mapped[str]
     
     contents: Mapped[List["DBTodoItem"]] = relationship(back_populates="todo", cascade="all, delete-orphan")
@@ -226,7 +231,7 @@ class DBItemList(DBItem):
     """
     __tablename__ = "items_list"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     title: Mapped[str]
     
     contents: Mapped[List["DBItem"]] = relationship(back_populates="list", cascade="all, delete-orphan", foreign_keys="DBItem.list_id", order_by="DBItem.index")
@@ -249,7 +254,7 @@ class DBItemDocument(DBItem):
     """
     __tablename__ = "items_document"
     
-    id: Mapped[int] = mapped_column(ForeignKey("items.id"), primary_key=True)
+    id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     title: Mapped[str] = mapped_column( String(64) )
     text: Mapped[str] = mapped_column( Text, default="" )
     
@@ -262,7 +267,7 @@ class DBTodoItem(Base):
     """Todo item table. Each row represents an item in a todo list item.
     
     Fields:
-        - id: primary key (auto-increments)
+        - id: UUID primary key
         - list_id: the id of the containing todo list item
         - text: the short text representing this item
         - link: a link for this entry. can link to an item on this board.
@@ -273,7 +278,7 @@ class DBTodoItem(Base):
     """
     __tablename__ = "todo_items"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     list_id: Mapped[int] = mapped_column(ForeignKey("items_todo.id"))
     text: Mapped[str]
     link: Mapped[Optional[str]] = mapped_column(default=None)
@@ -326,7 +331,7 @@ class DBPin(Base):
     """Pin table. Each row represents a pin. Pins can attact to items, have labels, and connect to other pins.
     
     Fields:
-        - id: primary key (auto-increments)
+        - id: UUID primary key
         - label: the label of the pin
         - compass: if the pin should be usable for navigation
         - board_id: The id of the Board containing this pin
@@ -340,7 +345,7 @@ class DBPin(Base):
     """
     __tablename__ = "pins"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
     label: Mapped[Optional[str]] = mapped_column( String(32) )
     compass: Mapped[bool] = mapped_column(default=False)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))

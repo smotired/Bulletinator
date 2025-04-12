@@ -6,10 +6,10 @@ from backend.database.schema import DBBoard
 
 class Board(BaseModel):
     """Response model for a board"""
-    id: int
+    id: str
     name: str
     icon: str
-    owner_id: int
+    owner_id: str
     public: bool
     
 class BoardCollection(BaseModel):

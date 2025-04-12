@@ -5,6 +5,7 @@ Args:
 """
 
 from fastapi import APIRouter, Depends
+from uuid import UUID
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
@@ -51,39 +52,39 @@ def create_board(
 @router.get("/{board_id}/", status_code=200, response_model=Board)
 def get_board(
     session: DBSession, # type: ignore
-    board_id: int,
+    board_id: UUID,
     account: OptionalAccount = None
 ) -> DBBoard:
     """Returns the board with this ID if the account can access it"""
-    return boards_db.get_for_viewer(session, board_id, account)
+    return boards_db.get_for_viewer(session, str(board_id), account)
 
 @router.put("/{board_id}/", status_code=200, response_model=Board)
 def update_board(
     session: DBSession, # type: ignore
-    board_id: int,
+    board_id: UUID,
     account: CurrentAccount,
     config: BoardUpdate
 ) -> DBBoard:
     """Updates a board with this ID, if the authenticated account is the owner"""
-    return boards_db.update(session, account, board_id, config)
+    return boards_db.update(session, account, str(board_id), config)
 
 @router.delete("/{board_id}/", status_code=204)
 def delete_board(
     session: DBSession, # type: ignore
-    board_id: int,
+    board_id: UUID,
     account: CurrentAccount
 ) -> None:
     """Deletes the board with this ID if the account is the owner"""
-    boards_db.delete(session, account, board_id)
+    boards_db.delete(session, account, str(board_id))
 
 @router.get("/{board_id}/editors", status_code=200, response_model=AccountCollection)
 def get_editors(
     session: DBSession, # type: ignore
-    board_id: int,
+    board_id: UUID,
     account: CurrentAccount
 ) -> AccountCollection:
     """Gets all accounts that can edit the board with this ID, excluding the owner."""
-    editors = convert_account_list( boards_db.get_editors(session, account, board_id) )
+    editors = convert_account_list( boards_db.get_editors(session, account, str(board_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors
@@ -92,12 +93,12 @@ def get_editors(
 @router.put("/{board_id}/editors/{editor_id}", status_code=201, response_model=AccountCollection)
 def add_editor(
     session: DBSession, # type: ignore
-    board_id: int,
-    editor_id: int,
+    board_id: UUID,
+    editor_id: UUID,
     account: CurrentAccount
 ) -> AccountCollection:
     """Allows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.add_editor(session, account, board_id, editor_id) )
+    editors = convert_account_list( boards_db.add_editor(session, account, str(board_id), str(editor_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors
@@ -106,12 +107,12 @@ def add_editor(
 @router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=AccountCollection)
 def remove_editor(
     session: DBSession, # type: ignore
-    board_id: int,
-    editor_id: int,
+    board_id: UUID,
+    editor_id: UUID,
     account: CurrentAccount
 ) -> AccountCollection:
     """Disallows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.remove_editor(session, account, board_id, editor_id) )
+    editors = convert_account_list( boards_db.remove_editor(session, account, str(board_id), str(editor_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors

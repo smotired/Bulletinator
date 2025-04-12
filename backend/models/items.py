@@ -9,9 +9,9 @@ from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia,
 
 class Item(BaseModel):
     """Response model for an item"""
-    id: int
-    board_id: int
-    list_id: int | None = None
+    id: str
+    board_id: str
+    list_id: str | None = None
     position: str | None = None
     index: int | None = None
     pin: Optional["Pin"] = None
@@ -25,14 +25,14 @@ class ItemCollection(BaseModel):
 class BaseItemCreate(BaseModel):
     """Basic request model for creating an item"""
     position: str | None = None # defaults to None if in a list and 0,0 otherwise
-    list_id: int | None = None # defaults to None
+    list_id: str | None = None # defaults to None
     index: int | None = None # defaults to the end of a list if in a list and None otherwise
     type: str
     
 class BaseItemUpdate(BaseModel):
     """Basic request model for updating an item"""
     position: str | None = None
-    list_id: int | None = None
+    list_id: str | None = None
     index: int | None = None
 
 class AllItemFields(BaseModel):
@@ -156,8 +156,8 @@ class ItemDocumentUpdate(BaseItemUpdate):
 
 class TodoItem(BaseModel):
     """Response model for an item in a todo list"""
-    id: int
-    list_id: int
+    id: str
+    list_id: str
     text: str
     link: str | None = None
     done: bool
@@ -171,22 +171,22 @@ class TodoItemCollection(BaseModel):
 
 class Pin(BaseModel):
     """Response model for a pin"""
-    id: int
-    board_id: int
-    item_id: int
+    id: str
+    board_id: str
+    item_id: str
     label: str | None = None
     compass: bool
-    connections: list[int] # not a pin collection because of the infinite recursion
+    connections: list[str] # not a pin collection because of the infinite recursion
 
 class PinCreate(BaseModel):
     """Request model for creating a pin"""
-    item_id: int
+    item_id: str
     label: str | None = None
     compass: bool = False
 
 class PinUpdate(BaseModel):
     """Request model for updating a pin"""
-    item_id: int | None = None
+    item_id: str | None = None
     label: str | None = None
     compass: bool | None = None
 
@@ -197,7 +197,7 @@ SomeItem = Union[ItemNote, ItemLink, ItemMedia, ItemTodo, ItemList, ItemDocument
 
 class TodoItemCreate(BaseModel):
     """Request model for adding to a todo list"""
-    list_id: int
+    list_id: str
     text: str
     link: str | None = None
     done: bool = False
@@ -235,7 +235,6 @@ def convert_item(db_item: DBItem) -> SomeItem:
         item_dict['contents'] = collection
         return ItemTodo(**item_dict)
     if item_type == ItemList:
-        print([ i.__dict__ for i in db_item.contents ])
         collection = ItemCollection(
             metadata=shared.Metadata(count=len(db_item.contents)),
             items=convert_item_list(db_item.contents) # no need to worry about recursion because lists cannot contain other lists

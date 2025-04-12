@@ -10,7 +10,7 @@ from backend.models.accounts import AccountUpdate
 
 # Account creation logic will be handled only by authentication module
 
-def get_by_id(session: DBSession, account_id: int) -> DBAccount:
+def get_by_id(session: DBSession, account_id: str) -> DBAccount:
     """Retrieve account by email"""
     account = session.get(DBAccount, account_id)
     if account is None:

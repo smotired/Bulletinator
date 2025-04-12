@@ -17,14 +17,14 @@ def can_see(board: DBBoard, account: DBAccount | None) -> bool:
     """Returns true if this account can see this board (i.e. it's public, they're the owner, or they're an editor)"""
     return board.public or (account is not None and can_edit(board, account))
 
-def get_by_id(session: DBSession, board_id: int) -> DBBoard:
+def get_by_id(session: DBSession, board_id: str) -> DBBoard:
     """Returns the board with this ID"""
     board = session.get(DBBoard, board_id)
     if board is None:
         raise EntityNotFound("board", "id", board_id)
     return board
 
-def get_for_owner(session: DBSession, board_id: DBBoard, account: DBAccount | None) -> DBBoard:
+def get_for_owner(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard:
     """Returns the board with this ID if the account is the owner, or returns exceptions based on if the account can see it"""
     board: DBBoard = get_by_id(session, board_id)
     if can_see(board, account):
@@ -35,7 +35,7 @@ def get_for_owner(session: DBSession, board_id: DBBoard, account: DBAccount | No
     else:
         raise EntityNotFound("board", "id", board_id)
 
-def get_for_editor(session: DBSession, board_id: DBBoard, account: DBAccount | None) -> DBBoard:
+def get_for_editor(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard:
     """Returns the board with this ID if the account is the owner, or returns exceptions based on if the account can see it"""
     board: DBBoard = get_by_id(session, board_id)
     if can_see(board, account):
@@ -46,7 +46,7 @@ def get_for_editor(session: DBSession, board_id: DBBoard, account: DBAccount | N
     else:
         raise EntityNotFound("board", "id", board_id)
 
-def get_for_viewer(session: DBSession, board_id: DBBoard, account: DBAccount | None) -> DBBoard:
+def get_for_viewer(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard:
     """Returns the board with this ID if the account can see this board, or returns a 404."""
     board: DBBoard = get_by_id(session, board_id)
     if can_see(board, account):
@@ -92,7 +92,7 @@ def create(session: DBSession, account: DBBoard, config: BoardCreate) -> DBBoard
     session.refresh(new_board)
     return new_board
 
-def update(session: DBSession, account: DBAccount, board_id: int, config: BoardUpdate) -> DBBoard:
+def update(session: DBSession, account: DBAccount, board_id: str, config: BoardUpdate) -> DBBoard:
     """Update a board owned by this account"""
     board = get_for_owner(session, board_id, account)
     # Update it
@@ -107,18 +107,18 @@ def update(session: DBSession, account: DBAccount, board_id: int, config: BoardU
     session.refresh(board)
     return board
 
-def delete(session: DBSession, account: DBAccount, board_id: int) -> None:
+def delete(session: DBSession, account: DBAccount, board_id: str) -> None:
     """Delete a board owned by this account"""
     board = get_for_owner(session, board_id, account)
     session.delete(board)
     session.commit()
 
-def get_editors(session: DBSession, account: DBAccount, board_id: int) -> list[DBAccount]:
+def get_editors(session: DBSession, account: DBAccount, board_id: str) -> list[DBAccount]:
     """Get a list of editors on this board. Editors can be seen by other editors."""
     board = get_for_editor(session, board_id, account)
-    return board.editors
+    return sorted(board.editors, key=lambda e: e.id)
 
-def add_editor(session: DBSession, account: DBAccount, board_id: int, editor_id: int) -> list[DBAccount]:
+def add_editor(session: DBSession, account: DBAccount, board_id: str, editor_id: str) -> list[DBAccount]:
     """Allow another account to edit this board. Returns the updated list of editors."""
     board = get_for_owner(session, board_id, account)
     editor = accounts_db.get_by_id(session, editor_id)
@@ -132,9 +132,9 @@ def add_editor(session: DBSession, account: DBAccount, board_id: int, editor_id:
     session.add(board)
     session.commit()
     session.refresh(board)
-    return board.editors
+    return sorted(board.editors, key=lambda e: e.id)
 
-def remove_editor(session: DBSession, account: DBAccount, board_id: int, editor_id: int) -> list[DBAccount]:
+def remove_editor(session: DBSession, account: DBAccount, board_id: str, editor_id: str) -> list[DBAccount]:
     """Remove an editor from a board and return the updated list of editors"""
     board = get_for_owner(session, board_id, account)
     editor = accounts_db.get_by_id(session, editor_id)
@@ -142,4 +142,4 @@ def remove_editor(session: DBSession, account: DBAccount, board_id: int, editor_
     session.add(board)
     session.commit()
     session.refresh(board)
-    return board.editors
+    return sorted(board.editors, key=lambda e: e.id)

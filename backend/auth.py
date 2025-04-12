@@ -159,7 +159,7 @@ def extract_account(session: DBSession, token: str) -> DBAccount:
     # Get the information
     payload = _extract_access_payload(token)
     # Make sure the account exists
-    account_id = int(payload.sub)
+    account_id = payload.sub
     account = session.get(DBAccount, account_id)
     if account is None:
         raise InvalidAccessToken()
@@ -182,7 +182,7 @@ def refresh_access_token(session: DBSession, refresh_token: str) -> str:
     # Verify the refresh token and extract the payload
     payload: RefreshPayload = _extract_refresh_payload(session, refresh_token)
     # Get the account
-    account = session.get(DBAccount, int(payload.sub))
+    account = session.get(DBAccount, payload.sub)
     if account is None:
         raise InvalidRefreshToken()
     # Generate a new access token

@@ -5,6 +5,7 @@ Args:
 """
 
 from fastapi import APIRouter, Response
+from uuid import UUID
 
 from backend.database.schema import *
 from backend import auth
@@ -72,7 +73,7 @@ def get_current_account(
 @router.get("/{account_id}", status_code=200, response_model=Account)
 def get_account(
     session: DBSession, # type: ignore
-    account_id: int
+    account_id: UUID
 ) -> DBAccount:
     """Gets an account object"""
-    return accounts_db.get_by_id(session, account_id)
+    return accounts_db.get_by_id(session, str(account_id))

@@ -14,7 +14,7 @@ from backend.models.items import *
 polymorphic = selectin_polymorphic(DBItem, [DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList])
 loadlistcontents = selectinload(DBItemList.contents).options(polymorphic)
 
-def get_by_id(session: DBSession, item_id: int, typestr: str = 'item') -> DBItem:
+def get_by_id(session: DBSession, item_id: str, typestr: str = 'item') -> DBItem:
     """Returns the item with this ID"""
     # tragically due to polymorphism session.get doesn't work
     stmt = select(DBItem).options(polymorphic, loadlistcontents).where(DBItem.id == item_id)
@@ -23,7 +23,7 @@ def get_by_id(session: DBSession, item_id: int, typestr: str = 'item') -> DBItem
         raise EntityNotFound(typestr, "id", item_id)
     return results[0]
 
-def get_items(session: DBSession, board_id: int, account: DBAccount | None) -> list[DBItem]:
+def get_items(session: DBSession, board_id: str, account: DBAccount | None) -> list[DBItem]:
     """Returns the items on the board with this ID, if the account can see them"""
     board: DBBoard = boards_db.get_for_viewer(session, board_id, account)
     # Get a list of top-level items
@@ -31,7 +31,7 @@ def get_items(session: DBSession, board_id: int, account: DBAccount | None) -> l
     items = list(session.execute(stmt).scalars().all())
     return items
 
-def get_item(session: DBSession, board_id: int, item_id: int, account: DBAccount | None) -> DBItem:
+def get_item(session: DBSession, board_id: str, item_id: str, account: DBAccount | None) -> DBItem:
     """Returns the item with this ID, if it's on the board with this ID and the account can see it."""
     board: DBBoard = boards_db.get_for_viewer(session, board_id, account)
     item = get_by_id(session, item_id)
@@ -39,7 +39,7 @@ def get_item(session: DBSession, board_id: int, item_id: int, account: DBAccount
         raise EntityNotFound("item", "id", item_id)
     return item
 
-def create_item(session: DBSession, board_id: int, config: ItemCreate, account: DBAccount | None) -> DBItem:
+def create_item(session: DBSession, board_id: str, config: ItemCreate, account: DBAccount | None) -> DBItem:
     """Creates an item on this board."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     # Figure out what type of config this is
@@ -84,7 +84,7 @@ def create_item(session: DBSession, board_id: int, config: ItemCreate, account: 
     session.refresh(item)
     return item
 
-def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpdate, account: DBAccount) -> DBItem:
+def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpdate, account: DBAccount) -> DBItem:
     """Updates an item."""
     # Make sure the account can edit this board, and the item exists and is on this board.
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
@@ -150,7 +150,7 @@ def update_item(session: DBSession, board_id: int, item_id: int, config: ItemUpd
         collapse_list(session, l)
     return item
 
-def delete_item(session: DBSession, board_id: int, item_id: int, account: DBAccount) -> None:
+def delete_item(session: DBSession, board_id: str, item_id: str, account: DBAccount) -> None:
     """Delets an item."""
     # Make sure the account can edit this board, and the item exists and is on this board.
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
@@ -165,7 +165,7 @@ def delete_item(session: DBSession, board_id: int, item_id: int, account: DBAcco
     if item_list:
         collapse_list(session, item_list)
 
-def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, account: DBAccount) -> DBTodoItem:
+def create_todo_item(session: DBSession, board_id: str, config: TodoItemCreate, account: DBAccount) -> DBTodoItem:
     """Creates and returns a TodoItem in this todo list"""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo: DBItemTodo = get_by_id(session, config.list_id, 'item_todo')
@@ -184,7 +184,7 @@ def create_todo_item(session: DBSession, board_id: int, config: TodoItemCreate, 
     session.refresh(todo_item)
     return todo_item
 
-def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, config: TodoItemUpdate, account: DBAccount) -> DBTodoItem:
+def update_todo_item(session: DBSession, board_id: str, todo_item_id: str, config: TodoItemUpdate, account: DBAccount) -> DBTodoItem:
     """Creates and returns a TodoItem in this todo list"""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo_item = session.get(DBTodoItem, todo_item_id)
@@ -204,7 +204,7 @@ def update_todo_item(session: DBSession, board_id: int, todo_item_id: int, confi
     session.refresh(todo_item)
     return todo_item
 
-def delete_todo_item(session: DBSession, board_id: int, todo_item_id: int, account: DBAccount) -> None:
+def delete_todo_item(session: DBSession, board_id: str, todo_item_id: str, account: DBAccount) -> None:
     """Deletes a todo item"""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     todo_item = session.get(DBTodoItem, todo_item_id)
@@ -243,7 +243,7 @@ def collapse_list(session: DBSession, list: DBItemList) -> DBItemList:
     session.refresh(list)
     return list
 
-def create_pin(session: DBSession, board_id: int, config: PinCreate, account: DBAccount) -> DBPin:
+def create_pin(session: DBSession, board_id: str, config: PinCreate, account: DBAccount) -> DBPin:
     """Adds a pin to an item."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     item: DBItem = get_by_id(session, config.item_id)
@@ -262,7 +262,7 @@ def create_pin(session: DBSession, board_id: int, config: PinCreate, account: DB
     session.refresh(pin)
     return pin
 
-def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate, account: DBAccount) -> DBPin:
+def update_pin(session: DBSession, board_id: str, pin_id: str, config: PinUpdate, account: DBAccount) -> DBPin:
     """Updates a pin."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin: DBPin = session.get(DBPin, pin_id)
@@ -282,7 +282,7 @@ def update_pin(session: DBSession, board_id: int, pin_id: int, config: PinUpdate
     session.refresh(pin)
     return pin
 
-def delete_pin(session: DBSession, board_id: int, pin_id: int, account: DBAccount) -> None:
+def delete_pin(session: DBSession, board_id: str, pin_id: str, account: DBAccount) -> None:
     """Deletes a pin."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin: DBPin = session.get(DBPin, pin_id)
@@ -291,7 +291,7 @@ def delete_pin(session: DBSession, board_id: int, pin_id: int, account: DBAccoun
     session.delete(pin)
     session.commit()
 
-def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, account: DBAccount) -> list[DBPin]:
+def add_pin_connection(session: DBSession, board_id: str, pin1_id: str, pin2_id: str, account: DBAccount) -> list[DBPin]:
     """Adds a connection between two pins."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin1: DBPin = session.get(DBPin, pin1_id)
@@ -309,7 +309,7 @@ def add_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id:
     session.refresh(pin2)
     return [ pin1, pin2 ]
 
-def remove_pin_connection(session: DBSession, board_id: int, pin1_id: int, pin2_id: int, account: DBAccount) -> list[DBPin]:
+def remove_pin_connection(session: DBSession, board_id: str, pin1_id: str, pin2_id: str, account: DBAccount) -> list[DBPin]:
     """Removes a connection between two pins."""
     board: DBBoard = boards_db.get_for_editor(session, board_id, account)
     pin1: DBPin = session.get(DBPin, pin1_id)

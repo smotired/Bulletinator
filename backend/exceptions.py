@@ -114,25 +114,25 @@ class AddBoardOwnerAsEditor(BadRequestException):
         self.message = "Cannot add the board owner as an editor"
 
 class InvalidItemType(BadRequestException):
-    def __init__(self, type):
+    def __init__(self, type: str):
         self.status_code = 422
         self.error = "invalid_item_type"
         self.message = f"Item type '{type}' is not valid"
 
 class MissingItemFields(BadRequestException):
-    def __init__(self, type, fields):
+    def __init__(self, type: str, fields: list[str]):
         self.status_code = 422
         self.error = "missing_item_fields"
         self.message = f"Item type '{type}' was missing the following fields: {fields}"
 
 class ItemTypeMismatch(BadRequestException):
-    def __init__(self, id, expected, actual):
+    def __init__(self, id: str, expected: str, actual: str):
         self.status_code = 418
         self.error = "item_type_mismatch"
         self.message = f"Item with id={id} has type '{actual}', but was treated as if it had type '{expected}'"
 
 class IndexOutOfRange(BadRequestException):
-    def __init__(self, entity, id, index):
+    def __init__(self, entity: str, id:str, index: str):
         self.status_code = 422
         self.error = "out_of_range"
         self.message = f"Index {index} out of range for {entity} with id={id}"
@@ -144,13 +144,13 @@ class AddListToList(BadRequestException):
         self.message = "Cannot add a list to another list"
 
 class UnsupportedFileType(BadRequestException):
-    def __init__(self, type, target):
+    def __init__(self, type: str, target: str):
         self.status_code = 422
         self.error = "unsupported_file_type"
         self.message = f"File type '{type}' is not a supported type of {target}"
 
 class FileTooLarge(BadRequestException):
-    def __init__(self, entity, limit_str):
+    def __init__(self, entity: str, limit_str: str):
         self.status_code = 422
         self.error = "file_too_large"
         self.message = f"Files of type '{entity}' must be no larger than {limit_str}"

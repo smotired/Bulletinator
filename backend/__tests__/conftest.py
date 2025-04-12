@@ -6,14 +6,20 @@ from starlette.testclient import TestClient
 
 from backend import app, auth
 from backend.dependencies import get_session
+from backend.database import schema
 from backend.database.schema import *
+
+from backend.__tests__ import mock
 
 from PIL import Image
 import os
 from random import random
 
+# Essential fixtures
+
 @pytest.fixture
-def session():
+def session(monkeypatch):
+    monkeypatch.setattr(schema, 'gen_uuid', mock.uuid)
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -27,8 +33,8 @@ def session():
 @pytest.fixture
 def client(session, monkeypatch):
     # override authentication functions
-    monkeypatch.setattr(auth, "hash_password", lambda p: "hashed_" + p)
-    monkeypatch.setattr(auth, "check_password", lambda p, h: "hashed_" + p == h)
+    monkeypatch.setattr(auth, "hash_password", mock.hash_password)
+    monkeypatch.setattr(auth, "check_password", mock.check_password)
     
     # set up the client
     app.dependency_overrides[get_session] = lambda: session
@@ -55,19 +61,19 @@ def static_path():
 @pytest.fixture
 def accounts():
     return [
-        { "id": 1, "username": "alice", "email": "alice@example.com", "profile_image": None },
-        { "id": 2, "username": "bob", "email": "bob@example.com", "profile_image": None },
-        { "id": 3, "username": "charlie", "email": "charlie@example.com", "profile_image": None },
-        { "id": 4, "username": "david", "email": "david@example.com", "profile_image": None },
-        { "id": 5, "username": "eve", "email": "eve@example.com", "profile_image": None },
+        { "username": "alice", "email": "alice@example.com", "profile_image": None },
+        { "username": "bob", "email": "bob@example.com", "profile_image": None },
+        { "username": "charlie", "email": "charlie@example.com", "profile_image": None },
+        { "username": "david", "email": "david@example.com", "profile_image": None },
+        { "username": "eve", "email": "eve@example.com", "profile_image": None },
     ]
 
 @pytest.fixture
 def boards():
     return [
-        { "id": 1, "name": "parent", "icon": "earth", "owner_id": 1, "public": True },
-        { "id": 2, "name": "child", "icon": "mountain", "owner_id": 1, "public": True },
-        { "id": 3, "name": "other", "icon": "beaker", "owner_id": 2, "public": False },
+        { "name": "parent", "icon": "earth", "owner_id": 1, "public": True },
+        { "name": "child", "icon": "mountain", "owner_id": 1, "public": True },
+        { "name": "other", "icon": "beaker", "owner_id": 2, "public": False },
     ]
 
 @pytest.fixture
@@ -77,36 +83,36 @@ def editors(): # board_ids and account_ids
 @pytest.fixture
 def items():
     return [
-        { "id": 1, "board_id": 1, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Test Note", "size": "300,200" },
-        { "id": 2, "board_id": 2, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "list", "title": "Test List" },
-        { "id": 3, "board_id": 2, "list_id": 2, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 1", "size": "300,200" },
-        { "id": 4, "board_id": 2, "list_id": 2, "position": None, "index": 1, "pin": None, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
-        { "id": 5, "board_id": 1, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 1" },
-        { "id": 6, "board_id": 2, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 2" },
-        { "id": 7, "board_id": 1, "list_id": None, "position": "0,250", "index": None, "pin": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
-        { "id": 8, "board_id": 3, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Private Note", "size": "300,200" },
-        { "id": 9, "board_id": 2, "list_id": None, "position": "0,500", "index": None, "pin": None, "type": "list", "title": "Test List 2" },
-        { "id": 10, "board_id": 2, "list_id": 9, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 3", "size": "300,200" },
-        { "id": 11, "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "pin": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
+        { "board_id": 1, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Test Note", "size": "300,200" }, # 1
+        { "board_id": 2, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "list", "title": "Test List" },
+        { "board_id": 2, "list_id": 2, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 1", "size": "300,200" },
+        { "board_id": 2, "list_id": 2, "position": None, "index": 1, "pin": None, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
+        { "board_id": 1, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 1" }, # 5
+        { "board_id": 2, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 2" },
+        { "board_id": 1, "list_id": None, "position": "0,250", "index": None, "pin": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
+        { "board_id": 3, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Private Note", "size": "300,200" },
+        { "board_id": 2, "list_id": None, "position": "0,500", "index": None, "pin": None, "type": "list", "title": "Test List 2" },
+        { "board_id": 2, "list_id": 9, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 3", "size": "300,200" }, # 10
+        { "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "pin": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
     ]
 
 @pytest.fixture
 def todo_items():
     return [
-        { "id": 1, "list_id": 5, "text": "Item 1", "done": True, "link": None },
-        { "id": 2, "list_id": 5, "text": "Item 2", "done": False, "link": None },
-        { "id": 3, "list_id": 5, "text": "Item 3", "done": False, "link": None },
-        { "id": 4, "list_id": 6, "text": "Item 1", "done": True, "link": None },
-        { "id": 5, "list_id": 6, "text": "Item 2", "done": True, "link": None },
-        { "id": 6, "list_id": 6, "text": "Item 3", "done": False, "link": None },
+        { "list_id": 5, "text": "Item 1", "done": True, "link": None }, # 1
+        { "list_id": 5, "text": "Item 2", "done": False, "link": None },
+        { "list_id": 5, "text": "Item 3", "done": False, "link": None },
+        { "list_id": 6, "text": "Item 1", "done": True, "link": None },
+        { "list_id": 6, "text": "Item 2", "done": True, "link": None }, # 5
+        { "list_id": 6, "text": "Item 3", "done": False, "link": None },
     ]
 
 @pytest.fixture
 def pins():
     return [
-        { "id": 1, "board_id": 2, "item_id": 2, "label": "List 1", "compass": True, "connections": [ 2 ] },
-        { "id": 2, "board_id": 2, "item_id": 9, "label": "List 2", "compass": False, "connections": [ 1 ] },
-        { "id": 3, "board_id": 2, "item_id": 11, "label": None, "compass": False, "connections": [  ] },
+        { "board_id": 2, "item_id": 2, "label": "List 1", "compass": True, "connections": [ 2 ] },
+        { "board_id": 2, "item_id": 9, "label": "List 2", "compass": False, "connections": [ 1 ] },
+        { "board_id": 2, "item_id": 11, "label": None, "compass": False, "connections": [  ] },
     ]
 
 # Set up database
@@ -116,20 +122,26 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
     """Setup initial test data in database."""
 
     # Create accounts, with passwords equal to index (e.g. password1, password2, etc)
+    mock.last_uuid = mock.OFFSETS['account']
     db_accounts = {}
     for i, account in enumerate(accounts):
         db_account = DBAccount(**account, hashed_password=f"hashed_password{i+1}")
-        db_accounts[db_account.id] = db_account
+        db_accounts[mock.to_uuid(i + 1, 'account')] = db_account
         session.add(db_account)
+    session.commit()
 
     # Create boards
+    mock.last_uuid = mock.OFFSETS['board']
     for i, board in enumerate(boards):
         db_board = DBBoard(**board)
-        for editor_id in editors[db_board.id]:
-            db_board.editors.append(db_accounts[editor_id])
+        db_board.owner_id = mock.to_uuid(board['owner_id'], 'account')
+        for editor_id in editors[i + 1]:
+            db_board.editors.append(db_accounts[mock.to_uuid(editor_id, 'account')])
         session.add(db_board)
+    session.commit()
 
     # Create items
+    mock.last_uuid = mock.OFFSETS['item']
     db_items = {}
     for i, item in enumerate(items):
         db_item = None
@@ -146,28 +158,38 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
                 db_item = DBItemList(**item)
         if db_item is None:
             raise ValueError(f"'{item['type']}' could not be matched to an item type.")
-        db_items[db_item.id] = db_item
+        db_item.board_id = mock.to_uuid(item['board_id'], 'board')
+        db_item.list_id = mock.to_uuid(item['list_id'], 'item') if item['list_id'] is not None else None
+        db_items[mock.to_uuid(i + 1, 'item')] = db_item
         session.add(db_item)
+    session.commit()
 
     # Create todo list items
+    mock.last_uuid = mock.OFFSETS['sub_item']
     for i, item in enumerate(todo_items):
         db_todo_item = DBTodoItem(**item)
+        db_todo_item.list_id = mock.to_uuid(item['list_id'], 'item')
         session.add(db_todo_item)
+    session.commit()
 
     # Create pins
-    db_pins: dict[int, DBPin] = {}
+    mock.last_uuid = mock.OFFSETS['pin']
+    db_pins: dict[str, DBPin] = {}
     for i, pin in enumerate(pins):
-        d = pin.copy()
-        del d['connections']
-        db_pin = DBPin(**d)
+        p = pin.copy()
+        del p['connections']
+        p['item_id'] = mock.to_uuid(p['item_id'], 'item')
+        p['board_id'] = mock.to_uuid(p['board_id'], 'board')
+        db_pin = DBPin(**p)
         session.add(db_pin)
-        db_pins[db_pin.id] = db_pin
+        db_pins[mock.to_uuid(i + 1, 'pin')] = db_pin
+    session.commit()
 
     # Connect pins to items and each other
     for i, pin, in enumerate(pins):
-        db_items
         for conn_id in pin['connections']:
-            db_pins[i+1].connections.append(db_pins[conn_id])
+            db_pins[mock.to_uuid(i + 1, 'pin')].connections.append(db_pins[mock.to_uuid(conn_id, 'pin')])
+    session.commit()
 
     session.commit()
 
@@ -177,32 +199,56 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
 def get_account(accounts):
     """Function to get an account by ID"""
     def _get_account(id: int) -> dict:
-        return [ u for u in accounts if u["id"] == id ][0]
+        account = accounts[id - 1].copy()
+        account['id'] = mock.to_uuid(id, 'account')
+        return account
     return _get_account
 
 @pytest.fixture
 def get_board(boards):
     """Function to get a board by ID"""
     def _get_board(id: int) -> dict:
-        return [ b for b in boards if b["id"] == id ][0]
+        board = boards[id - 1].copy()
+        board['id'] = mock.to_uuid(id, 'board')
+        board['owner_id'] = mock.to_uuid(board['owner_id'], 'account')
+        return board
     return _get_board
 
 @pytest.fixture
 def get_item(items, todo_items, get_item_pin):
     """Function to get an item by ID"""
     def _get_item(id: int, includeBoardId: bool = True) -> dict:
-        item = [ i for i in items if i["id"] == id ][0]
+        item = items[id - 1].copy()
+        # update IDs
+        item['id'] = mock.to_uuid(id, 'item')
+        item['board_id'] = mock.to_uuid(item['board_id'], 'board')
+        item['list_id'] = mock.to_uuid(item['list_id'], 'item') if item['list_id'] is not None else None
         # Also populate contents
         item['pin'] = get_item_pin(id)
         if item['type'] == "todo":
-            contents = sorted([ i for i in todo_items if i['list_id'] == id ], key=lambda i: i['id'])
+            contents = []
+            for i, t in enumerate(todo_items):
+                todo_item = t.copy()
+                if todo_item['list_id'] != id:
+                    continue
+                todo_item['id'] = mock.to_uuid(i + 1, 'sub_item')
+                todo_item['list_id'] = mock.to_uuid(id, 'item')
+                contents.append(todo_item)
             item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
         if item['type'] == "list":
-            contents = sorted([ i for i in items if i['list_id'] == id ], key=lambda i: i['index'])
-            if not includeBoardId:
-                for i in contents:
-                    del i['board_id']
-            item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
+            contents = []
+            for i, li in enumerate(items):
+                if li['list_id'] != id:
+                    continue
+                list_item = li.copy()
+                list_item['id'] = mock.to_uuid(i + 1, 'item')
+                list_item['list_id'] = mock.to_uuid(id, 'item')
+                if includeBoardId:
+                    list_item['board_id'] = mock.to_uuid(list_item['board_id'], 'board')
+                else:
+                    del list_item['board_id']
+                contents.append(list_item)
+            item['contents'] = { "metadata": { "count": len(contents) }, "items": sorted(contents, key=lambda i: i['index']) }
         # Remove board ID if not asked for
         if not includeBoardId:
             del item['board_id']
@@ -212,8 +258,8 @@ def get_item(items, todo_items, get_item_pin):
 @pytest.fixture
 def get_response_account(get_account):
     """Function to get an account's response model by ID"""
-    def _get_response_account(id: int, profile_image: dict | None = None) -> dict:
-        base = get_account(id)
+    def _get_response_account(id: int, profile_image: str | None = None) -> dict:
+        base = get_account(id).copy()
         del base['email']
         base['profile_image'] = profile_image
         return base
@@ -251,8 +297,8 @@ def def_item(items):
     """Function to create the default values added when creating an item with this configuration"""
     def _def_item(board_id: int) -> dict:
         return {
-            "id": len(items) + 1,
-            "board_id": board_id,
+            "id": mock.to_uuid(len(items) + 1, 'item'),
+            "board_id": mock.to_uuid(board_id, 'board'),
             "list_id": None,
             "position": "0,0",
             "index": None,
@@ -274,15 +320,25 @@ def empty_collection():
 def get_pin(pins):
     """Function to get a pin by ID"""
     def _get_pin(id: int) -> dict:
-        return [ p for p in pins if p["id"] == id ][0]
+        pin = pins[id - 1].copy()
+        pin['id'] = mock.to_uuid(id, 'pin')
+        pin['item_id'] = mock.to_uuid(pin['item_id'], 'item')
+        pin['board_id'] = mock.to_uuid(pin['board_id'], 'board')
+        pin['connections'] = [ mock.to_uuid(c, 'pin') for c in pin['connections'] ]
+        return pin
     return _get_pin
 
 @pytest.fixture()
 def get_item_pin(pins):
     """Function that returns the pin object attached to an Item, or None"""
     def _get_item_pin(item_id: int):
-        for pin in pins:
-            if pin['item_id'] == item_id:
+        for i, p in enumerate(pins):
+            if p['item_id'] == item_id:
+                pin = p.copy()
+                pin['id'] = mock.to_uuid(i + 1, 'pin')
+                pin['item_id'] = mock.to_uuid(item_id, 'item')
+                pin['board_id'] = mock.to_uuid(pin['board_id'], 'board')
+                pin['connections'] = [ mock.to_uuid(c, 'pin') for c in pin['connections'] ]
                 return pin
         return None
     return _get_item_pin

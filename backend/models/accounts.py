@@ -9,13 +9,13 @@ from backend.models import  shared
 
 class Account(BaseModel):
     """Response model for accounts"""
-    id: int
+    id: str
     username: str
     profile_image: str | None = None
     
 class AuthenticatedAccount(BaseModel):
     """Response model for authenticated accounts which provides more information"""
-    id: int
+    id: str
     username: str
     email: str
     profile_image: str | None = None

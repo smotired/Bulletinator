@@ -1,6 +1,7 @@
 """Tests for managing accounts"""
 
 from backend.config import settings
+from backend.__tests__ import mock
 
 def test_get_accounts(client, get_response_account):
     response = client.get("/accounts")
@@ -11,7 +12,7 @@ def test_get_accounts(client, get_response_account):
     assert response.status_code == 200
 
 def test_get_account(client, get_response_account):
-    response = client.get("/accounts/1")
+    response = client.get(f"/accounts/{mock.to_uuid(1, 'account')}")
     assert response.json() == get_response_account(1)
     assert response.status_code == 200
 

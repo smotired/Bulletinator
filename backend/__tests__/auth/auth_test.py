@@ -3,61 +3,68 @@ from backend.database.schema import *
 from backend.config import settings
 from time import sleep
 
+from backend.__tests__ import mock
+
 def test_me_not_authenticated(client, exception):
     response = client.get("/accounts/me")
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
 
-def test_register_account(client, form_headers):
+def test_register_account(client, accounts, form_headers):
     form = {
         "username": "fred",
         "email": "fred@example.com",
         "password": "password6",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == {
-        "id": 6,
+        "id": mock.to_uuid(6, 'account'),
         "username": "fred",
         "profile_image": None,
     }
     assert response.status_code == 201
 
-def test_register_existing_username(client, form_headers, exception):
+def test_register_existing_username(client, form_headers, accounts, exception):
     form = {
         "username": "alice",
         "email": "alicenew@example.com",
         "password": "drowssap1",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("duplicate_entity", "Entity account with username=alice already exists")
     assert response.status_code == 422
 
-def test_register_invalid_username(client, form_headers, exception):
+def test_register_invalid_username(client, form_headers, accounts, exception):
     form = {
         "username": "al ic e",
         "email": "alicenew@example.com",
         "password": "drowssap1",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("invalid_field", "Value 'al ic e' is invalid for field 'username'")
     assert response.status_code == 422
 
-def test_register_existing_email(client, form_headers, exception):
+def test_register_existing_email(client, form_headers, accounts, exception):
     form = {
         "username": "alicenew",
         "email": "alice@example.com",
         "password": "drowssap1",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("duplicate_entity", "Entity account with email=alice@example.com already exists")
     assert response.status_code == 422
 
-def test_register_invalid_email(client, form_headers, exception):
+def test_register_invalid_email(client, form_headers, accounts, exception):
     form = {
         "username": "alicenew",
         "email": "aliceinvalidemail",
         "password": "drowssap1",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception('invalid_field', "Value 'aliceinvalidemail' is invalid for field 'email'")
     assert response.status_code == 422

@@ -234,7 +234,7 @@ def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_p
         }
     )
     # assert response
-    expected = get_account(1).copy()
+    expected = get_account(1)
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -270,7 +270,7 @@ def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image,
         }
     )
     # assert response
-    expected = get_account(1).copy()
+    expected = get_account(1)
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -306,7 +306,7 @@ def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_imag
         }
     )
     # assert response
-    expected = get_account(1).copy()
+    expected = get_account(1)
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201
@@ -342,7 +342,7 @@ def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_imag
         }
     )
     # assert response
-    expected = get_account(1).copy()
+    expected = get_account(1)
     expected['profile_image'] = filename
     assert response.json() == expected
     assert response.status_code == 201

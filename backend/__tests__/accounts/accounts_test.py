@@ -16,6 +16,16 @@ def test_get_account(client, get_response_account):
     assert response.json() == get_response_account(1)
     assert response.status_code == 200
 
+def test_get_by_username(client, get_response_account):
+    response = client.get(f"/accounts/alice")
+    assert response.json() == get_response_account(1)
+    assert response.status_code == 200
+
+def test_get_by_username_404(client, exception):
+    response = client.get(f"/accounts/nobody")
+    assert response.json() == exception('entity_not_found', "Unable to find account with username=nobody")
+    assert response.status_code == 404
+
 # No tests for creating accounts because that's handled in registrating
 
 def test_update_account(client, auth_headers, get_account):

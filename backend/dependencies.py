@@ -10,6 +10,7 @@ Args:
 """
 
 from typing import Annotated
+import re
 
 from fastapi import Depends
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
@@ -107,3 +108,13 @@ def format_list(items: list[str]):
     if len(items) == 0:
         return ""
     return ', '.join(items)
+
+def name_to_identifier(name: str):
+    """Converts a name to an alphanumeric identifier"""
+    # convert "whitespace" to underscores
+    identifier = re.sub(r"[ -]+", "_", name)
+    # remove disallowed characters
+    identifier = re.sub(r"[^A-ZA-Za-z0-9_]", "", identifier)
+    # collapse underscores
+    identifier = re.sub(r"__+", "_", identifier)
+    return identifier

@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
 from backend import app, auth
-from backend.dependencies import get_session
+from backend.dependencies import get_session, name_to_identifier
 from backend.database import schema
 from backend.database.schema import *
 
@@ -135,6 +135,7 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
     for i, board in enumerate(boards):
         db_board = DBBoard(**board)
         db_board.owner_id = mock.to_uuid(board['owner_id'], 'account')
+        db_board.identifier = board['identifier'] if 'identifier' in board else name_to_identifier(board['name'])
         for editor_id in editors[i + 1]:
             db_board.editors.append(db_accounts[mock.to_uuid(editor_id, 'account')])
         session.add(db_board)
@@ -211,6 +212,7 @@ def get_board(boards):
         board = boards[id - 1].copy()
         board['id'] = mock.to_uuid(id, 'board')
         board['owner_id'] = mock.to_uuid(board['owner_id'], 'account')
+        board['identifier'] = board['identifier'] if 'identifier' in board else name_to_identifier(board['name'])
         return board
     return _get_board
 

@@ -31,13 +31,20 @@ def get_all(session: DBSession) -> list[DBAccount]:
     """Retrieve all accounts"""
     return list(session.execute(select(DBAccount)).scalars().all())
 
+def force_get_by_username(session: DBSession, username: str) -> DBAccount:
+    """Raise 404 if no account has this username"""
+    account: DBAccount | None = get_by_username(session, username)
+    if account is None:
+        raise EntityNotFound('account', 'username', username)
+    return account
+
 def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount:
     """Updates an account with non-sensitive information"""
     # Make sure the username isn't taken, and update it
     if update.username is not None and update.username != account.username:
         if get_by_username(session, update.username) is not None:
             raise DuplicateEntity("account", "username", update.username)
-        if not re.fullmatch(r'[A-z0-9_]+', update.username):
+        if not re.fullmatch(r'[A-Za-z0-9_]+', update.username):
             raise InvalidField(update.username, 'username')
         account.username = update.username
     # Update the filename for the image (so they can just link to images hosted elsewhere)

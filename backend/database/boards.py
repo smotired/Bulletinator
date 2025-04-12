@@ -1,6 +1,7 @@
 from sqlalchemy import select
+import re
 
-from backend.dependencies import DBSession
+from backend.dependencies import DBSession, name_to_identifier
 from backend.database import accounts as accounts_db
 from backend.database.schema import DBBoard, DBAccount
 from backend.exceptions import *
@@ -77,16 +78,36 @@ def get_editable(session: DBSession, account: DBAccount) -> list[DBBoard]:
     owned = list(session.execute(stmt).scalars().all())
     stmt = select(DBBoard).join(DBBoard.editors).where(DBAccount.id == account.id).order_by(DBBoard.name)
     editable = list(session.execute(stmt).scalars().all())
-    return sorted(owned + editable, key=lambda b: b.name) # later, make sure owners cannot add themselves as editors
+    return sorted(owned + editable, key=lambda b: b.name)
+
+def get_by_name_identifier(session: DBSession, username: str, identifier: str, account: DBAccount) -> DBBoard:
+    """Attempts to fetch a board by an ID and identifier"""
+    owner: DBAccount = accounts_db.get_by_username(session, username)
+    if owner is None:
+        raise EntityNotFound('account', 'username', username)
+    statement = select(DBBoard).where(DBBoard.owner_id == owner.id).where(DBBoard.identifier == identifier)
+    boards: list[DBBoard] = list( session.execute(statement).scalars().all() )
+    if len(boards) == 0 or not can_see(boards[0], account):
+        raise EntityNotFound('board', 'identifier', identifier)
+    return boards[0]
 
 def create(session: DBSession, account: DBBoard, config: BoardCreate) -> DBBoard:
     """Create a board owned by this account"""
     new_board = DBBoard(
+        identifier = config.identifier or name_to_identifier(config.name),
         name=config.name,
         icon=config.icon,
         public=config.public,
         owner=account
     )
+    if re.fullmatch(r"[A-Za-z0-9_]+", new_board.identifier) is None:
+        raise InvalidField(new_board.identifier, 'identifier')
+    # Make sure identifier is unique for this user
+    statement = select(DBBoard).where(DBBoard.owner_id == account.id)
+    account_boards = list( session.execute(statement).scalars().all() )
+    if any([ board.identifier == new_board.identifier for board in account_boards ]):
+        raise DuplicateEntity('board', 'identifier', new_board.identifier)
+    # Add it
     session.add(new_board)
     session.commit()
     session.refresh(new_board)
@@ -96,6 +117,15 @@ def update(session: DBSession, account: DBAccount, board_id: str, config: BoardU
     """Update a board owned by this account"""
     board = get_for_owner(session, board_id, account)
     # Update it
+    if config.identifier is not None and config.identifier != board.identifier:
+        if re.fullmatch(r"[A-Za-z0-9_]+", config.identifier) is None:
+            raise InvalidField(config.identifier, 'identifier')
+        # Make sure identifier is unique for this user
+        statement = select(DBBoard).where(DBBoard.owner_id == account.id)
+        account_boards = list( session.execute(statement).scalars().all() )
+        if any([ board.identifier == config.identifier for board in account_boards ]):
+            raise DuplicateEntity('board', 'identifier', config.identifier)
+        board.identifier = config.identifier
     if config.name is not None:
         board.name = config.name
     if config.icon is not None:

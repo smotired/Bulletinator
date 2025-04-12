@@ -7,6 +7,7 @@ from backend.database.schema import DBBoard
 class Board(BaseModel):
     """Response model for a board"""
     id: str
+    identifier: str
     name: str
     icon: str
     owner_id: str
@@ -19,12 +20,14 @@ class BoardCollection(BaseModel):
     
 class BoardCreate(BaseModel):
     """Request model for creating a board"""
+    identifier: str | None = None # if not provided, generate one
     name: str
     icon: str = "default"
     public: bool = False
     
 class BoardUpdate(BaseModel):
     """Request model for updating a board"""
+    identifier: str | None = None
     name: str | None = None
     icon: str | None = None
     public: bool | None = None

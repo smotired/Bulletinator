@@ -75,7 +75,7 @@ def register_account(session: DBSession, form: Registration) -> DBAccount:
         raise DuplicateEntity("account", "username", form.username)
     if form.email.count('@') != 1:
         raise InvalidField(form.email, 'email')
-    if not re.fullmatch(r'[A-z0-9_]+', form.username):
+    if not re.fullmatch(r'[A-Za-z0-9_]+', form.username):
         raise InvalidField(form.username, 'username')
     # Create the account
     new_account = DBAccount(

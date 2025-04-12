@@ -70,10 +70,18 @@ def get_current_account(
         images=[ Image.model_validate(image.__dict__) for image in images ]
     )
 
-@router.get("/{account_id}", status_code=200, response_model=Account)
+@router.get("/{account_id:uuid}", status_code=200, response_model=Account)
 def get_account(
     session: DBSession, # type: ignore
     account_id: UUID
 ) -> DBAccount:
     """Gets an account object"""
     return accounts_db.get_by_id(session, str(account_id))
+
+@router.get("/{username}", status_code=200, response_model=Account)
+def get_account(
+    session: DBSession, # type: ignore
+    username: str
+) -> DBAccount:
+    """Gets an account object by the username"""
+    return accounts_db.force_get_by_username(session, username)

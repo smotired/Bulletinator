@@ -49,7 +49,9 @@ def create_board(
     """Creates a board owned by the authenticated account"""
     return boards_db.create(session, account, config)
 
-@router.get("/{board_id}/", status_code=200, response_model=Board)
+# Other routes should not be accessed by the user directly so should only depend on ID
+
+@router.get("/{board_id:uuid}/", status_code=200, response_model=Board)
 def get_board(
     session: DBSession, # type: ignore
     board_id: UUID,
@@ -57,6 +59,16 @@ def get_board(
 ) -> DBBoard:
     """Returns the board with this ID if the account can access it"""
     return boards_db.get_for_viewer(session, str(board_id), account)
+
+@router.get("/{username}-{identifier}/", status_code=200, response_model=Board)
+def get_board_by_name_and_id(
+    session: DBSession, # type: ignore
+    username: str,
+    identifier: str,
+    account: OptionalAccount = None,
+) -> DBBoard:
+    """Returns the board with this ID and name if it exists and the account can view it."""
+    return boards_db.get_by_name_identifier(session, username, identifier, account)
 
 @router.put("/{board_id}/", status_code=200, response_model=Board)
 def update_board(

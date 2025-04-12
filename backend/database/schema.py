@@ -61,6 +61,7 @@ class DBBoard(Base):
     Fields:
         - id: UUID primary key
         - name: the name of the board
+        - identifier: an alphanumeric board identifier, unique by username
         - icon: the string icon name that is being used
         - owner_id: the ID of the account that created the board.
             - deleting an account will cascade-delete boards
@@ -77,6 +78,7 @@ class DBBoard(Base):
     __tablename__ = "boards"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: gen_uuid())
+    identifier: Mapped[str] = mapped_column(String(64))
     name: Mapped[str]
     icon: Mapped[str] = mapped_column( default="default" ) # later should these have their own table? probably not
     owner_id: Mapped[int] = mapped_column( ForeignKey("accounts.id") )

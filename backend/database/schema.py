@@ -161,13 +161,11 @@ class DBItemNote(DBItem):
     Fields:
         - id: primary key - the id of the parent item
         - text: the markdown text of the note
-        - size: the resized dimensions (overridden if in list)
     """
     __tablename__ = "items_note"
     
     id: Mapped[str] = mapped_column(ForeignKey("items.id"), primary_key=True)
     text: Mapped[str] = mapped_column(Text(300))
-    size: Mapped[str] = mapped_column(default="300,200")
     
     __mapper_args__ = {
         "polymorphic_identity": "note",

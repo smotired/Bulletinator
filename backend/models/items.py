@@ -59,17 +59,14 @@ class ItemUpdate(BaseItemUpdate, AllItemFields):
 class ItemNote(Item):
     """Response model for a Note item"""
     text: str
-    size: str
     
 class ItemNoteCreate(BaseItemCreate):
     """Request model for creating a Note item"""
     text: str
-    size: str = "300,400"
     
 class ItemNoteUpdate(BaseItemUpdate):
     """Request model for updating a Note item"""
     text: str | None = None
-    size: str | None = None
     
 # Link Items
     

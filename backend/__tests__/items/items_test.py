@@ -78,7 +78,6 @@ def test_create_item(client, auth_headers, items, get_item):
         "index": None,
         "type": "note",
         "text": "Created Note",
-        "size": "300,200"
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
@@ -104,7 +103,6 @@ def test_create_item_as_viewer(client, auth_headers, items, exception):
         "index": None,
         "type": "note",
         "text": "Created Note",
-        "size": "300,200"
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(3), json=item)
@@ -128,7 +126,6 @@ def test_create_item_default_values(client, auth_headers, items, def_item):
     assert response.json() == {
         **def_item(1),
         **item,
-        "size": "300,200",
     }
     assert response.status_code == 201
 
@@ -142,7 +139,6 @@ def test_create_private_item(client, auth_headers, items, def_item):
     assert response.json() == {
         **def_item(3),
         **item,
-        "size": "300,200",
     }
     assert response.status_code == 201
 
@@ -272,6 +268,13 @@ def test_create_media_invalid_size4(client, auth_headers, items, exception):
 
 def test_create_media_invalid_size5(client, auth_headers, items, exception):
     item = { "type": "media", "url": "/", "size": "600" }
+    mock.last_uuid = mock.OFFSETS['item'] + len(items)
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
+    assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
+    assert response.status_code == 422
+
+def test_create_media_invalid_size6(client, auth_headers, items, exception):
+    item = { "type": "media", "url": "/", "size": "2001,2001" }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)
     assert response.json() == exception("invalid_field", f"Value '{item['size']}' is invalid for field 'size'")
@@ -440,7 +443,6 @@ def test_create_append_to_list(client, auth_headers, items, get_item):
         "board_id": mock.to_uuid(2, 'board'),
         "position": None,
         "index": 2, # there are 2 items in the list already
-        "size": "300,200",
         "pin": None,
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
@@ -468,7 +470,6 @@ def test_create_insert_into_list(client, auth_headers, items, get_item):
         "id": mock.to_uuid(len(items) + 1, 'item'),
         "board_id": mock.to_uuid(2, 'board'),
         "position": None,
-        "size": "300,200",
         "pin": None,
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
@@ -496,7 +497,6 @@ def test_create_insert_at_end(client, auth_headers, items, get_item):
         "id": mock.to_uuid(len(items) + 1, 'item'),
         "board_id": mock.to_uuid(2, 'board'),
         "position": None,
-        "size": "300,200",
         "pin": None,
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)

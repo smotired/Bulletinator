@@ -57,11 +57,11 @@ def create_item(session: DBSession, board_id: str, config: ItemCreate, account: 
     if 'text' in config_dict and config_dict['text'] is not None and config.type in [ 'note', 'document' ]:
         if len(config_dict['text']) > { 'note': 300, 'document': 65536 }[ config.type ]:
             raise FieldTooLong('text')
-    if 'size' in config_dict and config_dict['size'] is not None and config.type in [ 'note', 'media' ]:
+    if 'size' in config_dict and config_dict['size'] is not None and config.type in [ 'media' ]:
         try:
             x, y, = config_dict['size'].split(',')
             xi, yi = int(x), int(y)
-            if x != str(xi) or y != str(yi):
+            if x != str(xi) or y != str(yi) or max(xi, yi) > 2000:
                 raise InvalidField(config_dict['size'], 'size')
         except:
             raise InvalidField(config_dict['size'], 'size')
@@ -115,11 +115,11 @@ def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpd
         if len(config.text) > { 'note': 300, 'document': 65536 }[ item.type ]:
             raise FieldTooLong('text')
         item.text = config.text
-    if config.size is not None and item.type in [ 'note', 'media' ]:
+    if config.size is not None and item.type in [ 'media' ]:
         try:
             x, y, = config.size.split(',')
             xi, yi = int(x), int(y)
-            if x != str(xi) or y != str(yi):
+            if x != str(xi) or y != str(yi) or max(xi, yi) > 2000:
                 raise InvalidField(config.size, 'size')
         except:
             raise InvalidField(config.size, 'size')

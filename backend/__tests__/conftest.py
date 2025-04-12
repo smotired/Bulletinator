@@ -83,17 +83,17 @@ def editors(): # board_ids and account_ids
 @pytest.fixture
 def items():
     return [
-        { "board_id": 1, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Test Note", "size": "300,200" }, # 1
+        { "board_id": 1, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Test Note" }, # 1
         { "board_id": 2, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "list", "title": "Test List" },
-        { "board_id": 2, "list_id": 2, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 1", "size": "300,200" },
+        { "board_id": 2, "list_id": 2, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 1" },
         { "board_id": 2, "list_id": 2, "position": None, "index": 1, "pin": None, "type": "link", "title": "List Item 2 (board link)", "url": "/boards/1" },
         { "board_id": 1, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 1" }, # 5
         { "board_id": 2, "list_id": None, "position": "350,0", "index": None, "pin": None, "type": "todo", "title": "Todo List 2" },
         { "board_id": 1, "list_id": None, "position": "0,250", "index": None, "pin": None, "type": "link", "title": "External Link", "url": "https://www.example.com/" },
-        { "board_id": 3, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Private Note", "size": "300,200" },
+        { "board_id": 3, "list_id": None, "position": "0,0", "index": None, "pin": None, "type": "note", "text": "Private Note" },
         { "board_id": 2, "list_id": None, "position": "0,500", "index": None, "pin": None, "type": "list", "title": "Test List 2" },
-        { "board_id": 2, "list_id": 9, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 3", "size": "300,200" }, # 10
-        { "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "pin": None, "type": "note", "text": "Board 2 Item", "size": "300,200" },
+        { "board_id": 2, "list_id": 9, "position": None, "index": 0, "pin": None, "type": "note", "text": "List Item 3" }, # 10
+        { "board_id": 2, "list_id": None, "position": "0,-300", "index": None, "pin": None, "type": "note", "text": "Board 2 Item" },
     ]
 
 @pytest.fixture

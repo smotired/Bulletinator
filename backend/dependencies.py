@@ -71,7 +71,7 @@ RefreshToken = Annotated[str, Depends(get_refresh_token)]
 from backend.auth import extract_account
 
 def get_current_account(
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session), # type: ignore
     access_token: str = Depends(get_access_token),
 ) -> DBAccount:
     """Current account dependency. Depends on the session and the access token."""
@@ -90,7 +90,7 @@ def get_optional_access_token(
     return None
 
 def get_optional_account(
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session), # type: ignore
     access_token: str = Depends(get_optional_access_token),
 ) -> Optional[DBAccount]:
     """Optional account dependency. Depends on the session and the access token. Returns the current account if one is logged in, or None if login fails.

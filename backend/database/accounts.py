@@ -10,35 +10,35 @@ from backend.models.accounts import AccountUpdate
 
 # Account creation logic will be handled only by authentication module
 
-def get_by_id(session: DBSession, account_id: str) -> DBAccount:
+def get_by_id(session: DBSession, account_id: str) -> DBAccount: # type: ignore
     """Retrieve account by email"""
     account = session.get(DBAccount, account_id)
     if account is None:
         raise EntityNotFound("account", "id", account_id)
     return account
 
-def get_by_email(session: DBSession, email: str) -> DBAccount | None:
+def get_by_email(session: DBSession, email: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.email == email)
     return session.execute(stmt).scalars().one_or_none()
 
-def get_by_username(session: DBSession, username: str) -> DBAccount | None:
+def get_by_username(session: DBSession, username: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.username == username)
     return session.execute(stmt).scalars().one_or_none()
 
-def get_all(session: DBSession) -> list[DBAccount]:
+def get_all(session: DBSession) -> list[DBAccount]: # type: ignore
     """Retrieve all accounts"""
     return list(session.execute(select(DBAccount)).scalars().all())
 
-def force_get_by_username(session: DBSession, username: str) -> DBAccount:
+def force_get_by_username(session: DBSession, username: str) -> DBAccount: # type: ignore
     """Raise 404 if no account has this username"""
     account: DBAccount | None = get_by_username(session, username)
     if account is None:
         raise EntityNotFound('account', 'username', username)
     return account
 
-def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount:
+def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount: # type: ignore
     """Updates an account with non-sensitive information"""
     # Make sure the username isn't taken, and update it
     if update.username is not None and update.username != account.username:
@@ -75,7 +75,7 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     session.refresh(account)
     return account
 
-def delete(session: DBSession, account: DBAccount) -> None:
+def delete(session: DBSession, account: DBAccount) -> None: # type: ignore
     """Delete an account."""
     session.delete(account)
     session.commit()

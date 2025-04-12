@@ -45,17 +45,17 @@ def check_password(password: str, hashed_password: str) -> str:
     )
 
 # gotta repeat these here because of circular imports
-def get_by_email(session: DBSession, email: str) -> DBAccount | None:
+def get_by_email(session: DBSession, email: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.email == email)
     return session.execute(stmt).scalars().one_or_none()
 
-def get_by_username(session: DBSession, username: str) -> DBAccount | None:
+def get_by_username(session: DBSession, username: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.username == username)
     return session.execute(stmt).scalars().one_or_none()
 
-def register_account(session: DBSession, form: Registration) -> DBAccount:
+def register_account(session: DBSession, form: Registration) -> DBAccount: # type: ignore
     """Creates an account in the database for this account
     
     Args:
@@ -89,7 +89,7 @@ def register_account(session: DBSession, form: Registration) -> DBAccount:
     session.refresh(new_account)
     return new_account
     
-def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]:
+def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]: # type: ignore
     """Generates access and refresh token JWTs from a login form.
     
     Args:
@@ -143,7 +143,7 @@ def verify_account(account: DBAccount | None, password: str) -> DBAccount:
         raise InvalidCredentials()
     return account
 
-def extract_account(session: DBSession, token: str) -> DBAccount:
+def extract_account(session: DBSession, token: str) -> DBAccount: # type: ignore
     """Extract an account from an access token JWT
     
     Args:
@@ -166,7 +166,7 @@ def extract_account(session: DBSession, token: str) -> DBAccount:
     # Return the account
     return account
 
-def refresh_access_token(session: DBSession, refresh_token: str) -> str:
+def refresh_access_token(session: DBSession, refresh_token: str) -> str: # type: ignore
     """Attempts to refresh an access token
     
     Args:
@@ -192,7 +192,7 @@ def refresh_access_token(session: DBSession, refresh_token: str) -> str:
         algorithm=settings.jwt_algorithm
     )
     
-def revoke_one_refresh_token(session: DBSession, token: str):
+def revoke_one_refresh_token(session: DBSession, token: str): # type: ignore
     """Removes a refresh tokens for an account in the database, ensuring it cannot be used to log in again.
     
     Args:
@@ -205,7 +205,7 @@ def revoke_one_refresh_token(session: DBSession, token: str):
     session.execute(stmt)
     session.commit()
     
-def revoke_refresh_tokens(session: DBSession, account: DBAccount):
+def revoke_refresh_tokens(session: DBSession, account: DBAccount): # type: ignore
     """Removes all refresh tokens for an account in the database, logging them out on all devices.
     
     Args:
@@ -260,7 +260,7 @@ def _extract_access_payload(token: str) -> AccessPayload:
     except JWTError:
         raise InvalidAccessToken()
 
-def _generate_refresh_payload(session: DBSession, account: DBAccount) -> RefreshPayload:
+def _generate_refresh_payload(session: DBSession, account: DBAccount) -> RefreshPayload: # type: ignore
     """Create a payload for an access token for this account.
     
     Args:
@@ -288,7 +288,7 @@ def _generate_refresh_payload(session: DBSession, account: DBAccount) -> Refresh
         exp=exp
     )
 
-def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload:
+def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload: # type: ignore
     """Verify and extract payload from JWT refresh token.
     
     Args:

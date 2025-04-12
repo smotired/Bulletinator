@@ -184,3 +184,5 @@ backend/__tests__/media/static/images/*
 # Various asset creation files
 /assets/*
 desktop.ini
+
+.vscode

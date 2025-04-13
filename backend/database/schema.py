@@ -7,14 +7,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, validates
 from typing import List, Optional
-from uuid import uuid4
+from uuid_extensions import uuid7
 from datetime import datetime
 
 Base = declarative_base()
 
 def gen_uuid() -> str:
     # Function to generate a UUID string
-    return str(uuid4())
+    return str(uuid7())
 
 # Intermediate table for many-to-many relationship between Accounts and the Boards they are allowed to edit
 editor_table = Table(

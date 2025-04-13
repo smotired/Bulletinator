@@ -27,24 +27,17 @@ def get_by_id(session: DBSession, board_id: str) -> DBBoard: # type: ignore
         raise EntityNotFound("board", "id", board_id)
     return board
 
-def get_for_editor(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard: # type: ignore
-    """Returns the board with this ID if the account is the owner, or returns exceptions based on if the account can see it"""
-    board: DBBoard = get_by_id(session, board_id)
-    if can_see(board, account):
-        if can_edit(board, account):
-            return board
-        else:
-            raise AccessDenied()
-    else:
-        raise EntityNotFound("board", "id", board_id)
-
 def get_for_viewer(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard: # type: ignore
     """Returns the board with this ID if the account can see this board, or returns a 404."""
     board: DBBoard = get_by_id(session, board_id)
     if can_see(board, account):
         return board
-    else:
-        raise EntityNotFound("board", "id", board_id)
+    try:
+        BoardPolicyDecisionPoint(session, account).ensure_read(board_id)
+        return board
+    except:
+        pass
+    raise EntityNotFound("board", "id", board_id)
 
 def get_all(session: DBSession) -> list[DBBoard]: # type: ignore
     """Returns a list of all boards ordered by name"""

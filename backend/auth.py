@@ -11,7 +11,7 @@ import re
 
 from backend.config import settings
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBRefreshToken
+from backend.database.schema import DBAccount, DBRefreshToken, DBPermission
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
 
@@ -89,6 +89,10 @@ def register_account(session: DBSession, form: Registration) -> DBAccount: # typ
         hashed_password=hash_password(form.password)
     )
     # Add and return
+    session.add(new_account)
+    session.commit()
+    session.refresh(new_account)
+    new_account.permission = DBPermission( account_id=new_account.id )
     session.add(new_account)
     session.commit()
     session.refresh(new_account)

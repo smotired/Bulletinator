@@ -40,6 +40,7 @@ class DBAccount(Base):
         - boards: Board, one-to-many
         - editable: Board, many-to-many
         - uploaded: Image, one-to-many
+        - permission: Permission, one-to-one
     """
     __tablename__ = "accounts"
 
@@ -53,9 +54,10 @@ class DBAccount(Base):
     created_at: Mapped[datetime] = mapped_column( DateTime(), server_default=func.now() )
 
     # relationships
-    boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't automatically delete unless they are the only editor
+    boards: Mapped[List["DBBoard"]] = relationship( back_populates="owner", cascade="all, delete-orphan" ) # maybe later don't cascade delete unless they are the only editor
     editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table, back_populates="editors" )
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
+    permission: Mapped["DBPermission"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
 
 class DBBoard(Base):
     """Boards table. Each row represents a bulletin board.
@@ -376,3 +378,24 @@ class DBPin(Base):
         primaryjoin=id == connection_table.c.source_id,
         secondaryjoin=id == connection_table.c.destination_id,
         back_populates="connections" )
+    
+# Extra account objects
+
+class DBPermission(Base):
+    """Represents higher permissions for an account.
+    
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): UUID of the associated account
+        - role (str): The role of the account
+
+    Relationships:
+        - account (DBAccount, one-to-one): The account object
+    """
+    __tablename__ = "permissions"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    role: Mapped[str] = mapped_column(String(32), default="user")
+
+    account: Mapped["DBAccount"] = relationship(back_populates="permission", foreign_keys="DBPermission.account_id")

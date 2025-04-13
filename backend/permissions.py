@@ -14,6 +14,9 @@ class PolicyInformationPoint():
         self.session = session
         self.account = account
 
+    def is_app_staff(self) -> bool:
+        return self.account.permission.role in [ 'app_administrator', 'app_moderator' ]
+
     def is_board_owner(self, target: DBBoard | str) -> bool:
         board: DBBoard = target if isinstance(target, DBBoard) else self.session.get(DBBoard, target)
         return board is not None and board.owner_id == self.account.id
@@ -55,41 +58,54 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         pass
 
     def ensure_read_all(self): # Only staff can see all boards
-        raise NoPermissions("view all boards", "account", self.account.id)
+        if not self.pip.is_app_staff():
+            raise NoPermissions("view all boards", "account", self.account.id)
     
     def ensure_query_all(self): # Anyone can get a list of boards
         pass
 
     def ensure_read(self, target_id): # Can view a specific board if they are the owner, they are the editor, or it is public.
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not board.public and not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
             raise EntityNotFound('board', 'id', target_id)
         
     def ensure_update(self, target_id): # Can change board information if they are the owner
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board):
             raise NoPermissions("manage board", "board", target_id)
         
     def ensure_modify(self, target_id): # Can modify board if they are the owner or an editor
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
             raise NoPermissions("modify board", "board", target_id)
         
     def ensure_delete(self, target_id): # Can delete a board if they are the owner
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board):
             raise NoPermissions("delete board", "board", target_id)
         
     def ensure_view_editors(self, target_id): # Can view editors if they are an editor or owner
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
             raise NoPermissions("view editors", "board", target_id)
         
     def ensure_manage_editors(self, target_id): # Can invite/remove editors if they are the owner
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board):
@@ -101,6 +117,8 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
             raise AddBoardOwnerAsEditor()
         
     def ensure_transfer(self, target_id): # Can transfer if they are the owner
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
         self.ensure_read(target_id)
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board):

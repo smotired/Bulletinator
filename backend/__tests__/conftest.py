@@ -130,6 +130,13 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
         session.add(db_account)
     session.commit()
 
+    mock.last_uuid = mock.OFFSETS['permission']
+    for account in db_accounts.values():
+        session.refresh(account)
+        account.permission = DBPermission( account_id=account.id )
+        session.add(account)
+    session.commit()
+
     # Create boards
     mock.last_uuid = mock.OFFSETS['board']
     for i, board in enumerate(boards):
@@ -190,6 +197,14 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
     for i, pin, in enumerate(pins):
         for conn_id in pin['connections']:
             db_pins[mock.to_uuid(i + 1, 'pin')].connections.append(db_pins[mock.to_uuid(conn_id, 'pin')])
+    session.commit()
+
+    # Promote users
+    # Currently just have Eve as our super admin
+    eve: DBAccount = db_accounts[mock.to_uuid(5, 'account')]
+    eve.permission.role = "app_administrator"
+    session.add(eve)
+    session.add(eve.permission)
     session.commit()
 
     session.commit()

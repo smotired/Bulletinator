@@ -32,6 +32,10 @@ class BoardUpdate(BaseModel):
     icon: str | None = None
     public: bool | None = None
 
+class BoardTransfer(BaseModel):
+    """Request model for transferring a board to another account"""
+    account_id: str
+
 def convert_board(db_board: DBBoard):
     return Board.model_validate(db_board.__dict__)
 

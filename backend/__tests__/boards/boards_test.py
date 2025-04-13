@@ -259,3 +259,56 @@ def test_add_owner_as_editor(client, auth_headers, exception):
     response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(2, 'account')}", headers=auth_headers(2))
     assert response.json() == exception("add_board_owner_as_editor", "Cannot add the board owner as an editor")
     assert response.status_code == 422
+
+def test_transfer(client, auth_headers, get_board, get_response_account):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(1), json={"account_id": mock.to_uuid(2, 'account')})
+    assert response.json() == {
+        **get_board(1),
+        "owner_id": mock.to_uuid(2, 'account'),
+    }
+    assert response.status_code == 200
+    response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 1 },
+        "accounts": [ get_response_account(1) ],
+    }
+    assert response.status_code == 200
+
+def test_transfer_as_editor(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(2), json={"account_id": mock.to_uuid(2, 'account')})
+    assert response.json() == exception("no_permissions", f"No permissions to transfer board on board with id={mock.to_uuid(1, 'board')}")
+    assert response.status_code == 403
+
+def test_transfer_as_random(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(4), json={"account_id": mock.to_uuid(4, 'account')})
+    assert response.json() == exception("no_permissions", f"No permissions to transfer board on board with id={mock.to_uuid(1, 'board')}")
+    assert response.status_code == 403
+
+def test_transfer_private(client, auth_headers, get_board, get_response_account):
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/transfer", headers=auth_headers(2), json={"account_id": mock.to_uuid(1, 'account')})
+    assert response.json() == {
+        **get_board(3),
+        "owner_id": mock.to_uuid(1, 'account'),
+    }
+    assert response.status_code == 200
+    response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 1 },
+        "accounts": [ get_response_account(2) ],
+    }
+    assert response.status_code == 200
+
+def test_transfer_private_unauth(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/transfer", headers=auth_headers(4), json={"account_id": mock.to_uuid(1, 'account')})
+    assert response.json() == exception("entity_not_found", f"Unable to find board with id={mock.to_uuid(3, 'board')}")
+    assert response.status_code == 404
+
+def test_transfer_to_non_editor(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(1), json={"account_id": mock.to_uuid(4, 'account')})
+    assert response.json() == exception("invalid_operation", f"Cannot transfer board with id={mock.to_uuid(1, 'board')} to account with id={mock.to_uuid(4, 'account')}")
+    assert response.status_code == 422
+
+def test_transfer_to_self(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(1), json={"account_id": mock.to_uuid(1, 'account')})
+    assert response.json() == exception("invalid_operation", f"Cannot transfer board with id={mock.to_uuid(1, 'board')} to account with id={mock.to_uuid(1, 'account')}")
+    assert response.status_code == 422

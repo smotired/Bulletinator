@@ -7,7 +7,7 @@ from backend.database import accounts as accounts_db
 from backend.database.schema import DBBoard, DBAccount
 from backend.exceptions import *
 
-from backend.models.boards import BoardCreate, BoardUpdate
+from backend.models.boards import BoardCreate, BoardUpdate, BoardTransfer
 
 def can_edit(board: DBBoard, account: DBAccount | None) -> bool:
     
@@ -183,3 +183,17 @@ def remove_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: s
     session.commit()
     session.refresh(board)
     return sorted(board.editors, key=lambda e: e.id)
+
+def transfer_board(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, transfer: BoardTransfer) -> DBBoard: # type: ignore
+    """Transfers a board to an editor"""
+    board = get_by_id(session, board_id)
+    pdp.ensure_transfer(board_id)
+    other = accounts_db.get_by_id(session, transfer.account_id)
+    BoardPolicyDecisionPoint(session, other).ensure_become_owner(board_id)
+    board.owner_id = transfer.account_id
+    board.editors.remove(other)
+    board.editors.append(pdp.account)
+    session.add(board)
+    session.commit()
+    session.refresh(board)
+    return board

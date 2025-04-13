@@ -100,6 +100,18 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         if self.pip.is_board_owner(board):
             raise AddBoardOwnerAsEditor()
         
+    def ensure_transfer(self, target_id): # Can transfer if they are the owner
+        self.ensure_read(target_id)
+        board: DBBoard = self.session.get(DBBoard, target_id)
+        if not self.pip.is_board_owner(board):
+            raise NoPermissions("transfer board", "board", target_id)
+        
+    def ensure_become_owner(self, target_id): # Can become the owner if they can create boards and are an editor on this board
+        self.ensure_create()
+        board: DBBoard = self.session.get(DBBoard, target_id)
+        if not self.pip.is_board_editor(board):
+            raise InvalidOperation(f"Cannot transfer board with id={target_id} to account with id={self.account.id}")
+        
 # Dependencies
 
 def get_board_pdp(

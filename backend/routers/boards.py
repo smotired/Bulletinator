@@ -11,7 +11,7 @@ from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
 from backend.permissions import BoardPDP
-from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, convert_board_list
+from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, convert_board_list
 from backend.models.accounts import AccountCollection, convert_account_list
 from backend.models.shared import Metadata
 
@@ -130,3 +130,13 @@ def remove_editor(
         metadata=Metadata(count=len(editors)),
         accounts=editors
     )
+
+@router.post("/{board_id}/transfer", status_code=200, response_model=Board)
+def transfer_board(
+    session: DBSession, # type: ignore
+    pdp: BoardPDP,
+    board_id: UUID,
+    transfer: BoardTransfer,
+) -> DBBoard:
+    """Transfers the board to another editor account, rendering this account as an editor. Returns the updated board."""
+    return boards_db.transfer_board(session, pdp, str(board_id), transfer)

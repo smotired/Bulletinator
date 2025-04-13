@@ -113,6 +113,18 @@ class NoPermissions(BadRequestException):
         self.error = "no_permissions"
         self.message = f"No permissions to {action} on {entity} with id={id}"
 
+class ItemTypeMismatch(BadRequestException):
+    def __init__(self, id: str, expected: str, actual: str):
+        self.status_code = 418
+        self.error = "item_type_mismatch"
+        self.message = f"Item with id={id} has type '{actual}', but was treated as if it had type '{expected}'"
+
+class InvalidOperation(BadRequestException):
+    def __init__(self, message: str):
+        self.status_code = 422
+        self.error = "invalid_operation"
+        self.message = message
+
 class AddBoardOwnerAsEditor(BadRequestException):
     def __init__(self):
         self.status_code = 422
@@ -130,12 +142,6 @@ class MissingItemFields(BadRequestException):
         self.status_code = 422
         self.error = "missing_item_fields"
         self.message = f"Item type '{type}' was missing the following fields: {fields}"
-
-class ItemTypeMismatch(BadRequestException):
-    def __init__(self, id: str, expected: str, actual: str):
-        self.status_code = 418
-        self.error = "item_type_mismatch"
-        self.message = f"Item with id={id} has type '{actual}', but was treated as if it had type '{expected}'"
 
 class IndexOutOfRange(BadRequestException):
     def __init__(self, entity: str, id:str, index: str):

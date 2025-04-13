@@ -5,6 +5,7 @@ from backend.database.schema import DBAccount, DBEmailVerification
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
 
 def send_verification_email(account: DBAccount, verification: DBEmailVerification):
     with smtplib.SMTP_SSL(
@@ -52,8 +53,8 @@ If you do not recognize this action, or you have other questions, please send an
 
     # Create a multipart message and set headers
     message = MIMEMultipart("alternative")
-    message["From"] = settings.smtp_sender
-    message["To"] = verification.email
+    message["From"] = formataddr(("Bulletinator", settings.smtp_sender))
+    message["To"] = formataddr((account.display_name or account.username, verification.email))
     message["Subject"] = "Verify your Bulletinator account"
 
     # Attach different segments

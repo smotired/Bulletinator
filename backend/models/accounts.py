@@ -18,7 +18,7 @@ class AuthenticatedAccount(BaseModel):
     """Response model for authenticated accounts which provides more information"""
     id: str
     username: str
-    email: str
+    email: str | None = None
     profile_image: str | None = None
     display_name: str | None = None
     

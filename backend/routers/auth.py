@@ -11,13 +11,14 @@ from backend.config import settings
 from backend.database.schema import *
 from backend.dependencies import DBSession, CurrentAccount, RefreshToken, set_cookie_secure
 from backend.models.auth import AccessToken, Registration, Login
-from backend.models.accounts import Account
+from backend.models.accounts import Account, AuthenticatedAccount
 
 from typing import Annotated
+from uuid import UUID
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/registration", status_code=201, response_model=Account)
+@router.post("/registration", status_code=201, response_model=AuthenticatedAccount)
 def register_account(
     session: DBSession, # type: ignore
     form: Annotated[Registration, Form()]
@@ -82,3 +83,11 @@ def force_logout_account(
     auth.revoke_refresh_tokens(session, account)
     response.delete_cookie(settings.jwt_access_cookie_key)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
+
+@router.post('/verify-email/{verification_id}', status_code=200, response_model=AuthenticatedAccount)
+def verify_email(
+    session: DBSession, # type: ignore
+    verification_id: UUID,
+) -> DBAccount:
+    """Verify an account's email address"""
+    return auth.verify_email(session, str(verification_id))

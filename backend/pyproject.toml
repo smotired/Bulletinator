@@ -3,7 +3,7 @@ name = "bulletinator"
 version = "0.1.0"
 description = "A bulletin board app where users can easily plan and brainstorm project ideas."
 authors = [
-    {name = "Sam Hill",email = "smotired@gmail.com"}
+    {name = "Sam Hill",email = "sam@bulletinator.com"}
 ]
 license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.12"

@@ -2,7 +2,7 @@ from sqlalchemy import select
 import re
 
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount
+from backend.database.schema import DBAccount, DBEmailVerification
 from backend.exceptions import *
 
 from backend import auth
@@ -20,7 +20,12 @@ def get_by_id(session: DBSession, account_id: str) -> DBAccount: # type: ignore
 def get_by_email(session: DBSession, email: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.email == email)
-    return session.execute(stmt).scalars().one_or_none()
+    account: DBAccount | None = session.execute(stmt).scalars().one_or_none()
+    if account is not None:
+        return account
+    stmt = select(DBEmailVerification).where(DBEmailVerification.email == email) # also check unverified emails
+    verification: DBEmailVerification | None = session.execute(stmt).scalars().one_or_none()
+    return verification.account if verification is not None else None
 
 def get_by_username(session: DBSession, username: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""

@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
-from backend import app, auth
+from backend import app, auth, email
 from backend.dependencies import get_session, name_to_identifier
 from backend.database import schema
 from backend.database.schema import *
@@ -35,6 +35,7 @@ def client(session, monkeypatch):
     # override authentication functions
     monkeypatch.setattr(auth, "hash_password", mock.hash_password)
     monkeypatch.setattr(auth, "check_password", mock.check_password)
+    monkeypatch.setattr(email, "send_verification_email", mock.send_verification_email)
     
     # set up the client
     app.dependency_overrides[get_session] = lambda: session
@@ -122,6 +123,7 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
     """Setup initial test data in database."""
 
     # Create accounts, with passwords equal to index (e.g. password1, password2, etc)
+    # Assume they all have verified emails
     mock.last_uuid = mock.OFFSETS['account']
     db_accounts = {}
     for i, account in enumerate(accounts):

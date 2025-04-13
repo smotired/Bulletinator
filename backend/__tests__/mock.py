@@ -1,6 +1,7 @@
 """Mock methods for tests"""
 
 from uuid import UUID
+from backend.database.schema import DBAccount, DBEmailVerification
 
 # Password verification
 def hash_password(p: str) -> str:
@@ -18,6 +19,10 @@ def uuid() -> str:
     global last_uuid
     last_uuid += 1
     return to_uuid(last_uuid)
+
+# Email verification
+def send_verification_email(account: DBAccount, verification: DBEmailVerification):
+    pass
 
 # UUID offsets for tests.
 # Used to make tests a little more resistant to adding test data.

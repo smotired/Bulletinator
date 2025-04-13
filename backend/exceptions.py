@@ -94,6 +94,12 @@ class InvalidRefreshToken(BadRequestException):
         self.status_code = 401
         self.error = "invalid_refresh_token"
         self.message = "Authentication failed: Refresh token expired or was invalid"
+
+class InvalidEmailVerification(BadRequestException):
+    def __init__(self):
+        self.status_code = 401
+        self.error = "invalid_email_verification"
+        self.message = "Could not verify email address"
         
 class NotAuthenticated(BadRequestException):
     def __init__(self):

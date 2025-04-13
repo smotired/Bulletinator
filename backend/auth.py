@@ -11,9 +11,10 @@ import re
 
 from backend.config import settings
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBRefreshToken, DBPermission
+from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBEmailVerification
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
+from backend import email
 
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt.
@@ -48,7 +49,12 @@ def check_password(password: str, hashed_password: str) -> str:
 def get_by_email(session: DBSession, email: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
     stmt = select(DBAccount).where(DBAccount.email == email)
-    return session.execute(stmt).scalars().one_or_none()
+    account: DBAccount | None = session.execute(stmt).scalars().one_or_none()
+    if account is not None:
+        return account
+    stmt = select(DBEmailVerification).where(DBEmailVerification.email == email) # also check unverified emails
+    verification: DBEmailVerification | None = session.execute(stmt).scalars().one_or_none()
+    return verification.account if verification is not None else None
 
 def get_by_username(session: DBSession, username: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
@@ -85,17 +91,23 @@ def register_account(session: DBSession, form: Registration) -> DBAccount: # typ
     # Create the account
     new_account = DBAccount(
         username=form.username,
-        email=form.email,
+        email=None,
         hashed_password=hash_password(form.password)
     )
-    # Add and return
+    # Add and setup
     session.add(new_account)
     session.commit()
     session.refresh(new_account)
     new_account.permission = DBPermission( account_id=new_account.id )
     session.add(new_account)
     session.commit()
-    session.refresh(new_account)
+    # Send email verification
+    email_verification = DBEmailVerification( account_id=new_account.id, email=form.email )
+    session.add(email_verification)
+    session.commit()
+    session.refresh(email_verification)
+    email.send_verification_email(new_account, email_verification)
+    # Return
     return new_account
     
 def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]: # type: ignore
@@ -334,3 +346,18 @@ def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload: 
         raise InvalidRefreshToken()
     # return
     return RefreshPayload(**payload)
+
+def verify_email(session: DBSession, verification_id: str) -> DBAccount: # type: ignore
+    """Verify an email account and update it."""
+    # Get and check the verification
+    verification: DBEmailVerification | None = session.get(DBEmailVerification, verification_id)
+    if verification is None or verification.expires_at.astimezone(UTC) < datetime.now(UTC):
+        raise InvalidEmailVerification()
+    # Update their email
+    account: DBAccount = verification.account
+    account.email = verification.email
+    session.add(account)
+    session.delete(verification)
+    session.commit()
+    session.refresh(account)
+    return account

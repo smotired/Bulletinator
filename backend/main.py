@@ -39,7 +39,7 @@ app = FastAPI(
     contact={
         "name": "Sam Hill",
         # "url": "http://whatinthesamhill.dev", # i need a website
-        "email": "smotired@gmail.com",
+        "email": "sam@bulletinator.com",
     },
     license_info={
         "name": "GPL 3.0",
@@ -58,7 +58,6 @@ def status():
     """Get current status of the API."""
     return { "message": "Hello World!" }
 
-
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     return FileResponse(settings.favicon_path)
@@ -66,7 +65,6 @@ async def favicon():
 @app.exception_handler(BadRequestException)
 def handle_error(request: Request, exc: BadRequestException):
     """Handle BadRequestExceptions."""
-
     return exc.response()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

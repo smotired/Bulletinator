@@ -2,6 +2,7 @@
 from backend.database.schema import *
 from backend.config import settings
 from time import sleep
+from datetime import datetime, UTC
 
 from backend.__tests__ import mock
 
@@ -10,21 +11,45 @@ def test_me_not_authenticated(client, exception):
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
 
-def test_register_account(client, accounts, form_headers):
+def test_register_account(session, client, accounts, form_headers):
     form = {
         "username": "fred",
         "email": "fred@example.com",
         "password": "password6",
     }
-    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == {
-        "id": mock.to_uuid(6, 'account'),
+        "id": mock.to_uuid(101, 'account'),
         "username": "fred",
+        "email": None,
         "profile_image": None,
         "display_name": None
     }
     assert response.status_code == 201
+    db_account = session.get(DBAccount, mock.to_uuid(101, 'account'))
+    # Make sure a Permission was created
+    permission = db_account.permission.__dict__.copy()
+    del permission['_sa_instance_state']
+    assert permission == {
+        "id": mock.to_uuid(102, 'account'),
+        "account_id": mock.to_uuid(101, 'account'),
+        "role": "user",
+    }
+    # Make sure an EmailVerification was created
+    assert db_account.email is None
+    email_verification = db_account.email_verification.__dict__.copy()
+    del email_verification['expires_at']
+    del email_verification['_sa_instance_state']
+    assert email_verification == {
+        "id": mock.to_uuid(103, 'account'),
+        "account_id": mock.to_uuid(101, 'account'),
+        "email": "fred@example.com",
+    }
+    expires = db_account.email_verification.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    assert abs((expires.astimezone(UTC) - datetime.now(UTC)).total_seconds() - settings.email_verification_expiration) < 5
 
 def test_register_existing_username(client, form_headers, accounts, exception):
     form = {
@@ -32,7 +57,7 @@ def test_register_existing_username(client, form_headers, accounts, exception):
         "email": "alicenew@example.com",
         "password": "drowssap1",
     }
-    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("duplicate_entity", "Entity account with username=alice already exists")
     assert response.status_code == 422
@@ -43,7 +68,7 @@ def test_register_invalid_username(client, form_headers, accounts, exception):
         "email": "alicenew@example.com",
         "password": "drowssap1",
     }
-    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("invalid_field", "Value 'al ic e' is invalid for field 'username'")
     assert response.status_code == 422
@@ -54,7 +79,7 @@ def test_register_existing_email(client, form_headers, accounts, exception):
         "email": "alice@example.com",
         "password": "drowssap1",
     }
-    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception("duplicate_entity", "Entity account with email=alice@example.com already exists")
     assert response.status_code == 422
@@ -65,7 +90,7 @@ def test_register_invalid_email(client, form_headers, accounts, exception):
         "email": "aliceinvalidemail",
         "password": "drowssap1",
     }
-    mock.last_uuid = mock.OFFSETS['account'] + len(accounts)
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
     assert response.json() == exception('invalid_field', "Value 'aliceinvalidemail' is invalid for field 'email'")
     assert response.status_code == 422

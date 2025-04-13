@@ -8,7 +8,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, validates
 from typing import List, Optional
 from uuid_extensions import uuid7
-from datetime import datetime
+from datetime import datetime, UTC, timedelta
+
+from backend.config import settings
 
 Base = declarative_base()
 
@@ -47,7 +49,7 @@ class DBAccount(Base):
     # fields
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     username: Mapped[str] = mapped_column( String(64), unique=True, index=True )
-    email: Mapped[str] = mapped_column( String(64), unique=True, index=True )
+    email: Mapped[Optional[str]] = mapped_column( String(64), index=True, default=None ) # Null until verification
     display_name: Mapped[Optional[str]] = mapped_column( String(64), default=None )
     hashed_password: Mapped[str] = mapped_column( String(72), unique=True, index=True )
     profile_image: Mapped[Optional[str]] = mapped_column( String(120) )
@@ -58,6 +60,7 @@ class DBAccount(Base):
     editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table, back_populates="editors" )
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
     permission: Mapped["DBPermission"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
+    email_verification: Mapped["DBEmailVerification"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
 
 class DBBoard(Base):
     """Boards table. Each row represents a bulletin board.
@@ -399,3 +402,21 @@ class DBPermission(Base):
     role: Mapped[str] = mapped_column(String(32), default="user")
 
     account: Mapped["DBAccount"] = relationship(back_populates="permission", foreign_keys="DBPermission.account_id")
+    
+class DBEmailVerification(Base):
+    """Represents an email verification request. If an account has this object associated with it, it means they haven't verified their email account and should be notified of that.
+    
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): UUID of the associated account
+        - email (str): The tentative email address
+        - expires_at (datetime): The time at which this expires
+    """
+    __tablename__ = "email_verifications"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    email: Mapped[str] = mapped_column(String(62))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_expiration)))
+
+    account: Mapped["DBAccount"] = relationship(back_populates="email_verification", foreign_keys="DBEmailVerification.account_id")

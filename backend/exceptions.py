@@ -107,6 +107,12 @@ class AccessDenied(BadRequestException):
         self.error = "access_denied"
         self.message = "Access denied"
 
+class NoPermissions(BadRequestException):
+    def __init__(self, action: str, entity: str, id: str):
+        self.status_code = 403
+        self.error = "no_permissions"
+        self.message = f"No permissions to {action} on {entity} with id={id}"
+
 class AddBoardOwnerAsEditor(BadRequestException):
     def __init__(self):
         self.status_code = 422

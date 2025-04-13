@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectin_polymorphic, selectinload
 
 from backend.dependencies import DBSession, format_list
+from backend.permissions import BoardPolicyDecisionPoint
 from backend.database import boards as boards_db
 from backend.database.schema import DBItem, DBBoard, DBAccount, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBPin
 from backend.exceptions import *
@@ -40,9 +41,9 @@ def get_item(session: DBSession, board_id: str, item_id: str, account: DBAccount
         raise EntityNotFound("item", "id", item_id)
     return item
 
-def create_item(session: DBSession, board_id: str, config: ItemCreate, account: DBAccount | None) -> DBItem: # type: ignore
+def create_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, config: ItemCreate) -> DBItem: # type: ignore
     """Creates an item on this board."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     # Figure out what type of config this is
     subclass: type = ITEMTYPES.get(config.type, { "create": BaseItemCreate })['create']
     if subclass == BaseItemCreate:
@@ -103,10 +104,10 @@ def create_item(session: DBSession, board_id: str, config: ItemCreate, account: 
     session.refresh(item)
     return item
 
-def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpdate, account: DBAccount) -> DBItem: # type: ignore
+def update_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, item_id: str, config: ItemUpdate) -> DBItem: # type: ignore
     """Updates an item."""
     # Make sure the account can edit this board, and the item exists and is on this board.
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
@@ -183,10 +184,10 @@ def update_item(session: DBSession, board_id: str, item_id: str, config: ItemUpd
         collapse_list(session, l)
     return item
 
-def delete_item(session: DBSession, board_id: str, item_id: str, account: DBAccount) -> None: # type: ignore
+def delete_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, item_id: str) -> None: # type: ignore
     """Delets an item."""
     # Make sure the account can edit this board, and the item exists and is on this board.
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
@@ -198,9 +199,9 @@ def delete_item(session: DBSession, board_id: str, item_id: str, account: DBAcco
     if item_list:
         collapse_list(session, item_list)
 
-def create_todo_item(session: DBSession, board_id: str, config: TodoItemCreate, account: DBAccount) -> DBTodoItem: # type: ignore
+def create_todo_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, config: TodoItemCreate) -> DBTodoItem: # type: ignore
     """Creates and returns a TodoItem in this todo list"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     todo: DBItemTodo = get_by_id(session, config.list_id, 'item_todo')
     if todo.board_id != board_id:
         raise EntityNotFound('item_todo', 'id', config.list_id)
@@ -223,9 +224,9 @@ def create_todo_item(session: DBSession, board_id: str, config: TodoItemCreate, 
     session.refresh(todo_item)
     return todo_item
 
-def update_todo_item(session: DBSession, board_id: str, todo_item_id: str, config: TodoItemUpdate, account: DBAccount) -> DBTodoItem: # type: ignore
+def update_todo_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, todo_item_id: str, config: TodoItemUpdate) -> DBTodoItem: # type: ignore
     """Creates and returns a TodoItem in this todo list"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     todo_item = session.get(DBTodoItem, todo_item_id)
     if todo_item == None:
         raise EntityNotFound('todo_item', 'id', todo_item_id)
@@ -252,9 +253,9 @@ def update_todo_item(session: DBSession, board_id: str, todo_item_id: str, confi
     session.refresh(todo_item)
     return todo_item
 
-def delete_todo_item(session: DBSession, board_id: str, todo_item_id: str, account: DBAccount) -> None: # type: ignore
+def delete_todo_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, todo_item_id: str) -> None: # type: ignore
     """Deletes a todo item"""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     todo_item = session.get(DBTodoItem, todo_item_id)
     if todo_item == None:
         raise EntityNotFound('todo_item', 'id', todo_item_id)
@@ -295,9 +296,9 @@ def collapse_list(session: DBSession, list: DBItemList) -> DBItemList: # type: i
     session.refresh(list)
     return list
 
-def create_pin(session: DBSession, board_id: str, config: PinCreate, account: DBAccount) -> DBPin: # type: ignore
+def create_pin(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, config: PinCreate) -> DBPin: # type: ignore
     """Adds a pin to an item."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     item: DBItem = get_by_id(session, config.item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', config.item_id)
@@ -318,9 +319,9 @@ def create_pin(session: DBSession, board_id: str, config: PinCreate, account: DB
     session.refresh(pin)
     return pin
 
-def update_pin(session: DBSession, board_id: str, pin_id: str, config: PinUpdate, account: DBAccount) -> DBPin: # type: ignore
+def update_pin(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, pin_id: str, config: PinUpdate) -> DBPin: # type: ignore
     """Updates a pin."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     pin: DBPin = session.get(DBPin, pin_id)
     if pin == None:
         raise EntityNotFound('pin', 'id', pin_id)
@@ -342,9 +343,9 @@ def update_pin(session: DBSession, board_id: str, pin_id: str, config: PinUpdate
     session.refresh(pin)
     return pin
 
-def delete_pin(session: DBSession, board_id: str, pin_id: str, account: DBAccount) -> None: # type: ignore
+def delete_pin(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, pin_id: str) -> None: # type: ignore
     """Deletes a pin."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     pin: DBPin = session.get(DBPin, pin_id)
     if pin == None:
         raise EntityNotFound('pin', 'id', pin_id)
@@ -353,9 +354,9 @@ def delete_pin(session: DBSession, board_id: str, pin_id: str, account: DBAccoun
     session.delete(pin)
     session.commit()
 
-def add_pin_connection(session: DBSession, board_id: str, pin1_id: str, pin2_id: str, account: DBAccount) -> list[DBPin]: # type: ignore
+def add_pin_connection(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, pin1_id: str, pin2_id: str) -> list[DBPin]: # type: ignore
     """Adds a connection between two pins."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     pin1: DBPin = session.get(DBPin, pin1_id)
     if pin1 == None or pin1.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin1_id)
@@ -371,9 +372,9 @@ def add_pin_connection(session: DBSession, board_id: str, pin1_id: str, pin2_id:
     session.refresh(pin2)
     return [ pin1, pin2 ]
 
-def remove_pin_connection(session: DBSession, board_id: str, pin1_id: str, pin2_id: str, account: DBAccount) -> list[DBPin]: # type: ignore
+def remove_pin_connection(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, pin1_id: str, pin2_id: str) -> list[DBPin]: # type: ignore
     """Removes a connection between two pins."""
-    board: DBBoard = boards_db.get_for_editor(session, board_id, account)
+    pdp.ensure_modify(board_id)
     pin1: DBPin = session.get(DBPin, pin1_id)
     if pin1 == None or pin1.board_id != board_id:
         raise EntityNotFound('pin', 'id', pin1_id)

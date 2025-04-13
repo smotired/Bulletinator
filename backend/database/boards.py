@@ -2,6 +2,7 @@ from sqlalchemy import select
 import re
 
 from backend.dependencies import DBSession, name_to_identifier
+from backend.permissions import BoardPolicyDecisionPoint
 from backend.database import accounts as accounts_db
 from backend.database.schema import DBBoard, DBAccount
 from backend.exceptions import *
@@ -9,6 +10,7 @@ from backend.exceptions import *
 from backend.models.boards import BoardCreate, BoardUpdate
 
 def can_edit(board: DBBoard, account: DBAccount | None) -> bool:
+    
     """Returns true if this account can edit the items on this board (i.e. they're the owner or they're an editor)"""
     if not account:
         return False
@@ -24,17 +26,6 @@ def get_by_id(session: DBSession, board_id: str) -> DBBoard: # type: ignore
     if board is None:
         raise EntityNotFound("board", "id", board_id)
     return board
-
-def get_for_owner(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard: # type: ignore
-    """Returns the board with this ID if the account is the owner, or returns exceptions based on if the account can see it"""
-    board: DBBoard = get_by_id(session, board_id)
-    if can_see(board, account):
-        if account is not None and board.owner == account:
-            return board
-        else:
-            raise AccessDenied()
-    else:
-        raise EntityNotFound("board", "id", board_id)
 
 def get_for_editor(session: DBSession, board_id: str, account: DBAccount | None) -> DBBoard: # type: ignore
     """Returns the board with this ID if the account is the owner, or returns exceptions based on if the account can see it"""
@@ -66,21 +57,22 @@ def get_visible(session: DBSession, account: DBAccount | None) -> list[DBBoard]:
     If not logged in, this is all public boards. If logged in, also includes private boards they can access."""
     stmt = select(DBBoard).where(DBBoard.public).order_by(DBBoard.name)
     public = list(session.execute(stmt).scalars().all())
-    editable = [] if account is None else get_editable(session, account)
+    editable = [] if account is None else get_editable(session, BoardPolicyDecisionPoint(session, account))
 
     # join them into a list making sure not to add duplicates
     union = public + [ board for board in editable if board not in public ]
     return sorted(union, key=lambda b: b.name)
 
-def get_editable(session: DBSession, account: DBAccount) -> list[DBBoard]: # type: ignore
+def get_editable(session: DBSession, pdp: BoardPolicyDecisionPoint) -> list[DBBoard]: # type: ignore
     """Returns a list of all boards editable by this account, ordered by name"""
-    stmt = select(DBBoard).where(DBBoard.owner_id == account.id).order_by(DBBoard.name)
+    pdp.ensure_query_all()
+    stmt = select(DBBoard).where(DBBoard.owner_id == pdp.account.id).order_by(DBBoard.name)
     owned = list(session.execute(stmt).scalars().all())
-    stmt = select(DBBoard).join(DBBoard.editors).where(DBAccount.id == account.id).order_by(DBBoard.name)
+    stmt = select(DBBoard).join(DBBoard.editors).where(DBAccount.id == pdp.account.id).order_by(DBBoard.name)
     editable = list(session.execute(stmt).scalars().all())
     return sorted(owned + editable, key=lambda b: b.name)
 
-def get_by_name_identifier(session: DBSession, username: str, identifier: str, account: DBAccount) -> DBBoard: # type: ignore
+def get_by_name_identifier(session: DBSession, username: str, identifier: str, account: DBAccount | None) -> DBBoard: # type: ignore
     """Attempts to fetch a board by an ID and identifier"""
     owner: DBAccount = accounts_db.get_by_username(session, username)
     if owner is None:
@@ -91,13 +83,14 @@ def get_by_name_identifier(session: DBSession, username: str, identifier: str, a
         raise EntityNotFound('board', 'identifier', identifier)
     return boards[0]
 
-def create(session: DBSession, account: DBBoard, config: BoardCreate) -> DBBoard: # type: ignore
+def create(session: DBSession, pdp: BoardPolicyDecisionPoint, config: BoardCreate) -> DBBoard: # type: ignore
     """Create a board owned by this account"""
+    pdp.ensure_create()
     identifier = config.identifier or name_to_identifier(config.name)
     if re.fullmatch(r"[A-Za-z0-9_]+", identifier) is None:
         raise InvalidField(identifier, 'identifier')
     # Make sure identifier is unique for this user
-    statement = select(DBBoard).where(DBBoard.owner_id == account.id)
+    statement = select(DBBoard).where(DBBoard.owner_id == pdp.account.id)
     account_boards = list( session.execute(statement).scalars().all() )
     if any([ board.identifier == identifier for board in account_boards ]):
         raise DuplicateEntity('board', 'identifier', identifier)
@@ -113,22 +106,23 @@ def create(session: DBSession, account: DBBoard, config: BoardCreate) -> DBBoard
         name=config.name,
         icon=config.icon,
         public=config.public,
-        owner=account
+        owner=pdp.account
     )
     session.add(new_board)
     session.commit()
     session.refresh(new_board)
     return new_board
 
-def update(session: DBSession, account: DBAccount, board_id: str, config: BoardUpdate) -> DBBoard: # type: ignore
+def update(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, config: BoardUpdate) -> DBBoard: # type: ignore
     """Update a board owned by this account"""
-    board = get_for_owner(session, board_id, account)
+    board = get_by_id(session, board_id)
+    pdp.ensure_update(board_id)
     # Update it
     if config.identifier is not None and config.identifier != board.identifier:
         if re.fullmatch(r"[A-Za-z0-9_]+", config.identifier) is None:
             raise InvalidField(config.identifier, 'identifier')
         # Make sure identifier is unique for this user
-        statement = select(DBBoard).where(DBBoard.owner_id == account.id)
+        statement = select(DBBoard).where(DBBoard.owner_id == pdp.account.id)
         account_boards = list( session.execute(statement).scalars().all() )
         if any([ board.identifier == config.identifier for board in account_boards ]):
             raise DuplicateEntity('board', 'identifier', config.identifier)
@@ -150,24 +144,26 @@ def update(session: DBSession, account: DBAccount, board_id: str, config: BoardU
     session.refresh(board)
     return board
 
-def delete(session: DBSession, account: DBAccount, board_id: str) -> None: # type: ignore
+def delete(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str) -> None: # type: ignore
     """Delete a board owned by this account"""
-    board = get_for_owner(session, board_id, account)
+    board = get_by_id(session, board_id)
+    pdp.ensure_delete(board_id)
     session.delete(board)
     session.commit()
 
-def get_editors(session: DBSession, account: DBAccount, board_id: str) -> list[DBAccount]: # type: ignore
+def get_editors(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str) -> list[DBAccount]: # type: ignore
     """Get a list of editors on this board. Editors can be seen by other editors."""
-    board = get_for_editor(session, board_id, account)
+    board = get_by_id(session, board_id)
+    pdp.ensure_view_editors(board_id)
     return sorted(board.editors, key=lambda e: e.id)
 
-def add_editor(session: DBSession, account: DBAccount, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
+def add_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
     """Allow another account to edit this board. Returns the updated list of editors."""
-    board = get_for_owner(session, board_id, account)
+    board = get_by_id(session, board_id)
+    pdp.ensure_manage_editors(board_id)
     editor = accounts_db.get_by_id(session, editor_id)
     # Make sure we aren't adding the owner
-    if editor == board.owner:
-        raise AddBoardOwnerAsEditor()
+    BoardPolicyDecisionPoint(session, editor).ensure_become_editor(board_id)
     # Add it, unless it's already in there
     if editor not in board.editors:
         board.editors.append(editor)
@@ -177,9 +173,10 @@ def add_editor(session: DBSession, account: DBAccount, board_id: str, editor_id:
     session.refresh(board)
     return sorted(board.editors, key=lambda e: e.id)
 
-def remove_editor(session: DBSession, account: DBAccount, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
+def remove_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
     """Remove an editor from a board and return the updated list of editors"""
-    board = get_for_owner(session, board_id, account)
+    board = get_by_id(session, board_id)
+    pdp.ensure_manage_editors(board_id)
     editor = accounts_db.get_by_id(session, editor_id)
     board.editors = [ e for e in board.editors if e != editor ]
     session.add(board)

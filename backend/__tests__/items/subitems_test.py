@@ -77,7 +77,7 @@ def test_add_todo_item_unauthorized(client, auth_headers, todo_items, exception)
     item = { "list_id": mock.to_uuid(5, 'item'), "text": "New Task", "link": f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(1, 'item')}", "done": False }
     mock.last_uuid = mock.OFFSETS['sub_item'] + len(todo_items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items/todo", headers=auth_headers(4), json=item)
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
 
 def test_update_todo_item(client, auth_headers, get_item):
@@ -106,7 +106,7 @@ def test_update_todo_item_other_board(client, auth_headers, exception):
 def test_update_todo_item_unauthorized(client, auth_headers, exception):
     update = { "done": True }
     response = client.put(f"/boards/{mock.to_uuid(1, 'board')}/items/todo/{mock.to_uuid(3, 'sub_item')}", headers=auth_headers(4), json=update)
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
 
 def test_delete_todo_item(client, auth_headers, get_item):
@@ -131,7 +131,7 @@ def test_delete_todo_item_other_board(client, auth_headers, exception):
 
 def test_delete_todo_item_unauthorized(client, auth_headers, exception):
     response = client.delete(f"/boards/{mock.to_uuid(1, 'board')}/items/todo/{mock.to_uuid(3, 'sub_item')}", headers=auth_headers(4))
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
 
 def test_create_pin(client, pins, auth_headers):
@@ -381,5 +381,5 @@ def test_add_pin_unauthorized(client, auth_headers, exception):
 
 def test_add_connection_unauthorized(client, auth_headers, exception):
     response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/pins/connect?p1={mock.to_uuid(1, 'pin')}&p2={mock.to_uuid(3, 'pin')}", headers=auth_headers(4))
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(2, 'board')}")
     assert response.status_code == 403

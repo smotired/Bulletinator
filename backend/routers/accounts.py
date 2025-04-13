@@ -9,8 +9,7 @@ from uuid import UUID
 
 from backend.database.schema import *
 from backend import auth
-from backend.database import accounts as accounts_db
-from backend.database import media as media_db
+from backend.database import accounts as accounts_db, media as media_db
 from backend.dependencies import DBSession, CurrentAccount
 from backend.models.accounts import Account, AuthenticatedAccount, AccountCollection, AccountUpdate, convert_account, convert_account_list, convert_auth_account
 from backend.models.media import Image, ImageCollection

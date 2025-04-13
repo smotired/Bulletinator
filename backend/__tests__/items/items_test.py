@@ -106,7 +106,7 @@ def test_create_item_as_viewer(client, auth_headers, items, exception):
     }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(3), json=item)
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
 
 def test_create_invalid_item(client, auth_headers, items, exception):
@@ -810,7 +810,7 @@ def test_delete_item_wrongboard(client, auth_headers, exception, get_item):
 
 def test_delete_item_unauthorized(client, auth_headers, exception, get_item):
     response = client.delete(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(1, 'item')}", headers=auth_headers(4))
-    assert response.json() == exception('access_denied', 'Access denied')
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
     # make sure it's still there
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(1, 'item')}")

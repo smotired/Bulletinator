@@ -203,7 +203,7 @@ def test_update_board_as_editor(client, auth_headers, exception):
         "public": False
     }
     response = client.put(f"/boards/{mock.to_uuid(1, 'board')}", headers=auth_headers(2), json=data) # account 2 is an editor on this board but not an owner
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to manage board on board with id={mock.to_uuid(1, 'board')}")
     assert response.status_code == 403
 
 def test_update_board_unauthorized(client, auth_headers, exception):
@@ -223,7 +223,7 @@ def test_delete_board(client, auth_headers, exception):
 
 def test_delete_board_as_editor(client, auth_headers, exception):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}", headers=auth_headers(1))
-    assert response.json() == exception("access_denied", "Access denied")
+    assert response.json() == exception("no_permissions", f"No permissions to delete board on board with id={mock.to_uuid(3, 'board')}")
     assert response.status_code == 403
 
 def test_delete_board_unauthorized(client, auth_headers, exception):

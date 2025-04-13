@@ -13,7 +13,7 @@ from io import BytesIO
 import uuid
 import os
 
-async def upload_image(session: DBSession, account: DBAccount, file: UploadFile, content_length: int, mindim: int = 0, maxdim: int = 600) -> DBImage:
+async def upload_image(session: DBSession, account: DBAccount, file: UploadFile, content_length: int, mindim: int = 0, maxdim: int = 600) -> DBImage: # type: ignore
     """Route to upload a file. Resizes it to the specified dimensions."""
     # Make sure it's the right size
     if content_length > settings.media_img_max_bytes:
@@ -67,7 +67,7 @@ async def upload_image(session: DBSession, account: DBAccount, file: UploadFile,
     # return
     return db_image
 
-def delete_image(session: DBSession, image_uuid: str, account: DBAccount) -> None:
+def delete_image(session: DBSession, image_uuid: str, account: DBAccount) -> None: # type: ignore
     """Deletes an image in the database and from the static directory, if the account is the uploader."""
     # Get the image and verify that this account uploaded it
     image: DBImage = session.get(DBImage, image_uuid)
@@ -85,7 +85,7 @@ def delete_image(session: DBSession, image_uuid: str, account: DBAccount) -> Non
     session.delete(image)
     session.commit()
 
-async def upload_avatar(session: DBSession, account: DBAccount, image: UploadFile, content_length: int) -> DBAccount:
+async def upload_avatar(session: DBSession, account: DBAccount, image: UploadFile, content_length: int) -> DBAccount: # type: ignore
     """Uploads an image, resizes it to 64x64, sets the account's profile picture to that image, and returns the account."""
     # Upload the image and resize to 64x64
     image: DBImage = await upload_image(session, account, image, content_length, mindim=64, maxdim=64)
@@ -96,7 +96,7 @@ async def upload_avatar(session: DBSession, account: DBAccount, image: UploadFil
     session.refresh(account)
     return account
 
-def get_account_images(session: DBSession, account: DBAccount) -> list[DBImage]:
+def get_account_images(session: DBSession, account: DBAccount) -> list[DBImage]: # type: ignore
     """Gets a list of images uploaded by an account"""
     stmt = select(DBImage).where(DBImage.uploader_id == account.id)
     return list( session.execute(stmt).scalars().all() )

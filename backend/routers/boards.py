@@ -10,6 +10,7 @@ from uuid import UUID
 from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
+from backend.permissions import BoardPDP
 from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, convert_board_list
 from backend.models.accounts import AccountCollection, convert_account_list
 from backend.models.shared import Metadata
@@ -31,10 +32,10 @@ def get_boards(
 @router.get("/editable", status_code=200)
 def get_editable_boards(
     session: DBSession, # type: ignore
-    account: CurrentAccount
+    pdp: BoardPDP
 ) -> BoardCollection:
     """Returns a BoardCollection of boards that the currently logged-in account can edit"""
-    boards = convert_board_list( boards_db.get_editable(session, account) )
+    boards = convert_board_list( boards_db.get_editable(session, pdp) )
     return BoardCollection(
         metadata=Metadata(count=len(boards)),
         boards=boards
@@ -43,11 +44,11 @@ def get_editable_boards(
 @router.post("/", status_code=201, response_model=Board)
 def create_board(
     session: DBSession, # type: ignore
-    account: CurrentAccount,
+    pdp: BoardPDP,
     config: BoardCreate
 ) -> DBBoard:
     """Creates a board owned by the authenticated account"""
-    return boards_db.create(session, account, config)
+    return boards_db.create(session, pdp, config)
 
 # Other routes should not be accessed by the user directly so should only depend on ID
 
@@ -74,29 +75,29 @@ def get_board_by_name_and_id(
 def update_board(
     session: DBSession, # type: ignore
     board_id: UUID,
-    account: CurrentAccount,
-    config: BoardUpdate
+    pdp: BoardPDP,
+    config: BoardUpdate,
 ) -> DBBoard:
     """Updates a board with this ID, if the authenticated account is the owner"""
-    return boards_db.update(session, account, str(board_id), config)
+    return boards_db.update(session, pdp, str(board_id), config)
 
 @router.delete("/{board_id}/", status_code=204)
 def delete_board(
     session: DBSession, # type: ignore
+    pdp: BoardPDP,
     board_id: UUID,
-    account: CurrentAccount
 ) -> None:
     """Deletes the board with this ID if the account is the owner"""
-    boards_db.delete(session, account, str(board_id))
+    boards_db.delete(session, pdp, str(board_id))
 
 @router.get("/{board_id}/editors", status_code=200, response_model=AccountCollection)
 def get_editors(
     session: DBSession, # type: ignore
+    pdp: BoardPDP,
     board_id: UUID,
-    account: CurrentAccount
 ) -> AccountCollection:
     """Gets all accounts that can edit the board with this ID, excluding the owner."""
-    editors = convert_account_list( boards_db.get_editors(session, account, str(board_id)) )
+    editors = convert_account_list( boards_db.get_editors(session, pdp, str(board_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors
@@ -105,12 +106,12 @@ def get_editors(
 @router.put("/{board_id}/editors/{editor_id}", status_code=201, response_model=AccountCollection)
 def add_editor(
     session: DBSession, # type: ignore
+    pdp: BoardPDP,
     board_id: UUID,
     editor_id: UUID,
-    account: CurrentAccount
 ) -> AccountCollection:
     """Allows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.add_editor(session, account, str(board_id), str(editor_id)) )
+    editors = convert_account_list( boards_db.add_editor(session, pdp, str(board_id), str(editor_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors
@@ -119,12 +120,12 @@ def add_editor(
 @router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=AccountCollection)
 def remove_editor(
     session: DBSession, # type: ignore
+    pdp: BoardPDP,
     board_id: UUID,
     editor_id: UUID,
-    account: CurrentAccount
 ) -> AccountCollection:
     """Disallows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.remove_editor(session, account, str(board_id), str(editor_id)) )
+    editors = convert_account_list( boards_db.remove_editor(session, pdp, str(board_id), str(editor_id)) )
     return AccountCollection(
         metadata=Metadata(count=len(editors)),
         accounts=editors

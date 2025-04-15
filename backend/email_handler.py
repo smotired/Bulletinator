@@ -23,8 +23,8 @@ Welcome, {account.display_name or account.username}!
 Thanks for creating a Bulletinator account. Verify your email by clicking the link below to start managing projects.
 https://www.bulletinator.com/verify-email/{verification.id}
 
-You received this email because you signed up for an account at Bulletinator.com.
-If you do not recognize this action, or you have other questions, please send an email to support@bulletinator.com.
+You received this email because this email address was used to register an account at Bulletinator.com.
+If you did not intend create an account, you can safely ignore this email.
 """
 
     # Specify HTML 
@@ -41,11 +41,11 @@ If you do not recognize this action, or you have other questions, please send an
           </a>
         </p>
     </div>
-    <p style="color: #888888; text-align: center; font-size: 0.75rem;">
-      You received this email because you signed up for an account at <a href="https://www.bulletinator.com/" target="_blank" rel="noopener noreferrer">Bulletinator.com</a>.
+    <p style="color: #888888; margin: 1rem; text-align: center; font-size: 0.75rem;">
+      You received this email because this email address was used to register an account at <a href="https://www.bulletinator.com/" target="_blank" rel="noopener noreferrer">Bulletinator.com</a>.
     </p>
-    <p style="color: #888888; text-align: center; font-size: 0.75rem;">
-      If you do not recognize this action, or you have other questions, please send an email to <a href="mailto:support@bulletinator.com">support@bulletinator.com</a>.
+    <p style="color: #888888; margin: 1rem; text-align: center; font-size: 0.75rem;">
+      If you did not intend create an account, you can safely ignore this email.
     </p>
   </body>
 </html>

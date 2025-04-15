@@ -12,11 +12,12 @@ Args:
 
 from typing import Annotated
 import re
+from datetime import datetime, UTC
 
 from fastapi import Depends, Response
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, delete
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import settings
@@ -29,6 +30,8 @@ Session = sessionmaker(bind=engine)
 access_cookie_scheme = APIKeyCookie(name=settings.jwt_access_cookie_key, auto_error=False)
 refresh_cookie_scheme = APIKeyCookie(name=settings.jwt_refresh_cookie_key, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
+
+# Database functions
 
 def create_db_tables():
     """Ensure the database and tables are created."""
@@ -46,6 +49,24 @@ def get_session():
         yield session
 
 DBSession = Annotated[Session, Depends(get_session)]
+
+def cleanup_db():
+    """Cleans up certain tables in the database"""
+    with Session() as session:
+        # Remove expired refresh tokens
+        statement = delete(DBRefreshToken).where(DBRefreshToken.expires_at < datetime.now(UTC).timestamp())
+        session.execute(statement)
+        session.commit()
+        # Remove expired email verifications
+        statement = delete(DBEmailVerification).where(DBEmailVerification.expires_at < datetime.now(UTC).replace(tzinfo=None))
+        session.execute(statement)
+        session.commit()
+        # Remove accounts that have no email and no pending email verifications
+        statement = delete(DBAccount).where((DBAccount.email == None) & (DBAccount.email_verification == None))
+        session.execute(statement)
+        session.commit()
+
+# Authentication Functions
         
 def get_access_token(
     cookie_token: str | None = Depends(access_cookie_scheme),

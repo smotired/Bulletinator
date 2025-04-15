@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.dependencies import create_db_tables
+from backend.dependencies import create_db_tables, cleanup_db
 from backend.exceptions import BadRequestException
 from backend.routers import boards, accounts, items, auth, media
 from backend.config import settings
@@ -20,6 +20,7 @@ from backend.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_tables()
+    cleanup_db()
     yield
 
 # Setup and start the application

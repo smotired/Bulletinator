@@ -14,7 +14,7 @@ from backend.dependencies import DBSession
 from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBEmailVerification
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
-from backend import email
+from backend import email_handler
 
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt.
@@ -106,7 +106,7 @@ def register_account(session: DBSession, form: Registration) -> DBAccount: # typ
     session.add(email_verification)
     session.commit()
     session.refresh(email_verification)
-    email.send_verification_email(new_account, email_verification)
+    email_handler.send_verification_email(new_account, email_verification)
     # Return
     return new_account
     

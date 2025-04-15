@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
-from backend import app, auth, email
+from backend import app, auth, email_handler
 from backend.dependencies import get_session, name_to_identifier
 from backend.database import schema
 from backend.database.schema import *
@@ -35,7 +35,7 @@ def client(session, monkeypatch):
     # override authentication functions
     monkeypatch.setattr(auth, "hash_password", mock.hash_password)
     monkeypatch.setattr(auth, "check_password", mock.check_password)
-    monkeypatch.setattr(email, "send_verification_email", mock.send_verification_email)
+    monkeypatch.setattr(email_handler, "send_verification_email", mock.send_verification_email)
     
     # set up the client
     app.dependency_overrides[get_session] = lambda: session

@@ -239,6 +239,19 @@ def test_get_editors(client, auth_headers, get_response_account):
     }
     assert response.status_code == 200
 
+def test_get_editors_as_editor(client, auth_headers, get_response_account):
+    response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(1))
+    assert response.json() == {
+        "metadata": { "count": 2 }, 
+        "accounts": [ get_response_account(1), get_response_account(3) ]
+    }
+    assert response.status_code == 200
+
+def test_get_editors_private(client, exception, auth_headers):
+    response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(4))
+    assert response.json() == exception("no_permissions", f"No permissions to view editors on board with id={mock.to_uuid(1, "board")}")
+    assert response.status_code == 403
+
 def test_add_editor(client, auth_headers, get_response_account):
     response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(2))
     assert response.json() == {
@@ -247,8 +260,37 @@ def test_add_editor(client, auth_headers, get_response_account):
     }
     assert response.status_code == 201
 
+def test_add_editor_as_editor(client, auth_headers, exception):
+    response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(3))
+    assert response.json() == exception("no_permissions", f"No permissions to manage editors on board with id={mock.to_uuid(3, "board")}")
+    assert response.status_code == 403
+
+def test_add_editor_unauth(client, auth_headers, exception):
+    response = client.put(f"/boards/{mock.to_uuid(1, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(4))
+    assert response.json() == exception("no_permissions", f"No permissions to manage editors on board with id={mock.to_uuid(1, "board")}")
+    assert response.status_code == 403
+
 def test_remove_editor(client, auth_headers, get_response_account):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 1 }, 
+        "accounts": [ get_response_account(1) ]
+    }
+    assert response.status_code == 200
+
+def test_remove_editor_as_editor(client, auth_headers, exception, get_response_account):
+    response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(1))
+    assert response.json() == exception("no_permissions", f"No permissions to manage editors on board with id={mock.to_uuid(3, "board")}")
+    assert response.status_code == 403
+    response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(1))
+    assert response.json() == {
+        "metadata": { "count": 2 }, 
+        "accounts": [ get_response_account(1), get_response_account(3) ]
+    }
+    assert response.status_code == 200
+
+def test_remove_editor_as_self(client, auth_headers, get_response_account):
+    response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(3))
     assert response.json() == {
         "metadata": { "count": 1 }, 
         "accounts": [ get_response_account(1) ]

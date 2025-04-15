@@ -111,6 +111,11 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         if not self.pip.is_board_owner(board):
             raise NoPermissions("manage editors", "board", target_id)
         
+    def ensure_remove_editor(self, target_id, editor_id): # Can remove editors if they can manage editors, or if they're removing themself
+        if self.account.id == editor_id:
+            return
+        self.ensure_manage_editors(target_id)
+
     def ensure_become_editor(self, target_id): # Can become an editor if they are not the owner
         board: DBBoard = self.session.get(DBBoard, target_id)
         if self.pip.is_board_owner(board):

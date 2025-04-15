@@ -169,7 +169,7 @@ def add_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str,
 def remove_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
     """Remove an editor from a board and return the updated list of editors"""
     board = get_by_id(session, board_id)
-    pdp.ensure_manage_editors(board_id)
+    pdp.ensure_remove_editor(board_id, editor_id)
     editor = accounts_db.get_by_id(session, editor_id)
     board.editors = [ e for e in board.editors if e != editor ]
     session.add(board)

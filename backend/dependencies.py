@@ -128,9 +128,12 @@ CurrentAccount = Annotated[DBAccount, Depends(get_current_verified_account)]
 # for times when authentication is not necessary but can change the results of a query
 
 def get_optional_access_token(
+    cookie_token: str | None = Depends(access_cookie_scheme),
     bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> str | None:
     """Extracts the access token JWT from the authorization headers, if provided, or returns none"""
+    if cookie_token is not None:
+        return cookie_token
     if bearer is not None:
         return bearer.credentials
     return None

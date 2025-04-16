@@ -50,7 +50,7 @@ def update_current_account(
 def delete_current_account(
     response: Response,
     session: DBSession, # type: ignore
-    account: CurrentAccount
+    account: CurrentReadOnlyAccount
 ) -> None:
     """Delete the currently authenticated account and log out"""
     accounts_db.delete(session, account)

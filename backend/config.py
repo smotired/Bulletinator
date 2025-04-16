@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     db_url: str
     db_sqlite: bool
-    favicon_path: str
+    assets_folder_path: str
 
     jwt_algorithm: str
     jwt_access_cookie_key: str
@@ -51,7 +51,7 @@ def get_settings() -> Settings:
 
         db_url="sqlite:///database/development.db",
         db_sqlite=True,
-        favicon_path="favicon.ico",
+        assets_folder_path="./assets/",
 
         jwt_algorithm="HS256",
         jwt_access_cookie_key="bulletinator_access_token",

@@ -16,6 +16,8 @@ from backend.exceptions import BadRequestException
 from backend.routers import boards, accounts, items, auth, media
 from backend.config import settings
 
+from os import path
+
 # Set up the application lifecycle
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,7 +63,7 @@ def status():
 
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
-    return FileResponse(settings.favicon_path)
+    return FileResponse(path.join(settings.assets_folder_path, 'favicon.ico'))
 
 @app.exception_handler(BadRequestException)
 def handle_error(request: Request, exc: BadRequestException):

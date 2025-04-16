@@ -4,7 +4,7 @@ Args:
     router (APIRouter): Router for /accounts routes
 """
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Request
 from uuid import UUID
 
 from backend.database.schema import *
@@ -39,22 +39,24 @@ def get_current_account(
 
 @router.put("/me", status_code=200, response_model=AuthenticatedAccount)
 def update_current_account(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentAccount,
     update: AccountUpdate
 ) -> DBAccount:
     """Update the currently authenticated account"""
-    return accounts_db.update(session, account, update)
+    return accounts_db.update(request.client.host, session, account, update)
 
 @router.delete("/me", status_code=204)
 def delete_current_account(
+    request: Request,
     response: Response,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount
 ) -> None:
     """Delete the currently authenticated account and log out"""
-    accounts_db.delete(session, account)
-    auth.revoke_refresh_tokens(session, account)
+    accounts_db.delete(request.client.host, session, account)
+    auth.revoke_refresh_tokens(request.client.host, session, account)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)

@@ -4,7 +4,7 @@ Args:
     router (APIRouter): Router for /auth routes
 """
 
-from fastapi import APIRouter, Response, Form
+from fastapi import APIRouter, Request, Response, Form
 
 from backend import auth
 from backend.config import settings
@@ -20,14 +20,16 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/registration", status_code=201, response_model=AuthenticatedAccount)
 def register_account(
+    request: Request,
     session: DBSession, # type: ignore
     form: Annotated[Registration, Form()]
 ) -> DBAccount:
     """Register new account"""
-    return auth.register_account(session, form)
+    return auth.register_account(request.client.host, session, form)
 
 @router.post("/web/login", status_code=204)
-def login_account(
+def get_token(
+    request: Request,
     response: Response,
     session: DBSession, # type: ignore
     form: Annotated[Login, Form()]
@@ -35,7 +37,7 @@ def login_account(
     """Given an account login, generate access and refresh tokens.
     
     Access tokens are returned in the body and refresh tokens are added as a cookie."""
-    access_token, refresh_token = auth.generate_tokens(session, form)
+    access_token, refresh_token = auth.generate_tokens(session, form, request.client.host)
     set_cookie_secure(response, settings.jwt_access_cookie_key, access_token)
     set_cookie_secure(response, settings.jwt_refresh_cookie_key, refresh_token)
     return AccessToken(access_token=access_token, token_type="bearer")
@@ -52,18 +54,19 @@ def refresh_access_token(
 
 @router.post("/web/logout", status_code=204)
 def logout_account(
+    request: Request,
     response: Response,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount,
     token: RefreshToken
 ) -> None:
     """Authenticated route. Log out an account and invalidate the supplied refresh token."""
-    auth.revoke_one_refresh_token(session, token)
+    auth.revoke_one_refresh_token(request.client.host, session, token)
     response.delete_cookie(settings.jwt_access_cookie_key)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.post("/token", status_code=200)
-def login_account(
+def get_token(
     session: DBSession, # type: ignore
     form: Annotated[Login, Form()]
 ) -> AccessToken:
@@ -75,12 +78,13 @@ def login_account(
     
 @router.post("/forcelogout", status_code=204)
 def force_logout_account(
+    request: Request,
     response: Response,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount,
 ) -> None:
     """Authenticated route. Log out an account and invalidate ALL refresh tokens."""
-    auth.revoke_refresh_tokens(session, account)
+    auth.revoke_refresh_tokens(request.client.host, session, account)
     response.delete_cookie(settings.jwt_access_cookie_key)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 

@@ -8,12 +8,14 @@ from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTError
 from sqlalchemy import select, delete
 import re
+from json import dumps
 
 from backend.config import settings
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBEmailVerification
+from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBEmailVerification, DBAuthEvent
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
+from backend.models.accounts import AuthenticatedAccount
 from backend import email_handler
 
 def hash_password(password: str) -> str:
@@ -61,7 +63,7 @@ def get_by_username(session: DBSession, username: str) -> DBAccount | None: # ty
     stmt = select(DBAccount).where(DBAccount.username == username)
     return session.execute(stmt).scalars().one_or_none()
 
-def register_account(session: DBSession, form: Registration) -> DBAccount: # type: ignore
+def register_account(host: str, session: DBSession, form: Registration) -> DBAccount: # type: ignore
     """Creates an account in the database for this account
     
     Args:
@@ -107,10 +109,14 @@ def register_account(session: DBSession, form: Registration) -> DBAccount: # typ
     session.commit()
     session.refresh(email_verification)
     email_handler.send_verification_email(new_account, email_verification)
+    # Log the event
+    event = DBAuthEvent(account_id=new_account.id, event_type="registration", host=host, detail=dumps(AuthenticatedAccount.model_validate(new_account.__dict__).model_dump()))
+    session.add(event)
+    session.commit()
     # Return
     return new_account
     
-def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]: # type: ignore
+def generate_tokens(session: DBSession, form: Login, host: str | None = None) -> tuple[str, str]: # type: ignore
     """Generates access and refresh token JWTs from a login form.
     
     Args:
@@ -142,6 +148,11 @@ def generate_tokens(session: DBSession, form: Login) -> tuple[str, str]: # type:
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm
     )
+    # Log the event
+    if host is not None:
+        event = DBAuthEvent(account_id=account.id, event_type="login", host=host)
+        session.add(event)
+        session.commit()
     # Return these tokens
     return access_token, refresh_token
 
@@ -215,7 +226,7 @@ def refresh_access_token(session: DBSession, refresh_token: str) -> str: # type:
         algorithm=settings.jwt_algorithm
     )
     
-def revoke_one_refresh_token(session: DBSession, token: str): # type: ignore
+def revoke_one_refresh_token(host: str, session: DBSession, token: str): # type: ignore
     """Removes a refresh tokens for an account in the database, ensuring it cannot be used to log in again.
     
     Args:
@@ -226,9 +237,12 @@ def revoke_one_refresh_token(session: DBSession, token: str): # type: ignore
     payload: RefreshPayload = _extract_refresh_payload(session, token)
     stmt = delete(DBRefreshToken).where(DBRefreshToken.token_id == payload.uid)
     session.execute(stmt)
+    # Log the event
+    event = DBAuthEvent(account_id=payload.sub, event_type="logout", host=host)
+    session.add(event)
     session.commit()
     
-def revoke_refresh_tokens(session: DBSession, account: DBAccount): # type: ignore
+def revoke_refresh_tokens(host: str, session: DBSession, account: DBAccount): # type: ignore
     """Removes all refresh tokens for an account in the database, logging them out on all devices.
     
     Args:
@@ -237,6 +251,9 @@ def revoke_refresh_tokens(session: DBSession, account: DBAccount): # type: ignor
     """
     stmt = delete(DBRefreshToken).where(DBRefreshToken.account_id == account.id)
     session.execute(stmt)
+    # Log the event
+    event = DBAuthEvent(account_id=account.id, event_type="force_logout", host=host)
+    session.add(event)
     session.commit()
 
 def _generate_access_payload(account: DBAccount) -> AccessPayload:

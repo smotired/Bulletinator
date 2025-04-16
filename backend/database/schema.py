@@ -440,3 +440,32 @@ class DBEditorInvitation(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.editor_invitation_duration)))
 
     board: Mapped["DBBoard"] = relationship(back_populates="pending_invites", foreign_keys="DBEditorInvitation.board_id")
+
+class DBAuthEvent(Base):
+    """Some kind of authentication event
+    
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): The account in question
+        - event_type (str): The type of event
+        - host (str): The IP address of the event
+        - detail (str | None): More information 
+        - timestamp (str): The authentication timestamp
+
+    Event types:
+        registration
+        login
+        logout
+        force_logout
+        account_update
+        sensitive_update
+        deletion
+    """ # probably dont log every token request or refresh
+    __tablename__ = "auth_events"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(String(36))
+    event_type: Mapped[str] = mapped_column(String(32))
+    host: Mapped[str] = mapped_column(String(32))
+    detail: Mapped[Optional[str]] = mapped_column(Text, default=None)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(), default=func.now())

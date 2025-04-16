@@ -1,13 +1,14 @@
 from sqlalchemy import select
 import re
+from json import dumps
 
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBEmailVerification
+from backend.database.schema import DBAccount, DBEmailVerification, DBAuthEvent
 from backend.exceptions import *
 
 from backend import auth
 from backend import email_handler
-from backend.models.accounts import AccountUpdate
+from backend.models.accounts import AccountUpdate, AuthenticatedAccount
 
 # Account creation logic will be handled only by authentication module
 
@@ -44,7 +45,7 @@ def force_get_by_username(session: DBSession, username: str) -> DBAccount: # typ
         raise EntityNotFound('account', 'username', username)
     return account
 
-def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount: # type: ignore
+def update(host: str, session: DBSession, account: DBAccount, update: AccountUpdate) -> DBAccount: # type: ignore
     """Updates an account with non-sensitive information"""
     # Make sure the username isn't taken, and update it
     if update.username is not None and update.username != account.username:
@@ -86,6 +87,12 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     session.add(account)
     session.commit()
     session.refresh(account)
+    event = DBAuthEvent(account_id=account.id, event_type="account_update" if not verified else "sensitive_update", host=host, detail=dumps({
+        "account": AuthenticatedAccount.model_validate(account.__dict__).model_dump(),
+        "config": update.model_dump()
+    }))
+    session.add(event)
+    session.commit()
     # Create a verification email
     if updating_email: # already did validation
         verification = DBEmailVerification( account_id=account.id, email=update.email)
@@ -96,7 +103,9 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
         email_handler.send_update_verification_email(account, verification)
     return account
 
-def delete(session: DBSession, account: DBAccount) -> None: # type: ignore
-    """Delete an account."""
+def delete(host: str, session: DBSession, account: DBAccount) -> None: # type: ignore
+    """Delete an account and log an event"""
     session.delete(account)
+    event = DBAuthEvent(account_id=account.id, event_type="deletion", host=host, detail=dumps(AuthenticatedAccount.model_validate(account.__dict__).model_dump()))
+    session.add(event)
     session.commit()

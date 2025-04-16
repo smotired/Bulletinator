@@ -12,7 +12,7 @@ Args:
 
 from typing import Annotated
 import re
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 
 from fastapi import Depends, Response
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
@@ -67,6 +67,10 @@ def cleanup_db():
         session.commit()
         # Remove expired editor invitations
         statement = delete(DBEditorInvitation).where(DBEditorInvitation.expires_at < datetime.now(UTC).replace(tzinfo=None))
+        session.execute(statement)
+        session.commit()
+        # Remove auth events older than 30 days
+        statement = delete(DBAuthEvent).where(DBAuthEvent.timestamp < (datetime.now(UTC).replace(tzinfo=None) - timedelta(30)))
         session.execute(statement)
         session.commit()
 

@@ -89,7 +89,7 @@ def test_update_password(session, client, auth_headers, get_account):
     del email_verification['expires_at']
     del email_verification['_sa_instance_state']
     assert email_verification == {
-        "id": mock.to_uuid(101, 'account'),
+        "id": mock.to_uuid(102, 'account'), # we go up 2 because we create an event
         "account_id": mock.to_uuid(1, 'account'),
         "email": "alice2@example.com",
     }

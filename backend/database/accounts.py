@@ -6,6 +6,7 @@ from backend.database.schema import DBAccount, DBEmailVerification
 from backend.exceptions import *
 
 from backend import auth
+from backend import email_handler
 from backend.models.accounts import AccountUpdate
 
 # Account creation logic will be handled only by authentication module
@@ -64,6 +65,7 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     verified = (auth.verify_account(account, update.old_password) is not None) if update.old_password is not None else False
     
     # Make sure the email isn't taken, and update it
+    updating_email = False
     if update.email is not None and update.email != account.email:
         if not verified:
             raise InvalidCredentials()
@@ -73,7 +75,7 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
             raise FieldTooLong('email')
         if update.email.count('@') != 1: # this is all we will do for validation
             raise InvalidField(update.email, 'email')
-        account.email = update.email
+        updating_email = True
     # Update the password
     if update.new_password is not None:
         if not verified:
@@ -84,6 +86,14 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
     session.add(account)
     session.commit()
     session.refresh(account)
+    # Create a verification email
+    if updating_email: # already did validation
+        verification = DBEmailVerification( account_id=account.id, email=update.email)
+        account.email_verification = verification
+        session.add(account)
+        session.commit()
+        session.refresh(account)
+        email_handler.send_verification_email(account, verification)
     return account
 
 def delete(session: DBSession, account: DBAccount) -> None: # type: ignore

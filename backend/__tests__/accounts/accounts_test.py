@@ -2,6 +2,7 @@
 
 from backend.config import settings
 from backend.__tests__ import mock
+from backend.database.schema import DBAccount
 
 def test_get_accounts(client, get_response_account):
     response = client.get("/accounts")
@@ -60,18 +61,19 @@ def test_update_reset_display_name(client, auth_headers, get_account):
         "display_name": None
     }
 
-def test_update_password(client, auth_headers, get_account):
+def test_update_password(session, client, auth_headers, get_account):
     update = {
         "username": "updated_alice",
         "old_password": "password1",
         "email": "alice2@example.com",
         "new_password": "newpassword",
     }
+    mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.put('/accounts/me', headers=auth_headers(1), json=update)
     assert response.json() == {
         **get_account(1),
         "username": "updated_alice",
-        "email": "alice2@example.com"
+        # "email": "alice2@example.com" # this should not be updated immediately
     }
     assert response.status_code == 200
     # Try logging in with the new information
@@ -80,6 +82,17 @@ def test_update_password(client, auth_headers, get_account):
         'password': 'newpassword'
     })
     assert response.status_code == 204
+    # Make sure an EmailVerification was created
+    db_account = session.get(DBAccount, mock.to_uuid(1, 'account'))
+    assert db_account.email == "alice@example.com" # ensure email unchanged
+    email_verification = db_account.email_verification.__dict__.copy()
+    del email_verification['expires_at']
+    del email_verification['_sa_instance_state']
+    assert email_verification == {
+        "id": mock.to_uuid(101, 'account'),
+        "account_id": mock.to_uuid(1, 'account'),
+        "email": "alice2@example.com",
+    }
 
 def test_update_password_incorrect(client, auth_headers, exception):
     update = {

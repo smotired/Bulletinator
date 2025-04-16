@@ -20,7 +20,7 @@ def uuid() -> str:
     last_uuid += 1
     return to_uuid(last_uuid)
 
-# Email verification
+# Email verification - make sure we aren't actually sending email during testing
 def send_verification_email(account: DBAccount, verification: DBEmailVerification):
     pass
 

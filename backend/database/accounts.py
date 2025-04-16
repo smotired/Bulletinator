@@ -7,7 +7,7 @@ from backend.database.schema import DBAccount, DBEmailVerification, DBAuthEvent
 from backend.exceptions import *
 
 from backend import auth
-from backend import email_handler
+from backend.utils import email_handler
 from backend.models.accounts import AccountUpdate, AuthenticatedAccount
 
 # Account creation logic will be handled only by authentication module

@@ -10,7 +10,7 @@ from uuid import UUID
 from backend.database.schema import *
 from backend.database import items as items_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
-from backend.permissions import BoardPDP
+from backend.utils.permissions import BoardPDP
 from backend.models.items import *
 from backend.models.shared import Metadata
 

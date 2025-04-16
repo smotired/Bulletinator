@@ -16,7 +16,7 @@ from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBE
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
 from backend.models.accounts import AuthenticatedAccount
-from backend import email_handler
+from backend.utils import email_handler
 
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt.

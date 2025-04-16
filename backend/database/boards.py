@@ -1,9 +1,9 @@
 from sqlalchemy import select
 import re
 
-from backend.email_handler import send_editor_invitation_email
+from backend.utils.email_handler import send_editor_invitation_email
 from backend.dependencies import DBSession, name_to_identifier
-from backend.permissions import BoardPolicyDecisionPoint
+from backend.utils.permissions import BoardPolicyDecisionPoint
 from backend.database import accounts as accounts_db
 from backend.database.schema import DBBoard, DBAccount, DBEditorInvitation
 from backend.exceptions import *

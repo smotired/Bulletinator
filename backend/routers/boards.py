@@ -10,7 +10,7 @@ from uuid import UUID
 from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
-from backend.permissions import BoardPDP
+from backend.utils.permissions import BoardPDP
 from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation, convert_board_list
 from backend.models.accounts import AccountCollection, convert_account_list
 from backend.models.shared import Metadata

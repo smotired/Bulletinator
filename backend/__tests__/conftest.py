@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
-from backend import app, auth, email_handler
+from backend import app, auth
 from backend.dependencies import get_session, name_to_identifier
 from backend.database import schema
 from backend.database.schema import *
@@ -14,6 +14,8 @@ from backend.__tests__ import mock
 from PIL import Image
 import os
 from random import random
+
+from backend.utils import email_handler
 
 # Essential fixtures
 

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectin_polymorphic, selectinload
 
 from backend.dependencies import DBSession, format_list
-from backend.permissions import BoardPolicyDecisionPoint
+from backend.utils.permissions import BoardPolicyDecisionPoint
 from backend.database import boards as boards_db
 from backend.database.schema import DBItem, DBBoard, DBAccount, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBPin
 from backend.exceptions import *

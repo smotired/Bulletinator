@@ -416,7 +416,7 @@ class DBEmailVerification(Base):
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
-    email: Mapped[str] = mapped_column(String(62))
-    expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_expiration)))
+    email: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_duration)))
 
     account: Mapped["DBAccount"] = relationship(back_populates="email_verification", foreign_keys="DBEmailVerification.account_id")

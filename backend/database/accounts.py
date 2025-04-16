@@ -93,7 +93,7 @@ def update(session: DBSession, account: DBAccount, update: AccountUpdate) -> DBA
         session.add(account)
         session.commit()
         session.refresh(account)
-        email_handler.send_verification_email(account, verification)
+        email_handler.send_update_verification_email(account, verification)
     return account
 
 def delete(session: DBSession, account: DBAccount) -> None: # type: ignore

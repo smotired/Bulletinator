@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "jwt-secret-key-dev"
     cookie_max_age: int
 
-    email_verification_expiration: int
+    email_verification_duration: int
     smtp_host: str
     smtp_port: int
     smtp_sender: str
@@ -61,7 +61,7 @@ def get_settings() -> Settings:
         jwt_issuer="http://127.0.0.1",
         cookie_max_age=3600*24*14,
 
-        email_verification_expiration=3600*24, # Should expire after 24 hours
+        email_verification_duration=3600*24, # Should expire after 24 hours
 
         static_path=os.path.join(os.getcwd(), 'static'),
         media_img_max_bytes=1024*1024,

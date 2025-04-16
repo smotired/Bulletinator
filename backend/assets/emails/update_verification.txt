@@ -1,0 +1,8 @@
+Hello again, [NAME]!
+
+To confirm your updated email address, please click the following link:
+https://www.bulletinator.com/verify-email/[VID]
+This link will expire after 24 hours.
+
+You received this email because this email address was used to update an account at Bulletinator.com.
+If you do not recognize this action, you can safely ignore this email.

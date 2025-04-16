@@ -51,7 +51,7 @@ def test_register_account(session, client, form_headers, exception):
     expires = db_account.email_verification.expires_at
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=UTC)
-    assert abs((expires.astimezone(UTC) - datetime.now(UTC)).total_seconds() - settings.email_verification_expiration) < 5
+    assert abs((expires.astimezone(UTC) - datetime.now(UTC)).total_seconds() - settings.email_verification_duration) < 5
     # Make sure we can log in even with the unverified email
     response = client.post("/auth/web/login", headers=form_headers, data={
         "identifier": "fred@example.com",

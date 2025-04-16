@@ -2,6 +2,7 @@ Welcome, [NAME]!
 
 Thanks for creating a Bulletinator account. Verify your email by clicking the link below to start creating projects.
 https://www.bulletinator.com/verify-email/[VID]
+This link will expire after 24 hours.
 
 You received this email because this email address was used to register an account at Bulletinator.com.
 If you did not intend create an account, you can safely ignore this email.

@@ -51,6 +51,26 @@ def send_update_verification_email(account: DBAccount, verification: DBEmailVeri
         server.login(settings.smtp_login, settings.smtp_password)
         server.send_message( message )
 
+def send_editor_invitation_email(board: DBBoard, invitation: DBEditorInvitation, editor_email: str):
+    message: EmailMessage = compose_email(
+        "invitation",
+        "You've been invited to a Bulletin Board!",
+        Address(editor_email, addr_spec=editor_email),
+        {
+            "[IID]": invitation.id,
+            "[BOARD]": board.name,
+            "[BLINK_TXT]": "" if not board.public else f"\n\nhttps://www.bulletinator.com/boards/{board.id}",
+            "[BLINK_HTML]": board.name if not board.public else f"<a href=\"https://www.bulletinator.com/boards/{board.id}\">{board.name}</a>",
+        }
+    )
+
+    with smtplib.SMTP_SSL(
+        host=settings.smtp_host,
+        port=settings.smtp_port,
+    ) as server:
+        server.login(settings.smtp_login, settings.smtp_password)
+        server.send_message( message )
+
 def compose_email(type: str, subject: str, to_address: Address, replacements: TextReplacements) -> EmailMessage:
     """Method to compose an email with certain text replacements and a certain address. Assumes HTML file has an img element with src='cid:[HEADERCID]'.
     

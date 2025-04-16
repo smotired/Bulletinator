@@ -1,13 +1,14 @@
 from sqlalchemy import select
 import re
 
+from backend.email_handler import send_editor_invitation_email
 from backend.dependencies import DBSession, name_to_identifier
 from backend.permissions import BoardPolicyDecisionPoint
 from backend.database import accounts as accounts_db
-from backend.database.schema import DBBoard, DBAccount
+from backend.database.schema import DBBoard, DBAccount, DBEditorInvitation
 from backend.exceptions import *
 
-from backend.models.boards import BoardCreate, BoardUpdate, BoardTransfer
+from backend.models.boards import BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation
 
 def can_edit(board: DBBoard, account: DBAccount | None) -> bool:
     
@@ -150,21 +151,25 @@ def get_editors(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str
     pdp.ensure_view_editors(board_id)
     return sorted(board.editors, key=lambda e: e.id)
 
-def add_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
-    """Allow another account to edit this board. Returns the updated list of editors."""
+def invite_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, invitation: EditorInvitation) -> bool: # type: ignore
+    """Invites another user to edit this board. Sends an invitation email and returns True if they were invited, or returns False if they were already an editor."""
     board = get_by_id(session, board_id)
     pdp.ensure_manage_editors(board_id)
-    editor = accounts_db.get_by_id(session, editor_id)
-    # Make sure we aren't adding the owner
-    BoardPolicyDecisionPoint(session, editor).ensure_become_editor(board_id)
-    # Add it, unless it's already in there
-    if editor not in board.editors:
-        board.editors.append(editor)
-    # Update and return editors
-    session.add(board)
+    editor: DBAccount | None = accounts_db.get_by_email(session, invitation.email)
+    if editor is not None:
+        # Make sure we aren't adding the owner
+        BoardPolicyDecisionPoint(session, editor).ensure_become_editor(board_id)
+        # Make sure they aren't already an editor
+        if editor in board.editors:
+            return False
+    # Create an invitation
+    invitation = DBEditorInvitation( board_id=board_id, email=invitation.email )
+    session.add(invitation)
     session.commit()
-    session.refresh(board)
-    return sorted(board.editors, key=lambda e: e.id)
+    session.refresh(invitation)
+    # Send the email
+    send_editor_invitation_email(board, invitation, invitation.email)
+    return True
 
 def remove_editor(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, editor_id: str) -> list[DBAccount]: # type: ignore
     """Remove an editor from a board and return the updated list of editors"""
@@ -186,6 +191,21 @@ def transfer_board(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: 
     board.owner_id = transfer.account_id
     board.editors.remove(other)
     board.editors.append(pdp.account)
+    session.add(board)
+    session.commit()
+    session.refresh(board)
+    return board
+
+def accept_editor_invitation(session: DBSession, invitation_id: str) -> DBBoard: # type: ignore
+    """Accepts an invitation to be an editor and returns the new board"""
+    invitation: DBEditorInvitation = session.get(DBEditorInvitation, invitation_id)
+    board: DBBoard = get_by_id(session, invitation.board_id) # don't use the relationship, to make sure it hasn't been deleted since
+    account: DBAccount | None = accounts_db.get_by_email(session, invitation.email)
+    if account is None:
+        raise EntityNotFound('account', 'email', invitation.email)
+    if account not in board.editors:
+        board.editors.append(account)
+    session.delete(invitation)
     session.add(board)
     session.commit()
     session.refresh(board)

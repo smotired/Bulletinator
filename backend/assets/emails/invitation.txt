@@ -1,0 +1,14 @@
+Hi there!
+
+You've been invited to edit the board '[BOARD]'.[BLINK_TXT]
+
+Ready to start contributing? Click the following link:
+
+https://www.bulletinator.com/accept-invite/[IID]
+
+This invitation will expire after 7 days.
+
+Don't have an account? Sign up at https://www.bulletinator.com/register?next=accept-invite&bid=[IID]
+
+You received this email because this email address was invited to edit a board at Bulletinator.com.
+If you do not wish to edit this board, you can safely ignore this email.

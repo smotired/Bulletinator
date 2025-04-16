@@ -35,7 +35,8 @@ def client(session, monkeypatch):
     # override authentication functions
     monkeypatch.setattr(auth, "hash_password", mock.hash_password)
     monkeypatch.setattr(auth, "check_password", mock.check_password)
-    monkeypatch.setattr(email_handler, "send_verification_email", mock.send_verification_email)
+    monkeypatch.setattr(email_handler, "send_verification_email", lambda a, v: mock.black_hole)
+    monkeypatch.setattr(email_handler, "send_editor_invitation_email", lambda v, i, e: mock.black_hole)
     
     # set up the client
     app.dependency_overrides[get_session] = lambda: session

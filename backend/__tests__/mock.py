@@ -20,9 +20,8 @@ def uuid() -> str:
     last_uuid += 1
     return to_uuid(last_uuid)
 
-# Email verification - make sure we aren't actually sending email during testing
-def send_verification_email(account: DBAccount, verification: DBEmailVerification):
-    pass
+def black_hole():
+    """Black hole function to make sure some functions just don't even get called, such as sending emails."""
 
 # UUID offsets for tests.
 # Used to make tests a little more resistant to adding test data.

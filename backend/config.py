@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     cookie_max_age: int
 
     email_verification_duration: int
+    editor_invitation_duration: int
     smtp_host: str
     smtp_port: int
     smtp_sender: str
@@ -62,6 +63,7 @@ def get_settings() -> Settings:
         cookie_max_age=3600*24*14,
 
         email_verification_duration=3600*24, # Should expire after 24 hours
+        editor_invitation_duration=3600*24*7, # Should expire after 7 days
 
         static_path=os.path.join(os.getcwd(), 'static'),
         media_img_max_bytes=1024*1024,

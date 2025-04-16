@@ -4,14 +4,14 @@ Args:
     router (APIRouter): Router for /boards routes
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Response
 from uuid import UUID
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
 from backend.permissions import BoardPDP
-from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, convert_board_list
+from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation, convert_board_list
 from backend.models.accounts import AccountCollection, convert_account_list
 from backend.models.shared import Metadata
 
@@ -103,19 +103,15 @@ def get_editors(
         accounts=editors
     )
 
-@router.put("/{board_id}/editors/{editor_id}", status_code=201, response_model=AccountCollection)
+@router.post("/{board_id}/editors", status_code=204, response_model=None)
 def add_editor(
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
-    editor_id: UUID,
-) -> AccountCollection:
-    """Allows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.add_editor(session, pdp, str(board_id), str(editor_id)) )
-    return AccountCollection(
-        metadata=Metadata(count=len(editors)),
-        accounts=editors
-    )
+    invitation: EditorInvitation,
+) -> None:
+    """Invites an account to edit this board"""
+    boards_db.invite_editor(session, pdp, str(board_id), invitation)
 
 @router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=AccountCollection)
 def remove_editor(
@@ -140,3 +136,11 @@ def transfer_board(
 ) -> DBBoard:
     """Transfers the board to another editor account, rendering this account as an editor. Returns the updated board."""
     return boards_db.transfer_board(session, pdp, str(board_id), transfer)
+
+@router.post("/accept-invite/{invitation:uuid}", status_code=200, response_model=Board)
+def transfer_board(
+    session: DBSession, # type: ignore
+    invitation: UUID,
+) -> DBBoard:
+    """Transfers the board to another editor account, rendering this account as an editor. Returns the updated board."""
+    return boards_db.accept_editor_invitation(session, str(invitation))

@@ -96,6 +96,7 @@ class DBBoard(Base):
     editors: Mapped[List["DBAccount"]] = relationship( secondary=editor_table, back_populates="editable" )
     items: Mapped[List["DBItem"]] = relationship( back_populates="board", cascade="all, delete-orphan" )
     pins: Mapped[List["DBPin"]] = relationship( back_populates="board", cascade="all, delete-orphan", foreign_keys="DBPin.board_id" )
+    pending_invites: Mapped[List["DBEditorInvitation"]] = relationship(back_populates="board", cascade="all, delete-orphan" )
 
 class DBItem(Base):
     """Items table. Each row represents an item.
@@ -420,3 +421,22 @@ class DBEmailVerification(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_duration)))
 
     account: Mapped["DBAccount"] = relationship(back_populates="email_verification", foreign_keys="DBEmailVerification.account_id")
+
+class DBEditorInvitation(Base):
+    """Represents an invitation for a user to edit a board. References an email. If a client clicks the link in their email, or a client registers an account with this email address, they will be added as an editor on this board.
+    Authenticated users should also see invitations on the frontend.
+    
+    Fields:
+        - id (str): UUID primary key
+        - board_id (str): UUID of the associated account
+        - email (str): The email address associated with this invitation
+        - expires_at (datetime): The time at which this expires
+    """
+    __tablename__ = "editor_invitations"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"))
+    email: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.editor_invitation_duration)))
+
+    board: Mapped["DBBoard"] = relationship(back_populates="pending_invites", foreign_keys="DBEditorInvitation.board_id")

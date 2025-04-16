@@ -51,7 +51,7 @@ def get_session():
 DBSession = Annotated[Session, Depends(get_session)]
 
 def cleanup_db():
-    """Cleans up certain tables in the database"""
+    """Cleans up unused entries from certain tables in the database"""
     with Session() as session:
         # Remove expired refresh tokens
         statement = delete(DBRefreshToken).where(DBRefreshToken.expires_at < datetime.now(UTC).timestamp())
@@ -63,6 +63,10 @@ def cleanup_db():
         session.commit()
         # Remove accounts that have no email and no pending email verifications
         statement = delete(DBAccount).where((DBAccount.email == None) & (DBAccount.email_verification == None))
+        session.execute(statement)
+        session.commit()
+        # Remove expired editor invitations
+        statement = delete(DBEditorInvitation).where(DBEditorInvitation.expires_at < datetime.now(UTC).replace(tzinfo=None))
         session.execute(statement)
         session.commit()
 

@@ -1,6 +1,8 @@
 """Module for testing the board routes"""
 
+from sqlalchemy import select
 from backend.__tests__ import mock
+from backend.database.schema import DBEditorInvitation
 
 def test_get_public(client, get_board):
     # boards 1 and 2 are public
@@ -252,21 +254,50 @@ def test_get_editors_private(client, exception, auth_headers):
     assert response.json() == exception("no_permissions", f"No permissions to view editors on board with id={mock.to_uuid(1, "board")}")
     assert response.status_code == 403
 
-def test_add_editor(client, auth_headers, get_response_account):
-    response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(2))
+def test_invite_editor(session, client, auth_headers, get_response_account, get_board):
+    mock.last_uuid = mock.OFFSETS['account'] + 100
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(2), json={ "email": "david@example.com" })
+    assert response.status_code == 204
+    # Make sure an invitation was created
+    statement = select(DBEditorInvitation).where(DBEditorInvitation.email == "david@example.com")
+    results = list( session.execute(statement).scalars().all() )
+    assert len(results) == 1
+    invitation = results[0].__dict__.copy()
+    del invitation['_sa_instance_state']
+    del invitation['expires_at']
+    assert invitation == {
+        "id": mock.to_uuid(101, 'account'),
+        "board_id": mock.to_uuid(3, 'board'),
+        "email": "david@example.com",
+    }
+    # Accept the invitation
+    response = client.post(f"/boards/accept-invite/{mock.to_uuid(101, 'account')}")
+    assert response.json() == get_board(3)
+    assert response.status_code == 200
+    # Make sure they are truly an editor now
+    response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(4))
     assert response.json() == {
         "metadata": { "count": 3 }, 
-        "accounts": [ get_response_account(1), get_response_account(3), get_response_account(4) ] # TODO: Figure out ordering
+        "accounts": [ get_response_account(1), get_response_account(3), get_response_account(4) ]
     }
-    assert response.status_code == 201
+    assert response.status_code == 200
 
-def test_add_editor_as_editor(client, auth_headers, exception):
-    response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(3))
+def test_invite_existing_editor(session, client, auth_headers):
+    mock.last_uuid = mock.OFFSETS['account'] + 100
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(2), json={ "email": "charlie@example.com" })
+    assert response.status_code == 204
+    # Make sure no invitation was created
+    statement = select(DBEditorInvitation).where(DBEditorInvitation.email == "charlie@example.com")
+    results = list( session.execute(statement).scalars().all() )
+    assert len(results) == 0
+
+def test_invite_editor_as_editor(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(3), json={ "email": "david@example.com" })
     assert response.json() == exception("no_permissions", f"No permissions to manage editors on board with id={mock.to_uuid(3, "board")}")
     assert response.status_code == 403
 
-def test_add_editor_unauth(client, auth_headers, exception):
-    response = client.put(f"/boards/{mock.to_uuid(1, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(4))
+def test_invite_editor_unauth(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(4), json={ "email": "david@example.com" })
     assert response.json() == exception("no_permissions", f"No permissions to manage editors on board with id={mock.to_uuid(1, "board")}")
     assert response.status_code == 403
 
@@ -297,8 +328,8 @@ def test_remove_editor_as_self(client, auth_headers, get_response_account):
     }
     assert response.status_code == 200
 
-def test_add_owner_as_editor(client, auth_headers, exception):
-    response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(2, 'account')}", headers=auth_headers(2))
+def test_invite_owner_as_editor(client, auth_headers, exception):
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(2), json={ "email": "bob@example.com" })
     assert response.json() == exception("add_board_owner_as_editor", "Cannot add the board owner as an editor")
     assert response.status_code == 422
 

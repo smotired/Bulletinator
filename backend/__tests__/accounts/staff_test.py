@@ -43,13 +43,9 @@ def test_get_editors(client, auth_headers, get_response_account):
     }
     assert response.status_code == 200
 
-def test_add_editor(client, auth_headers, get_response_account):
-    response = client.put(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(4, 'account')}", headers=auth_headers(5))
-    assert response.json() == {
-        "metadata": { "count": 3 },
-        "accounts": [ get_response_account(1), get_response_account(3), get_response_account(4) ]
-    }
-    assert response.status_code == 201
+def test_invite_editor(client, auth_headers):
+    response = client.post(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(5), json={ "email": "david@example.com" })
+    assert response.status_code == 204
 
 def test_remove_editor(client, auth_headers, get_response_account):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(5))

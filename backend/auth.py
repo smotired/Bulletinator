@@ -354,7 +354,9 @@ def verify_email(session: DBSession, verification_id: str) -> DBAccount: # type:
     if verification is None or verification.expires_at.astimezone(UTC) < datetime.now(UTC):
         raise InvalidEmailVerification()
     # Update their email
-    account: DBAccount = verification.account
+    account: DBAccount | None = session.get(DBAccount, verification.account_id) # don't use the relationship, in case it was deleted
+    if account is None:
+        raise EntityNotFound('account', 'id', verification.id)
     account.email = verification.email
     session.add(account)
     session.delete(verification)

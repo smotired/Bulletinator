@@ -3,6 +3,7 @@ from backend.database.schema import *
 from backend.config import settings
 from time import sleep
 from datetime import datetime, UTC
+from sqlalchemy import select
 
 from backend.__tests__ import mock
 
@@ -11,7 +12,7 @@ def test_me_not_authenticated(client, exception):
     assert response.json() == exception("not_authenticated", "Not authenticated")
     assert response.status_code == 403
 
-def test_register_account(session, client, accounts, form_headers):
+def test_register_account(session, client, form_headers, exception):
     form = {
         "username": "fred",
         "email": "fred@example.com",
@@ -19,13 +20,14 @@ def test_register_account(session, client, accounts, form_headers):
     }
     mock.last_uuid = mock.OFFSETS['account'] + 100
     response = client.post("/auth/registration", headers=form_headers, data=form)
-    assert response.json() == {
+    new_user_object = {
         "id": mock.to_uuid(101, 'account'),
         "username": "fred",
         "email": None,
         "profile_image": None,
         "display_name": None
     }
+    assert response.json() == new_user_object
     assert response.status_code == 201
     db_account = session.get(DBAccount, mock.to_uuid(101, 'account'))
     # Make sure a Permission was created
@@ -50,6 +52,32 @@ def test_register_account(session, client, accounts, form_headers):
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=UTC)
     assert abs((expires.astimezone(UTC) - datetime.now(UTC)).total_seconds() - settings.email_verification_expiration) < 5
+    # Make sure we can log in even with the unverified email
+    response = client.post("/auth/web/login", headers=form_headers, data={
+        "identifier": "fred@example.com",
+        "password": "password6"
+    })
+    assert response.status_code == 204
+    # Make sure we CAN see our profile
+    response = client.get("/accounts/me")
+    assert response.json() == new_user_object
+    assert response.status_code == 200
+    # Make sure we can't do anything else
+    response = client.put("/accounts/me", json={ "display_name": "Fred" })
+    assert response.json() == exception("unverified_email_address", "This action requires a verified email address")
+    assert response.status_code == 403
+    # Verify the email
+    response = client.post(f"/auth/verify-email/{email_verification['id']}")
+    assert response.json() == { **new_user_object, "email": "fred@example.com" }
+    assert response.status_code == 200
+    # Make sure the verification was removed from the database
+    statement = select(DBEmailVerification).where(DBEmailVerification.account_id == mock.to_uuid(101, 'account'))
+    results = list( session.execute(statement).scalars().all() )
+    assert len(results) == 0
+    # Now make sure we can do something
+    response = client.put("/accounts/me", json={ "display_name": "Fred" })
+    assert response.json() == { **new_user_object, "email": "fred@example.com", "display_name": "Fred" }
+    assert response.status_code == 200
 
 def test_register_existing_username(client, form_headers, accounts, exception):
     form = {

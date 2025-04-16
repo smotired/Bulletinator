@@ -9,7 +9,7 @@ from fastapi import APIRouter, Response, Form
 from backend import auth
 from backend.config import settings
 from backend.database.schema import *
-from backend.dependencies import DBSession, CurrentAccount, RefreshToken, set_cookie_secure
+from backend.dependencies import DBSession, CurrentReadOnlyAccount, RefreshToken, set_cookie_secure
 from backend.models.auth import AccessToken, Registration, Login
 from backend.models.accounts import Account, AuthenticatedAccount
 
@@ -54,7 +54,7 @@ def refresh_access_token(
 def logout_account(
     response: Response,
     session: DBSession, # type: ignore
-    account: CurrentAccount,
+    account: CurrentReadOnlyAccount,
     token: RefreshToken
 ) -> None:
     """Authenticated route. Log out an account and invalidate the supplied refresh token."""
@@ -77,7 +77,7 @@ def login_account(
 def force_logout_account(
     response: Response,
     session: DBSession, # type: ignore
-    account: CurrentAccount,
+    account: CurrentReadOnlyAccount,
 ) -> None:
     """Authenticated route. Log out an account and invalidate ALL refresh tokens."""
     auth.revoke_refresh_tokens(session, account)

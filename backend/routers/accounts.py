@@ -10,7 +10,7 @@ from uuid import UUID
 from backend.database.schema import *
 from backend import auth
 from backend.database import accounts as accounts_db, media as media_db
-from backend.dependencies import DBSession, CurrentAccount
+from backend.dependencies import DBSession, CurrentAccount, CurrentReadOnlyAccount
 from backend.models.accounts import Account, AuthenticatedAccount, AccountCollection, AccountUpdate, convert_account, convert_account_list, convert_auth_account
 from backend.models.media import Image, ImageCollection
 from backend.models.shared import Metadata
@@ -32,7 +32,7 @@ def get_accounts(
 @router.get("/me", status_code=200, response_model=AuthenticatedAccount)
 def get_current_account(
     session: DBSession, # type: ignore
-    account: CurrentAccount
+    account: CurrentReadOnlyAccount
 ) -> DBAccount:
     """Get the currently authenticated account"""
     return accounts_db.get_by_id(session, account.id)
@@ -60,7 +60,7 @@ def delete_current_account(
 @router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
 def get_current_account(
     session: DBSession, # type: ignore
-    account: CurrentAccount
+    account: CurrentReadOnlyAccount
 ) -> ImageCollection:
     """Get a list of images uploaded by the current account"""
     images = media_db.get_account_images(session, account)

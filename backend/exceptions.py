@@ -119,6 +119,12 @@ class NoPermissions(BadRequestException):
         self.error = "no_permissions"
         self.message = f"No permissions to {action} on {entity} with id={id}"
 
+class UnverifiedEmailAddress(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "unverified_email_address"
+        self.message = "This action requires a verified email address"
+
 class ItemTypeMismatch(BadRequestException):
     def __init__(self, id: str, expected: str, actual: str):
         self.status_code = 418

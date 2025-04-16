@@ -93,8 +93,12 @@ def get_refresh_token(
 
 RefreshToken = Annotated[str, Depends(get_refresh_token)]
 
+# account dependencies
+
 # gotta import this down here
 from backend.auth import extract_account
+
+# an account with only read permissions
 
 def get_current_account(
     session: Session = Depends(get_session), # type: ignore
@@ -103,7 +107,19 @@ def get_current_account(
     """Current account dependency. Depends on the session and the access token."""
     return extract_account(session, access_token)
 
-CurrentAccount = Annotated[DBAccount, Depends(get_current_account)]
+CurrentReadOnlyAccount = Annotated[DBAccount, Depends(get_current_account)]
+
+# non read-only account requires a verified email
+
+def get_current_verified_account(
+    account: DBAccount = Depends(get_current_account),
+) -> DBAccount:
+    """Current account dependency. Depends on the session and the access token."""
+    if account.email is None:
+        raise UnverifiedEmailAddress()
+    return account
+
+CurrentAccount = Annotated[DBAccount, Depends(get_current_verified_account)]
 
 # for times when authentication is not necessary but can change the results of a query
 

@@ -43,6 +43,8 @@ class DBAccount(Base):
         - editable: Board, many-to-many
         - uploaded: Image, one-to-many
         - permission: Permission, one-to-one
+        - email_verification: EmailVerification, one-to-one
+        - reports: Report, one-to-many
     """
     __tablename__ = "accounts"
 
@@ -61,6 +63,7 @@ class DBAccount(Base):
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
     permission: Mapped["DBPermission"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
     email_verification: Mapped["DBEmailVerification"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
+    reports: Mapped[List["DBReport"]] = relationship(back_populates="account", foreign_keys="DBReport.account_id", cascade="all, delete-orphan")
 
 class DBBoard(Base):
     """Boards table. Each row represents a bulletin board.
@@ -395,6 +398,7 @@ class DBPermission(Base):
 
     Relationships:
         - account (DBAccount, one-to-one): The account object
+        - assigned_reports (DBReport, one-to-many): The reports assigned to this staff member
     """
     __tablename__ = "permissions"
     
@@ -403,6 +407,7 @@ class DBPermission(Base):
     role: Mapped[str] = mapped_column(String(32), default="user")
 
     account: Mapped["DBAccount"] = relationship(back_populates="permission", foreign_keys="DBPermission.account_id")
+    assigned_reports: Mapped[List["DBReport"]] = relationship(back_populates="moderator", foreign_keys="DBReport.moderator_id")
     
 class DBEmailVerification(Base):
     """Represents an email verification request. If an account has this object associated with it, it means they haven't verified their email account and should be notified of that.
@@ -464,8 +469,43 @@ class DBAuthEvent(Base):
     __tablename__ = "auth_events"
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
-    account_id: Mapped[str] = mapped_column(String(36))
+    account_id: Mapped[str] = mapped_column(String(36)) # not a foreign key in case they delete their account
     event_type: Mapped[str] = mapped_column(String(32))
     host: Mapped[str] = mapped_column(String(32))
     detail: Mapped[Optional[str]] = mapped_column(Text, default=None)
     timestamp: Mapped[datetime] = mapped_column(DateTime(), default=func.now())
+
+class DBReport(Base):
+    """A user report
+
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): ID of the reporting account
+        - entity_id (str): ID of the object in question
+        - entity_type (str): Type of the reported object
+        - report_type (str): Type of the submitted report
+        - report_text (str): Report content
+        - status (str): Status of the report (fresh/assigned/in progress/resolved)
+        - moderator_id (str | None): ID of the moderator account assigned to this report
+        - created_at (datetime): Time at which this report was created (UTC)
+        - resolved_at (datetime): Time at which this report was resolved. Reports will be removed from the database after 30 days.
+    
+    Relationships:
+        - account (DBAccount): The account that submitted the report
+        - moderator (DBPermission | None): The moderator assigned to this report
+    """
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(String(36), ForeignKey("accounts.id"))
+    entity_id: Mapped[str] = mapped_column(String(36)) # not a foreign key because it depends on entity type
+    entity_type: Mapped[str] = mapped_column(String(36))
+    report_type: Mapped[str] = mapped_column(String(32))
+    report_text: Mapped[str] = mapped_column(Text(600))
+    status: Mapped[str] = mapped_column(String(32), default="fresh")
+    moderator_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("permissions.id"), default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(), default=func.now())
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(), default=None)
+
+    account: Mapped["DBAccount"] = relationship(back_populates="reports", foreign_keys="DBReport.account_id")
+    moderator: Mapped[Optional["DBPermission"]] = relationship(back_populates="assigned_reports", foreign_keys="DBReport.moderator_id")

@@ -21,7 +21,7 @@ class Report(BaseModel):
 class ReportCollection(BaseModel):
     """Response model for a list of reports"""
     metadata: Metadata
-    reports: []
+    reports: list[Report]
 
 class ReportCreate(BaseModel):
     """Request model for creating a report"""

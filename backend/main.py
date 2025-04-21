@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.dependencies import create_db_tables, cleanup_db
 from backend.exceptions import BadRequestException
-from backend.routers import boards, accounts, items, auth, media
+from backend.routers import boards, accounts, items, auth, media, reports
 from backend.config import settings
 
 from os import path
@@ -51,7 +51,7 @@ app = FastAPI(
 )
 
 # Set up all of the routers
-for router in [ accounts.router, boards.router, items.router, auth.router, media.router ]:
+for router in [ accounts.router, boards.router, items.router, auth.router, media.router, reports.router ]:
     app.include_router(router)
 
 # Basic routes

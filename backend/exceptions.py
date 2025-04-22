@@ -190,3 +190,9 @@ class FieldTooLong(BadRequestException):
         self.status_code = 422
         self.error = "field_too_long"
         self.message = f"Input to field '{field}' exceeded the maximum length"
+
+class TooManyRequests(BadRequestException):
+    def __init__(self):
+        self.status_code = 429
+        self.error = "too_many_requests"
+        self.message = f"You are accessing this resource too quickly. Please try again later."

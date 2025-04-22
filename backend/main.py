@@ -15,6 +15,7 @@ from backend.dependencies import create_db_tables, cleanup_db
 from backend.exceptions import BadRequestException
 from backend.routers import boards, accounts, items, auth, media, reports
 from backend.config import settings
+from backend.utils.rate_limiter import limit
 
 from os import path
 
@@ -57,6 +58,7 @@ for router in [ accounts.router, boards.router, items.router, auth.router, media
 # Basic routes
 
 @app.get("/status", status_code=200)
+@limit("main")
 def status():
     """Get current status of the API."""
     return { "message": "Hello World!" }

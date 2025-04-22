@@ -9,6 +9,7 @@ from uuid import UUID
 
 from backend.database.schema import *
 from backend import auth
+from backend.utils.rate_limiter import limit
 from backend.database import accounts as accounts_db, media as media_db
 from backend.dependencies import DBSession, CurrentAccount, CurrentReadOnlyAccount
 from backend.models.accounts import Account, AuthenticatedAccount, AccountCollection, AccountUpdate, convert_account, convert_account_list, convert_auth_account
@@ -19,7 +20,9 @@ from backend.config import settings
 router = APIRouter(prefix="/accounts", tags=["Account"])
 
 @router.get("/", status_code=200)
+@limit("main")
 def get_accounts(
+    request: Request,
     session: DBSession # type: ignore
 ) -> AccountCollection:
     """Get a list of all accounts"""
@@ -30,7 +33,9 @@ def get_accounts(
     )
 
 @router.get("/me", status_code=200, response_model=AuthenticatedAccount)
+@limit("account")
 def get_current_account(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount
 ) -> DBAccount:
@@ -38,6 +43,7 @@ def get_current_account(
     return accounts_db.get_by_id(session, account.id)
 
 @router.put("/me", status_code=200, response_model=AuthenticatedAccount)
+@limit("account")
 def update_current_account(
     request: Request,
     session: DBSession, # type: ignore
@@ -48,6 +54,7 @@ def update_current_account(
     return accounts_db.update(request.client.host, session, account, update)
 
 @router.delete("/me", status_code=204)
+@limit("account", no_content=True)
 def delete_current_account(
     request: Request,
     response: Response,
@@ -60,7 +67,9 @@ def delete_current_account(
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
+@limit("account")
 def get_current_account(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount
 ) -> ImageCollection:
@@ -72,7 +81,9 @@ def get_current_account(
     )
 
 @router.get("/{account_id:uuid}", status_code=200, response_model=Account)
-def get_account(
+@limit("account")
+def get_account_by_id(
+    request: Request,
     session: DBSession, # type: ignore
     account_id: UUID
 ) -> DBAccount:
@@ -80,7 +91,9 @@ def get_account(
     return accounts_db.get_by_id(session, str(account_id))
 
 @router.get("/{username}", status_code=200, response_model=Account)
-def get_account(
+@limit("account")
+def get_account_by_username(
+    request: Request,
     session: DBSession, # type: ignore
     username: str
 ) -> DBAccount:

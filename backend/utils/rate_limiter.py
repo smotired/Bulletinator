@@ -1,8 +1,9 @@
 """Rate limiter decorator"""
 
-from fastapi import Request
+from fastapi import Request, Response
 from typing import Callable, Any
 from datetime import datetime, UTC
+import functools
 
 from backend.exceptions import TooManyRequests
 
@@ -10,12 +11,13 @@ from backend.exceptions import TooManyRequests
 KEY_LIMITS = {
     "forced": (60, 60), # this will always allow requests through
     "main": (3, 5),
-    "auth": (2, 5), # login takes 1, refresh takes potentially 2 if they redirect to login page and then log in really fast
+    "auth": (2, 30), # login takes 1, refresh takes potentially 2 if they redirect to login page and then log in really fast
     "account": (3, 5),
     "from_email": (1, 30),
+    "board": (2, 5),
     "board_action": (5, 5),
     "submit_report": (1, 30),
-    "upload_media": (1, 10),
+    "media": (1, 10),
     "static": (3, 5),
 }
 
@@ -23,41 +25,44 @@ KEY_LIMITS = {
 USAGE = {}
 
 # Decorator to take in the key
-def limit(key: str = "main"):
+def limit(key: str = "main", *, no_content: bool = False, is_async = False):
     # Extract actual parameters
     if key not in KEY_LIMITS:
         raise ValueError(f"Unrecognized key {key}")
     count, window_size = KEY_LIMITS[key]
+    return_type = None if no_content else Any
 
     # Nested decorator that takes the actual request function
-    def decorator(route_function: Callable[[Request], Any]) -> Callable[[Request], Any]:
+    def decorator(route_function: Callable[..., Any]) -> Callable[..., Any]:
 
         # Call the route function if this host has not exceeded the window
-        async def limiter(request: Request) -> Any:
+        @functools.wraps(route_function)
+        async def limiter(request: Request, *args, **kwargs) -> return_type: # type: ignore
             host: str = request.client.host
             time: int = datetime.now(UTC).timestamp()
 
-            # If this forces traffic through return early
-            if key == "forced":
-                return await route_function()
-            
-            # Make sure the window exists for this key and get a reference
-            if host not in USAGE:
-                USAGE[host] = {}
-            if key not in USAGE[host]:
-                USAGE[host][key] = []
-            window = USAGE[host][key]
-            
-            # Remove outdated entries and add one
-            window[:] = [ t for t in window if time - t < window_size]
-            window.append(time)
+            # If this does not force traffic through, check for limiting
+            if key != "forced":
+                # Make sure the window exists for this key and get a reference
+                if host not in USAGE:
+                    USAGE[host] = {}
+                if key not in USAGE[host]:
+                    USAGE[host][key] = []
+                window = USAGE[host][key]
+                
+                # Remove outdated entries and add one
+                window[:] = [ t for t in window if time - t < window_size]
+                window.append(time)
 
-            # If the limit has been exceeded, throw an error
-            if (len(window) > count):
-                raise TooManyRequests()
+                # If the limit has been exceeded, throw an error
+                if (len(window) > count):
+                    raise TooManyRequests()
 
-            # Proceed to the actual route function
-            return await route_function()
+            # Proceed to the actual route function, making sure to return a 204 if applicable
+            result: Any = await route_function(request, *args, **kwargs) if is_async else route_function(request, *args, **kwargs)
+            if result is None and no_content:
+                return Response(status_code=204)
+            return result
 
         return limiter
     return decorator

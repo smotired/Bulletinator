@@ -4,9 +4,10 @@ Args:
     router (APIRouter): Router for /media routes
 """
 
-from fastapi import APIRouter, UploadFile, Header
+from fastapi import APIRouter, UploadFile, Header, Request
 from fastapi.responses import FileResponse
 
+from backend.utils.rate_limiter import limit
 from backend.database.schema import *
 from backend.database import media as media_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
@@ -17,7 +18,9 @@ from backend.models.shared import Metadata
 router = APIRouter(prefix="/media", tags=["Media"])
 
 @router.post('/images/upload', status_code=201, response_model=Image)
+@limit("media", is_async=True)
 async def upload_image_file(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentAccount,
     file: UploadFile,
@@ -27,7 +30,9 @@ async def upload_image_file(
     return await media_db.upload_image(session, account, file, content_length)
 
 @router.delete('/images/{uuid}', status_code=204)
+@limit("media", no_content=True)
 def delete_image(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentAccount,
     uuid: str
@@ -35,7 +40,9 @@ def delete_image(
     media_db.delete_image(session, uuid, account)
 
 @router.post('/avatar/upload', status_code=201, response_model=AuthenticatedAccount)
-async def upload_image_file(
+@limit("media", is_async=True)
+async def upload_avatar_image(
+    request: Request,
     session: DBSession, # type: ignore
     account: CurrentAccount,
     file: UploadFile,

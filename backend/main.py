@@ -59,13 +59,13 @@ for router in [ accounts.router, boards.router, items.router, auth.router, media
 
 @app.get("/status", status_code=200)
 @limit("main")
-def status():
+def status(request: Request):
     """Get current status of the API."""
     return { "message": "Hello World!" }
 
 @app.get('/favicon.ico', include_in_schema=False)
-@limit("forced")
-async def favicon():
+@limit("forced", is_async=True)
+async def favicon(request: Request):
     return FileResponse(path.join(settings.assets_folder_path, 'favicon.ico'))
 
 @app.exception_handler(BadRequestException)

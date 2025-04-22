@@ -7,6 +7,7 @@ Args:
 from fastapi import APIRouter, Request, Response, Form
 
 from backend import auth
+from backend.utils.rate_limiter import limit
 from backend.config import settings
 from backend.database.schema import *
 from backend.dependencies import DBSession, CurrentReadOnlyAccount, RefreshToken, set_cookie_secure
@@ -19,6 +20,7 @@ from uuid import UUID
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/registration", status_code=201, response_model=AuthenticatedAccount)
+@limit("auth")
 def register_account(
     request: Request,
     session: DBSession, # type: ignore
@@ -28,6 +30,7 @@ def register_account(
     return auth.register_account(request.client.host, session, form)
 
 @router.post("/web/login", status_code=204)
+@limit("auth", no_content=True)
 def get_token(
     request: Request,
     response: Response,
@@ -43,7 +46,9 @@ def get_token(
     return AccessToken(access_token=access_token, token_type="bearer")
 
 @router.post("/web/refresh", status_code=204)
+@limit("auth", no_content=True)
 def refresh_access_token(
+    request: Request,
     response: Response,
     session: DBSession, # type: ignore
     refresh_token: RefreshToken
@@ -53,6 +58,7 @@ def refresh_access_token(
     set_cookie_secure(response, settings.jwt_access_cookie_key, access_token)
 
 @router.post("/web/logout", status_code=204)
+@limit("auth", no_content=True)
 def logout_account(
     request: Request,
     response: Response,
@@ -66,7 +72,9 @@ def logout_account(
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.post("/token", status_code=200)
+@limit("auth")
 def get_token(
+    request: Request,
     session: DBSession, # type: ignore
     form: Annotated[Login, Form()]
 ) -> AccessToken:
@@ -77,6 +85,7 @@ def get_token(
     return AccessToken(access_token=access_token, token_type="bearer")
     
 @router.post("/forcelogout", status_code=204)
+@limit("auth", no_content=True)
 def force_logout_account(
     request: Request,
     response: Response,
@@ -89,7 +98,9 @@ def force_logout_account(
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
 @router.post('/verify-email/{verification_id}', status_code=200, response_model=AuthenticatedAccount)
+@limit("from_email")
 def verify_email(
+    request: Request,
     session: DBSession, # type: ignore
     verification_id: UUID,
 ) -> DBAccount:

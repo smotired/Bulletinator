@@ -4,13 +4,14 @@ Args:
     router (APIRouter): Router for /boards routes
 """
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request
 from uuid import UUID
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
 from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
 from backend.utils.permissions import BoardPDP
+from backend.utils.rate_limiter import limit
 from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation, convert_board_list
 from backend.models.accounts import AccountCollection, convert_account_list
 from backend.models.shared import Metadata
@@ -18,7 +19,9 @@ from backend.models.shared import Metadata
 router = APIRouter(prefix="/boards", tags=["Board"])
 
 @router.get("/", status_code=200)
+@limit("board")
 def get_boards(
+    request: Request,
     session: DBSession, # type: ignore
     account: OptionalAccount = None
 ) -> BoardCollection:
@@ -30,7 +33,9 @@ def get_boards(
     )
 
 @router.get("/editable", status_code=200)
+@limit("board")
 def get_editable_boards(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP
 ) -> BoardCollection:
@@ -42,7 +47,9 @@ def get_editable_boards(
     )
 
 @router.post("/", status_code=201, response_model=Board)
+@limit("board")
 def create_board(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     config: BoardCreate
@@ -53,7 +60,9 @@ def create_board(
 # Other routes should not be accessed by the user directly so should only depend on ID
 
 @router.get("/{board_id:uuid}/", status_code=200, response_model=Board)
+@limit("board")
 def get_board(
+    request: Request,
     session: DBSession, # type: ignore
     board_id: UUID,
     account: OptionalAccount = None
@@ -62,7 +71,9 @@ def get_board(
     return boards_db.get_for_viewer(session, str(board_id), account)
 
 @router.get("/{username}-{identifier}/", status_code=200, response_model=Board)
+@limit("board")
 def get_board_by_name_and_id(
+    request: Request,
     session: DBSession, # type: ignore
     username: str,
     identifier: str,
@@ -72,7 +83,9 @@ def get_board_by_name_and_id(
     return boards_db.get_by_name_identifier(session, username, identifier, account)
 
 @router.put("/{board_id}/", status_code=200, response_model=Board)
+@limit("board")
 def update_board(
+    request: Request,
     session: DBSession, # type: ignore
     board_id: UUID,
     pdp: BoardPDP,
@@ -82,7 +95,9 @@ def update_board(
     return boards_db.update(session, pdp, str(board_id), config)
 
 @router.delete("/{board_id}/", status_code=204)
+@limit("board", no_content=True)
 def delete_board(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
@@ -91,7 +106,9 @@ def delete_board(
     boards_db.delete(session, pdp, str(board_id))
 
 @router.get("/{board_id}/editors", status_code=200, response_model=AccountCollection)
+@limit("board")
 def get_editors(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
@@ -104,7 +121,9 @@ def get_editors(
     )
 
 @router.post("/{board_id}/editors", status_code=204, response_model=None)
+@limit("board", no_content=True)
 def add_editor(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
@@ -114,7 +133,9 @@ def add_editor(
     boards_db.invite_editor(session, pdp, str(board_id), invitation)
 
 @router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=AccountCollection)
+@limit("board")
 def remove_editor(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
@@ -128,7 +149,9 @@ def remove_editor(
     )
 
 @router.post("/{board_id}/transfer", status_code=200, response_model=Board)
+@limit("board")
 def transfer_board(
+    request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
@@ -138,7 +161,9 @@ def transfer_board(
     return boards_db.transfer_board(session, pdp, str(board_id), transfer)
 
 @router.post("/accept-invite/{invitation:uuid}", status_code=200, response_model=Board)
+@limit("from_email")
 def transfer_board(
+    request: Request,
     session: DBSession, # type: ignore
     invitation: UUID,
 ) -> DBBoard:

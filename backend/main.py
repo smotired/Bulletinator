@@ -64,6 +64,7 @@ def status():
     return { "message": "Hello World!" }
 
 @app.get('/favicon.ico', include_in_schema=False)
+@limit("forced")
 async def favicon():
     return FileResponse(path.join(settings.assets_folder_path, 'favicon.ico'))
 

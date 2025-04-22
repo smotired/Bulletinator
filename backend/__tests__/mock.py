@@ -35,3 +35,17 @@ OFFSETS = {
     'report': 6000,
     'permission': 500
 }
+
+# Essentially turn off rate limits
+KEY_LIMITS = {
+    "forced": (100, 1),
+    "main": (100, 1),
+    "auth": (100, 1),
+    "account": (100, 1),
+    "from_email": (100, 1),
+    "board": (100, 1),
+    "board_action": (100, 1),
+    "submit_report": (100, 1),
+    "media": (100, 1),
+    "static": (100, 1),
+}

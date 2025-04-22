@@ -15,7 +15,7 @@ from PIL import Image
 import os
 from random import random
 
-from backend.utils import email_handler
+from backend.utils import email_handler, rate_limiter
 
 # Essential fixtures
 
@@ -39,6 +39,7 @@ def client(session, monkeypatch):
     monkeypatch.setattr(auth, "check_password", mock.check_password)
     monkeypatch.setattr(email_handler, "send_verification_email", lambda a, v: mock.black_hole)
     monkeypatch.setattr(email_handler, "send_editor_invitation_email", lambda v, i, e: mock.black_hole)
+    monkeypatch.setattr(rate_limiter, 'KEY_LIMITS', mock.KEY_LIMITS)
     
     # set up the client
     app.dependency_overrides[get_session] = lambda: session

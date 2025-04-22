@@ -26,10 +26,6 @@ USAGE = {}
 
 # Decorator to take in the key
 def limit(key: str = "main", *, no_content: bool = False, is_async = False):
-    # Extract actual parameters
-    if key not in KEY_LIMITS:
-        raise ValueError(f"Unrecognized key {key}")
-    count, window_size = KEY_LIMITS[key]
     return_type = None if no_content else Any
 
     # Nested decorator that takes the actual request function
@@ -38,6 +34,11 @@ def limit(key: str = "main", *, no_content: bool = False, is_async = False):
         # Call the route function if this host has not exceeded the window
         @functools.wraps(route_function)
         async def limiter(request: Request, *args, **kwargs) -> return_type: # type: ignore
+            # Extract actual limits
+            if key not in KEY_LIMITS:
+                raise ValueError(f"Unrecognized key {key}")
+            count, window_size = KEY_LIMITS[key]
+
             host: str = request.client.host
             time: int = datetime.now(UTC).timestamp()
 
@@ -56,13 +57,13 @@ def limit(key: str = "main", *, no_content: bool = False, is_async = False):
 
                 # If the limit has been exceeded, throw an error
                 if (len(window) > count):
+                    print(f"Window Size: {window_size}\tWindow Count: {count}\tCurrent Count: {len(window)}")
                     raise TooManyRequests()
 
             # Proceed to the actual route function, making sure to return a 204 if applicable
             result: Any = await route_function(request, *args, **kwargs) if is_async else route_function(request, *args, **kwargs)
-            if result is None and no_content:
-                return Response(status_code=204)
-            return result
+            if not no_content:
+                return result
 
         return limiter
     return decorator

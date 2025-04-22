@@ -69,7 +69,7 @@ def create_report(
     pdp.ensure_create()
     report = DBReport(
         account_id=pdp.account.id,
-        **config,
+        **config.model_dump(),
     )
     session.add(report)
     session.commit()
@@ -86,7 +86,7 @@ def update_report(
     report: DBReport = get_by_id(session, report_id)
     pdp.ensure_update(report_id)
     if config.report_text is not None:
-        report.report_text = config.text
+        report.report_text = config.report_text
     session.add(report)
     session.commit()
     session.refresh(report)
@@ -133,8 +133,8 @@ def update_assignee(
     """Updates assignee and returns a report."""
     report: DBReport = get_by_id(session, report_id)
     pdp.ensure_manage_assignee(report_id)
-    assignee: DBAccount = accounts_db.get_by_id(assignee_id)
-    ReportPolicyDecisionPoint(session, assignee_id).ensure_become_assignee(report_id)
+    assignee: DBAccount = accounts_db.get_by_id(session, assignee_id)
+    ReportPolicyDecisionPoint(session, assignee).ensure_become_assignee(report_id)
     # Set the assignee
     report.moderator_id = assignee_id
     # Update status if applicable

@@ -19,25 +19,17 @@ router = APIRouter(
 def get_submitted(
     session: DBSession, # type: ignore
     pdp: ReportPDP,
-) -> ReportCollection:
+) -> list[DBReport]:
     """Returns a list of reports submitted by this user, sorted by most recent."""
-    reports: list[DBReport] = reports_db.get_submitted(session, pdp)
-    return ReportCollection(
-        metadata=Metadata(count=len(reports)),
-        reports=reports
-    )
+    return reports_db.get_submitted(session, pdp)
 
 @router.get("/all", status_code=200, response_model=ReportCollection)
 def get_reports(
     session: DBSession, # type: ignore
     pdp: ReportPDP,
-) -> ReportCollection:
+) -> list[DBReport]:
     """Returns a list of all reports sorted by most recent."""
-    reports: list[DBReport] = reports_db.get_all(session, pdp)
-    return ReportCollection(
-        metadata=Metadata(count=len(reports)),
-        reports=reports
-    )
+    return reports_db.get_all(session, pdp)
 
 @router.get("/assigned", status_code=200, response_model=ReportCollection)
 def get_assigned(
@@ -45,11 +37,7 @@ def get_assigned(
     pdp: ReportPDP,
 ) -> ReportCollection:
     """Returns a list of reports assigned to this account, sorted by most recent."""
-    reports: list[DBReport] = reports_db.get_assigned(session, pdp)
-    return ReportCollection(
-        metadata=Metadata(count=len(reports)),
-        reports=reports
-    )
+    return reports_db.get_assigned(session, pdp)
 
 @router.post("/", status_code=201, response_model=Report)
 def submit_report(
@@ -59,6 +47,15 @@ def submit_report(
 ) -> DBReport:
     """Submits and returns a report."""
     return reports_db.create_report(session, pdp, config)
+
+@router.get("/{report_id}", status_code=200, response_model=Report)
+def get_report(
+    session: DBSession, # type: ignore
+    pdp: ReportPDP,
+    report_id: UUID,
+) -> DBReport:
+    """Finds and returns a report."""
+    return reports_db.get_report(session, pdp, str(report_id))
 
 @router.put("/{report_id}", status_code=200, response_model=Report)
 def update_report(
@@ -80,7 +77,7 @@ def update_status(
     """Updates and returns a report as a moderator."""
     return reports_db.update_report_status(session, pdp, str(report_id), config)
 
-@router.delete("/", status_code=204, response_model=None)
+@router.delete("/{report_id}", status_code=204, response_model=None)
 def delete_report(
     session: DBSession, # type: ignore
     pdp: ReportPDP,

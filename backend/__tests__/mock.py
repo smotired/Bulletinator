@@ -32,5 +32,6 @@ OFFSETS = {
     'sub_item': 3000,
     'pin': 4000,
     'media': 5000,
+    'report': 6000,
     'permission': 500
 }

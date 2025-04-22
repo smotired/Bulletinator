@@ -185,18 +185,27 @@ class ReportPolicyDecisionPoint(PolicyDecisionPoint):
 
     def ensure_update(self, target_id): # To update basic information, be the report submitter
         if not self.pip.is_report_submitter(target_id):
-            raise NoPermissions('update report', 'report', target_id)
+            if self.pip.is_app_staff():
+                raise NoPermissions('update report', 'report', target_id)
+            raise EntityNotFound('report', 'id', target_id)
         
     def ensure_update_status(self, target_id): # To update status must be assignee
         if not self.pip.is_report_assignee(target_id):
-            raise NoPermissions('update report', 'report', target_id)
+            if not self.pip.is_app_staff() and not self.pip.is_report_submitter(target_id):
+                raise EntityNotFound('report', 'id', target_id)
+            raise NoPermissions('update report status', 'report', target_id)
 
     def ensure_delete(self, target_id): # Must be the account owner or a staff member
-        if self.account.id != target_id and not self.pip.is_app_staff():
-            raise NoPermissions('delete report', 'report', target_id)
+        report: DBReport | None = self.session.get(DBReport, target_id)
+        if report is None:
+            raise EntityNotFound("report", "id", target_id)
+        if self.account.id != report.account_id and not self.pip.is_app_staff():
+            raise EntityNotFound("report", "id", target_id)
         
     def ensure_manage_assignee(self, target_id): # Must be a staff member
         if not self.pip.is_app_staff():
+            if not self.pip.is_report_submitter(target_id):
+                raise EntityNotFound('report', 'id', target_id)
             raise NoPermissions('manage assignee', 'report', target_id)
         
     def ensure_become_assignee(self, target_id): # Must be a staff member

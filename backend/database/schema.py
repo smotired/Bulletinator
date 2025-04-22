@@ -43,6 +43,7 @@ class DBAccount(Base):
         - editable: Board, many-to-many
         - uploaded: Image, one-to-many
         - permission: Permission, one-to-one
+        - customer: Customer, one-to-one
         - email_verification: EmailVerification, one-to-one
         - reports: Report, one-to-many
     """
@@ -62,6 +63,7 @@ class DBAccount(Base):
     editable: Mapped[List["DBBoard"]] = relationship( secondary=editor_table, back_populates="editors" )
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
     permission: Mapped["DBPermission"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
+    customer: Mapped["DBCustomer"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
     email_verification: Mapped["DBEmailVerification"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
     reports: Mapped[List["DBReport"]] = relationship(back_populates="account", foreign_keys="DBReport.account_id", cascade="all, delete-orphan")
 
@@ -408,6 +410,29 @@ class DBPermission(Base):
 
     account: Mapped["DBAccount"] = relationship(back_populates="permission", foreign_keys="DBPermission.account_id")
     assigned_reports: Mapped[List["DBReport"]] = relationship(back_populates="moderator", foreign_keys="DBReport.moderator_id")
+
+class DBCustomer(Base):
+    """Represents an account's purchase object.
+    
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): UUID of the associated account
+        - stripe_id (str): ID of the stripe customer (dunno if this is necessary)
+        - type (str): Type of subscription, e.g. free, recurring, lifetime
+        - expiration (datetime): Time at which their subscription expires, where they should go back to being a free tier user
+
+    Relationships:
+        - account (DBAccount, one-to-one): The account object
+    """
+    __tablename__ = "customers"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    stripe_id: Mapped[str] = mapped_column(String(64))
+    type: Mapped[str] = mapped_column(String(32), default="free")
+    expiration: Mapped[str] = mapped_column(DateTime)
+
+    account: Mapped["DBAccount"] = relationship(back_populates="customer", foreign_keys="DBCustomer.account_id")
     
 class DBEmailVerification(Base):
     """Represents an email verification request. If an account has this object associated with it, it means they haven't verified their email account and should be notified of that.

@@ -13,10 +13,9 @@ def test_upload_image(client, monkeypatch, auth_headers, create_image, static_pa
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(600, 600)
     buffer = BytesIO()
@@ -37,7 +36,7 @@ def test_upload_image(client, monkeypatch, auth_headers, create_image, static_pa
     }
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((599,0)) == (255, 255, 255)
     assert image.getpixel((0,599)) == (255, 255, 255)
@@ -50,10 +49,9 @@ def test_upload_image_unauthenticated(client, monkeypatch, create_image, static_
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(100, 100)
     buffer = BytesIO()
@@ -77,10 +75,9 @@ def test_upload_toobig_image(client, monkeypatch, auth_headers, create_image, st
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(800, 800, True)
     buffer = BytesIO()
@@ -105,10 +102,9 @@ def test_upload_image_oversize(client, monkeypatch, auth_headers, create_image, 
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(900, 900)
     buffer = BytesIO()
@@ -129,7 +125,7 @@ def test_upload_image_oversize(client, monkeypatch, auth_headers, create_image, 
     }
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((599,0)) == (255, 255, 255)
     assert image.getpixel((0,599)) == (255, 255, 255)
@@ -142,10 +138,9 @@ def test_upload_image_oversize_x(client, monkeypatch, auth_headers, create_image
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(900, 600)
     buffer = BytesIO()
@@ -166,7 +161,7 @@ def test_upload_image_oversize_x(client, monkeypatch, auth_headers, create_image
     }
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((599,0)) == (255, 255, 255)
     assert image.getpixel((0,399)) == (255, 255, 255)
@@ -179,10 +174,9 @@ def test_upload_image_oversize_y(client, monkeypatch, auth_headers, create_image
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(600, 900)
     buffer = BytesIO()
@@ -203,7 +197,7 @@ def test_upload_image_oversize_y(client, monkeypatch, auth_headers, create_image
     }
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((399,0)) == (255, 255, 255)
     assert image.getpixel((0,599)) == (255, 255, 255)
@@ -216,10 +210,9 @@ def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_p
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(64, 64)
     buffer = BytesIO()
@@ -239,7 +232,7 @@ def test_upload_avatar(client, monkeypatch, auth_headers, create_image, static_p
     assert response.json() == expected
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((63,0)) == (255, 255, 255)
     assert image.getpixel((0,63)) == (255, 255, 255)
@@ -252,10 +245,9 @@ def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image,
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(96, 96)
     buffer = BytesIO()
@@ -275,7 +267,7 @@ def test_upload_avatar_oversize(client, monkeypatch, auth_headers, create_image,
     assert response.json() == expected
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((63,0)) == (255, 255, 255)
     assert image.getpixel((0,63)) == (255, 255, 255)
@@ -288,10 +280,9 @@ def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_imag
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(96, 64)
     buffer = BytesIO()
@@ -311,7 +302,7 @@ def test_upload_avatar_oversize_x(client, monkeypatch, auth_headers, create_imag
     assert response.json() == expected
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((95,0)) == (255, 255, 255)
     assert image.getpixel((0,63)) == (255, 255, 255)
@@ -324,10 +315,9 @@ def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_imag
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(64, 96)
     buffer = BytesIO()
@@ -347,7 +337,7 @@ def test_upload_avatar_oversize_y(client, monkeypatch, auth_headers, create_imag
     assert response.json() == expected
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (255, 255, 255)
     assert image.getpixel((63,0)) == (255, 255, 255)
     assert image.getpixel((0,95)) == (255, 255, 255)
@@ -360,10 +350,9 @@ def test_upload_image_jpg(client, monkeypatch, auth_headers, create_image, stati
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(200, 200)
     buffer = BytesIO()
@@ -384,7 +373,7 @@ def test_upload_image_jpg(client, monkeypatch, auth_headers, create_image, stati
     }
     assert response.status_code == 201
     # assert that the image was created correctly
-    image = Image.open(os.path.join(static_path, 'images', filename))
+    image = Image.open(filepath)
     assert image.getpixel((0,0)) == (245, 245, 245) # jpeg compression is weird but consistent
     assert image.getpixel((199,0)) == (245, 245, 245)
     assert image.getpixel((0,199)) == (245, 245, 245)
@@ -398,10 +387,9 @@ def test_delete_image(client, monkeypatch, auth_headers, create_image, static_pa
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(200, 200)
     buffer = BytesIO()
@@ -426,12 +414,7 @@ def test_delete_image(client, monkeypatch, auth_headers, create_image, static_pa
     response = client.delete(f"/media/images/{id}", headers=auth_headers(1))
     assert response.status_code == 204
     # make sure the file disappears
-    raised = False
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        raised = True
-    assert raised
+    assert not os.path.exists(filepath)
 
 def test_delete_image_unauthorized(client, monkeypatch, auth_headers, create_image, static_path, exception):
     id = 'test_delete_image_unauthorized'
@@ -441,10 +424,9 @@ def test_delete_image_unauthorized(client, monkeypatch, auth_headers, create_ima
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(200, 200)
     buffer = BytesIO()
@@ -470,12 +452,7 @@ def test_delete_image_unauthorized(client, monkeypatch, auth_headers, create_ima
     assert response.json() == exception("access_denied", "Access denied")
     assert response.status_code == 403
     # make sure the file does not disappear
-    safe = True
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        safe = False
-    assert safe
+    assert os.path.exists(filepath)
 
 def test_get_account_images(client, monkeypatch, auth_headers, create_image, static_path):
     id = 'test_get_account_images'
@@ -485,10 +462,9 @@ def test_get_account_images(client, monkeypatch, auth_headers, create_image, sta
     monkeypatch.setattr(uuid, 'uuid4', lambda: id)
     monkeypatch.setattr(settings, 'static_path', static_path)
     # delete the image if it exists
-    try:
-        os.remove(os.path.join(static_path, 'images', filename))
-    except OSError:
-        pass
+    filepath = os.path.join(static_path, 'images', filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
     # create an image
     image: Image = create_image(600, 600)
     buffer = BytesIO()

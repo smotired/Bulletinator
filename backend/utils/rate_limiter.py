@@ -57,7 +57,6 @@ def limit(key: str = "main", *, no_content: bool = False, is_async = False):
 
                 # If the limit has been exceeded, throw an error
                 if (len(window) > count):
-                    print(f"Window Size: {window_size}\tWindow Count: {count}\tCurrent Count: {len(window)}")
                     raise TooManyRequests()
 
             # Proceed to the actual route function, making sure to return a 204 if applicable

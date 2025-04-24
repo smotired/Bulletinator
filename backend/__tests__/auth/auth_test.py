@@ -196,11 +196,11 @@ def test_access_token_expiration(client, monkeypatch, auth_headers, exception):
 
 def test_refresh_access_token(client, monkeypatch, login, exception, get_account):
     # make access tokens expire immediately after issuance
-    monkeypatch.setattr(settings, 'jwt_access_duration', 0)
+    monkeypatch.setattr(settings, 'jwt_access_duration', 1)
     # Log in and get access to the refresh token
     response = login(client, 1)
     # Wait 1 second and try accessing something
-    sleep(1)
+    sleep(2)
     response = client.get("/accounts/me")
     assert response.json() == exception("invalid_access_token", "Authentication failed: Access token expired or was invalid")
     assert response.status_code == 401

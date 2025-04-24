@@ -24,6 +24,7 @@ class BoardCreate(BaseModel):
     name: str
     icon: str = "default"
     public: bool = False
+    reference_id: str | None = None # ID of the board to copy editors to
     
 class BoardUpdate(BaseModel):
     """Request model for updating a board"""

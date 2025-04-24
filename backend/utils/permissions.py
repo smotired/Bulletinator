@@ -164,6 +164,14 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_editor(board):
             raise InvalidOperation(f"Cannot transfer board with id={target_id} to account with id={self.account.id}")
+        
+    def ensure_reference(self, target_id): # Can reference this board when creating a new board if they are an editor or owner on this board
+        if self.pip.is_app_staff():
+            return # staff users automatically get permissions
+        self.ensure_read(target_id)
+        board: DBBoard = self.session.get(DBBoard, target_id)
+        if not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
+            raise NoPermissions("reference board", "board", target_id)
 
 class ReportPolicyDecisionPoint(PolicyDecisionPoint):
     """Handles permissions for user reports"""

@@ -94,13 +94,23 @@ def create(session: DBSession, pdp: BoardPolicyDecisionPoint, config: BoardCreat
         raise FieldTooLong('name')
     if len(config.icon) > 64:
         raise FieldTooLong('icon')
+    # Try adding editors from the reference board
+    editors = []
+    if config.reference_id is not None:
+        reference = get_by_id(session, config.reference_id)
+        pdp.ensure_reference(config.reference_id)
+        # Allow everyone who can edit the old board to edit this board, without sending an invitation.
+        editors = [ editor for editor in reference.editors if editor.id != pdp.account.id ]
+        if reference.owner_id != pdp.account.id:
+            editors.append(reference.owner)
     # Add it
     new_board = DBBoard(
         identifier = identifier,
         name=config.name,
         icon=config.icon,
         public=config.public,
-        owner=pdp.account
+        owner=pdp.account,
+        editors=editors
     )
     session.add(new_board)
     session.commit()

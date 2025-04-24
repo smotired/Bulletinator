@@ -385,3 +385,81 @@ def test_transfer_to_self(client, auth_headers, exception):
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/transfer", headers=auth_headers(1), json={"account_id": mock.to_uuid(1, 'account')})
     assert response.json() == exception("invalid_operation", f"Cannot transfer board with id={mock.to_uuid(1, 'board')} to account with id={mock.to_uuid(1, 'account')}")
     assert response.status_code == 422
+
+def test_create_with_reference(client, auth_headers, boards, get_response_account):
+    data = {
+        "name": "referencer",
+        "reference_id": mock.to_uuid(1, 'board'),
+    }
+    mock.last_uuid = mock.OFFSETS['board'] + len(boards)
+    response = client.post("/boards", headers=auth_headers(1), json=data)
+    assert response.json() == {
+        "id": mock.to_uuid(len(boards)+1, 'board'),
+        "identifier": "referencer",
+        "name": "referencer",
+        "icon": "default",
+        "owner_id": mock.to_uuid(1, 'account'),
+        "public": False,
+    }
+    assert response.status_code == 201
+    # Make sure editors can automatically edit the new board
+    response = client.get(f"/boards/{mock.to_uuid(len(boards)+1, 'board')}/editors", headers=auth_headers(1))
+    assert response.json() == {
+        "metadata": { "count": 1 },
+        "accounts": [ get_response_account(2) ],
+    }
+    assert response.status_code == 200
+
+def test_create_with_reference_as_editor(client, auth_headers, boards, get_response_account):
+    data = {
+        "name": "referencer",
+        "reference_id": mock.to_uuid(1, 'board'),
+    }
+    mock.last_uuid = mock.OFFSETS['board'] + len(boards)
+    response = client.post("/boards", headers=auth_headers(2), json=data)
+    assert response.json() == {
+        "id": mock.to_uuid(len(boards)+1, 'board'),
+        "identifier": "referencer",
+        "name": "referencer",
+        "icon": "default",
+        "owner_id": mock.to_uuid(2, 'account'),
+        "public": False,
+    }
+    assert response.status_code == 201
+    # Make sure owner of the reference board can automatically edit the new board
+    response = client.get(f"/boards/{mock.to_uuid(len(boards)+1, 'board')}/editors", headers=auth_headers(2))
+    assert response.json() == {
+        "metadata": { "count": 1 },
+        "accounts": [ get_response_account(1) ],
+    }
+    assert response.status_code == 200
+
+def test_create_with_reference_as_non_editor(client, auth_headers, boards, exception):
+    data = {
+        "name": "referencer",
+        "reference_id": mock.to_uuid(1, 'board'),
+    }
+    mock.last_uuid = mock.OFFSETS['board'] + len(boards)
+    response = client.post("/boards", headers=auth_headers(3), json=data)
+    assert response.json() == exception("no_permissions", f"No permissions to reference board on board with id={data['reference_id']}")
+    assert response.status_code == 403
+
+def test_create_with_reference_private_unauth(client, auth_headers, boards, exception):
+    data = {
+        "name": "referencer",
+        "reference_id": mock.to_uuid(3, 'board'),
+    }
+    mock.last_uuid = mock.OFFSETS['board'] + len(boards)
+    response = client.post("/boards", headers=auth_headers(4), json=data)
+    assert response.json() == exception("entity_not_found", f"Unable to find board with id={data['reference_id']}")
+    assert response.status_code == 404
+
+def test_create_with_reference_nonexistent(client, auth_headers, boards, exception):
+    data = {
+        "name": "referencer",
+        "reference_id": mock.to_uuid(404, 'board'),
+    }
+    mock.last_uuid = mock.OFFSETS['board'] + len(boards)
+    response = client.post("/boards", headers=auth_headers(4), json=data)
+    assert response.json() == exception("entity_not_found", f"Unable to find board with id={data['reference_id']}")
+    assert response.status_code == 404

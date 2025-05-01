@@ -18,7 +18,7 @@ class CheckoutRequest(BaseModel):
     price_id: str # ID of the Stripe Price object
 
 class CheckoutSession(BaseModel):
-    session_id: str
+    url: str
 
 class BillingPortal(BaseModel):
     url: str
@@ -57,7 +57,7 @@ def create_checkout_session(
         }],
         metadata={ "account_id": account.id }
     )
-    return CheckoutSession(session_id=checkout_session['id'])
+    return CheckoutSession(url=checkout_session['url'])
 
 @router.post("/portal", response_model=BillingPortal, status_code=201)
 @limit('account')
@@ -92,7 +92,7 @@ async def handle_stripe_webhook(
     
     # Handle the event
     # TODO: Maybe do this asynchronously
-    type, data = event['type'], event['data']
+    type, data = event['type'], event['data']['object']
 
     # Completed checkout
     if type == 'checkout.session.completed':
@@ -124,5 +124,7 @@ async def handle_stripe_webhook(
 
     else:
         print(f"Unhandled event: {type}")
+
+    print(data)
 
     return Success()

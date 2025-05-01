@@ -27,7 +27,7 @@ class BillingPortal(BaseModel):
 
 router = APIRouter(prefix="/stripe", tags=["Stripe"])
 
-@router.post("/session", response_model=CheckoutSession, status_code=201)
+@router.post("/checkout", response_model=CheckoutSession, status_code=201)
 @limit('stripe')
 def create_checkout_session(
     request: Request,

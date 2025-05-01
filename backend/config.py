@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     app_title: str
     app_description: str
+    app_domain: str
 
     db_url: str
     db_sqlite: bool
@@ -25,7 +26,6 @@ class Settings(BaseSettings):
     jwt_refresh_cookie_key: str
     jwt_access_duration: int
     jwt_refresh_duration: int
-    jwt_issuer: str
     jwt_secret_key: str = "jwt-secret-key-dev"
     cookie_max_age: int
 
@@ -59,7 +59,7 @@ def get_settings() -> Settings:
         jwt_refresh_cookie_key="bulletinator_refresh_token",
         jwt_access_duration=900,
         jwt_refresh_duration=3600*24*14,
-        jwt_issuer="http://127.0.0.1",
+        app_domain="http://127.0.0.1",
         cookie_max_age=3600*24*14,
 
         email_verification_duration=3600*24, # Should expire after 24 hours

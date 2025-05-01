@@ -271,7 +271,7 @@ def _generate_access_payload(account: DBAccount) -> AccessPayload:
     # Create the token
     return AccessPayload(
         sub=str(account.id),
-        iss=settings.jwt_issuer,
+        iss=settings.app_domain,
         iat=iat,
         exp=exp
     )
@@ -323,7 +323,7 @@ def _generate_refresh_payload(session: DBSession, account: DBAccount) -> Refresh
     return RefreshPayload(
         sub=str(account.id),
         uid=uid,
-        iss=settings.jwt_issuer,
+        iss=settings.app_domain,
         iat=iat,
         exp=exp
     )

@@ -3,11 +3,12 @@ import re
 from json import dumps
 
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBEmailVerification, DBAuthEvent
+from backend.database.schema import DBAccount, DBCustomer, DBEmailVerification, DBAuthEvent
 from backend.exceptions import *
 
 from backend import auth
 from backend.utils import email_handler
+from backend.utils import stripe
 from backend.models.accounts import AccountUpdate, AuthenticatedAccount
 
 # Account creation logic will be handled only by authentication module
@@ -18,6 +19,13 @@ def get_by_id(session: DBSession, account_id: str) -> DBAccount: # type: ignore
     if account is None:
         raise EntityNotFound("account", "id", account_id)
     return account
+
+def get_by_stripe_id(session: DBSession, stripe_id: str) -> DBCustomer: # type: ignore
+    """Retrieve customer object by stripe ID"""
+    customer: DBCustomer = session.get(DBCustomer, stripe_id)
+    if customer is None:
+        raise EntityNotFound("customer", "stripe_id", stripe_id)
+    return customer
 
 def get_by_email(session: DBSession, email: str) -> DBAccount | None: # type: ignore
     """Retrieve account by email"""
@@ -105,6 +113,7 @@ def update(host: str, session: DBSession, account: DBAccount, update: AccountUpd
 
 def delete(host: str, session: DBSession, account: DBAccount) -> None: # type: ignore
     """Delete an account and log an event"""
+    stripe.delete_customer(account.customer)
     session.delete(account)
     event = DBAuthEvent(account_id=account.id, event_type="deletion", host=host, detail=dumps(AuthenticatedAccount.model_validate(account.__dict__).model_dump()))
     session.add(event)

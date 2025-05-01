@@ -3,9 +3,12 @@
 import stripe
 from fastapi import APIRouter, Request, Header
 from pydantic import BaseModel
+from datetime import datetime, UTC
 
 from backend.config import settings
 from backend.dependencies import DBSession, CurrentAccount
+from backend.database.schema import DBCustomer
+from backend.database import accounts as accounts_db
 from backend.utils.rate_limiter import limit
 from backend.models.shared import Success
 from backend.exceptions import *
@@ -91,32 +94,79 @@ async def handle_stripe_webhook(
         raise WebhookError(str(e))
     
     # Handle the event
-    # TODO: Maybe do this asynchronously
+    # TODO: Maybe do this asynchronously so we can return the 200 more quickly, but none of this should take long
     type, data = event['type'], event['data']['object']
 
-    # Completed checkout
-    if type == 'checkout.session.completed':
-        print(type)
-
     # Subscription renewal
-    elif type == 'invoice.paid':
-        print(type)
+    if type == 'invoice.paid':
+        # Extract relevant info
+        customer_id = data['customer']
+        purchase = data['lines']['data'][0]
+        key, exp = purchase['price']['lookup_key'], purchase['period']['end']
+        exp = datetime.fromtimestamp(exp).astimezone(UTC)
+
+        # Update the customer in the database
+        customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+        customer.type = "active"
+        customer.expiration = exp
+        session.add(customer)
+        session.commit()
+
+        # TODO: Send confirmation email
 
     # Subscription renewal failure
     elif type == 'invoice.payment_failed':
-        print(type)
+        # Extract relevant info
+        customer_id = data['customer']
+
+        # Update the customer in the database. Mark them as inactive.
+        customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+        customer.type = "inactive" if customer.type == "active" else customer.type
+        session.add(customer)
+        session.commit()
+
+        # TODO: Send the customer an email letting them know of the failure.
 
     # Subscription cancellation
     elif type == 'customer.subscription.deleted':
-        print(type)
+        # Extract relevant info
+        customer_id = data['customer']
+
+        # Update the customer in the database. Mark it as terminated.
+        customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+        customer.type = "terminated" if customer.type == "active" else customer.type
+        session.add(customer)
+        session.commit()
+
+        # TODO: Send a "Sorry to see you go!" email as confirmation.
 
     # Subscription pause
     elif type == 'customer.subscription.paused':
-        print(type)
+        # Extract relevant info
+        customer_id = data['customer']
 
-    # Customer deletion (just set customer_id to null, but don't necessarily)
+        # Update the customer in the database. Mark it as terminated.
+        customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+        customer.type = "terminated" if customer.type == "active" else customer.type
+        session.add(customer)
+        session.commit()
+
+        # TODO: Send confirmation email
+
+    # Customer deletion (just set customer_id to null, but don't necessarily revoke permissions)
     elif type == 'customer.deleted':
-        print(type)
+        # Extract relevant info
+        customer_id = data['id']
+
+        # Update the customer in the database. If they have an active subscription, mark it as terminated.
+        try:
+            customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+            customer.type = "terminated" if customer.type == "active" else customer.type
+            customer.stripe_id = None
+            session.add(customer)
+            session.commit()
+        except EntityNotFound as e: # If this was triggered by an account deletion, do nothing
+            pass
 
     # Things to possibly handle in the future:
     # - Charge disputes?
@@ -125,6 +175,12 @@ async def handle_stripe_webhook(
     else:
         print(f"Unhandled event: {type}")
 
-    print(data)
-
     return Success()
+
+# Non-route function to delete a customer. For when a user deletes their account.
+def delete_customer(
+    customer: DBCustomer,
+) -> None:
+    """Delete a Stripe customer"""
+    if customer.stripe_id is not None:
+        stripe.Customer.delete(customer.stripe_id)

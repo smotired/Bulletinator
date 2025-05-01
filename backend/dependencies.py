@@ -17,7 +17,7 @@ from datetime import datetime, UTC, timedelta
 from fastapi import Depends, Response
 from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
-from sqlalchemy import create_engine, text, delete
+from sqlalchemy import create_engine, text, select, delete
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import settings
@@ -72,6 +72,29 @@ def cleanup_db():
         # Remove auth events older than 30 days
         statement = delete(DBAuthEvent).where(DBAuthEvent.timestamp < (datetime.now(UTC).replace(tzinfo=None) - timedelta(30)))
         session.execute(statement)
+        session.commit()
+        # Downgrade expired active subscriptions to inactive
+        statement = select(DBCustomer).where(DBCustomer.type == "active").where(DBCustomer.expiration < datetime.now(UTC).replace(tzinfo=None))
+        results: list[DBCustomer] = list( session.execute(statement).scalars().all() )
+        for customer in results:
+            customer.type = "inactive"
+            session.add(customer)
+        session.commit()
+        # Downgrade expired+7 days inactive subscriptions to free
+        statement = select(DBCustomer).where(DBCustomer.type == "inactive").where(DBCustomer.expiration < (datetime.now(UTC).replace(tzinfo=None) - timedelta(7)))
+        results: list[DBCustomer] = list( session.execute(statement).scalars().all() )
+        for customer in results:
+            customer.type = "free"
+            customer.expiration = None
+            session.add(customer)
+        session.commit()
+        # Downgrade terminated subscriptions to free
+        statement = select(DBCustomer).where(DBCustomer.type == "terminated").where(DBCustomer.expiration < datetime.now(UTC).replace(tzinfo=None))
+        results: list[DBCustomer] = list( session.execute(statement).scalars().all() )
+        for customer in results:
+            customer.type = "free"
+            customer.expiration = None
+            session.add(customer)
         session.commit()
 
 # Authentication Functions

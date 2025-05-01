@@ -106,11 +106,35 @@ def create_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str
 
 def update_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, item_id: str, config: ItemUpdate) -> DBItem: # type: ignore
     """Updates an item."""
+    lists_to_collapse: list[DBItemList] = [] # lists that had things removed or swapped around and should be collapsed after items are updated
     # Make sure the account can edit this board, and the item exists and is on this board.
     pdp.ensure_modify(board_id)
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
+    # Handle moving to another board
+    if config.board_id is not None and config.board_id != item.board_id:
+        # Make sure the account can edit the other board
+        pdp.ensure_modify(config.board_id)
+        other = boards_db.get_by_id(session, config.board_id)
+        # Make sure we aren't also trying to add it to a list
+        if config.list_id is not None or config.index is not None:
+            raise InvalidOperation(f"Cannot move item between boards while modifying list position")
+        # Remove the item from any parent list, remove any pin connections, and zero-out position if not provided.
+        if item.list_id is not None:
+            lists_to_collapse.append(item.list)
+        item.list_id = None
+        item.index = None
+        item.position = config.position if config.position is not None else "0,0"
+        # Move to the other board
+        item.board_id = other.id
+        if item.pin is not None:
+            for connection in item.pin.connections:
+                connection.connections.remove(item.pin)
+                session.add(connection)
+            item.pin.connections.clear()
+            item.pin.board_id = other.id
+            session.add(item.pin)
     # Update subclass-specific item fields
     if config.text is not None and item.type in [ 'note', 'document' ]:
         if len(config.text) > { 'note': 300, 'document': 65536 }[ item.type ]:
@@ -134,9 +158,8 @@ def update_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str
             raise FieldTooLong('url')
         item.url = config.url
     # Only universal fields that can be updated are position, link and index.
-    lists_to_collapse: list[DBItemList] = [] # lists that had things removed or swapped around and should be collapsed after items are updated
     # If a position is provided, remove from any list.
-    if config.position is not None:
+    if config.position is not None and config.board_id is None: # handle position logic specially if moving between boards
         if item.list:
             lists_to_collapse.append(item.list)
         item.list_id = None

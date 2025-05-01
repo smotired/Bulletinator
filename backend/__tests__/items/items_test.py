@@ -832,3 +832,76 @@ def test_delete_item_private_unauthorized(client, auth_headers, exception, get_i
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/items/{mock.to_uuid(8, 'item')}", headers=auth_headers(3))
     assert response.json() == get_item(8)
     assert response.status_code == 200
+
+def test_move_to_board(client, auth_headers, pins, get_item):
+    """Test for moving an item between boards. To ensure we have the most rigorous test, the item we move will have the following qualifications:
+    - On a board we own
+    - In a list
+    - Has a pin which is connected to something on this board
+    - Moving to a new board, which is private, but that we can edit.
+    - Providing a position
+    We will add and connect a pin to "Board 2 Item" (pin id 3, item id 11, on board 2), authenticate as account 1, and then move it to board 3.
+    """
+    # Add and connect a pin
+    mock.last_uuid = mock.OFFSETS['pin'] + len(pins)
+    response = client.post(f"/boards/{mock.to_uuid(2, 'board')}/items/pins", headers=auth_headers(1), json={ 'item_id': mock.to_uuid(10, 'item') })
+    pin = response.json()
+    assert response.status_code == 201
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/pins/connect?p1={mock.to_uuid(len(pins)+1, 'pin')}&p2={mock.to_uuid(3, 'pin')}", headers=auth_headers(1))
+    assert response.status_code == 200
+    # Move it
+    update = { 'board_id': mock.to_uuid(3, 'board'), "position": "300,200" }
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(10, 'item')}", headers=auth_headers(1), json=update)
+    updated = response.json()
+    assert updated == {
+        **get_item(10),
+        **update,
+        "list_id": None,
+        "index": None,
+        "pin": {
+            **pin,
+            'board_id': mock.to_uuid(3, 'board'),
+            "connections": [],
+        },
+    }
+    assert response.status_code == 200
+    # Make sure it's actually on the new board
+    response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/items", headers=auth_headers(1))
+    assert response.json() == {
+        "metadata": { "count": 2 },
+        "items": [ get_item(8), updated ]
+    }
+    # Make sure the other pin is not connected to anything
+    response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(11, 'item')}", headers=auth_headers(1))
+    assert response.json() == get_item(11) # make sure the connection we added is gone
+
+def test_move_no_position(client, auth_headers, get_item):
+    update = { 'board_id': mock.to_uuid(3, 'board') }
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(10, 'item')}", headers=auth_headers(1), json=update)
+    updated = response.json()
+    assert updated == {
+        **get_item(10),
+        **update,
+        "position": "0,0",
+        "list_id": None,
+        "index": None,
+    }
+    assert response.status_code == 200
+
+def test_move_update_list(client, auth_headers, exception):
+    update = { 'board_id': mock.to_uuid(3, 'board'), "list_id": mock.to_uuid(2, 'item'), 'index': 2 }
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(10, 'item')}", headers=auth_headers(1), json=update)
+    assert response.json() == exception("invalid_operation", "Cannot move item between boards while modifying list position")
+    assert response.status_code == 422
+
+def test_move_to_uneditable(client, auth_headers, exception):
+    update = { 'board_id': mock.to_uuid(1, 'board') }
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(10, 'item')}", headers=auth_headers(3), json=update)
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(1, 'board')}")
+    assert response.status_code == 403
+
+def test_move_from_uneditable(client, auth_headers, exception):
+    update = { 'board_id': mock.to_uuid(1, 'board') }
+    response = client.put(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(10, 'item')}", headers=auth_headers(2), json=update)
+    assert response.json() == exception("no_permissions", f"No permissions to modify board on board with id={mock.to_uuid(2, 'board')}")
+    assert response.status_code == 403

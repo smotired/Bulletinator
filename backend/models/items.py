@@ -31,6 +31,7 @@ class BaseItemCreate(BaseModel):
     
 class BaseItemUpdate(BaseModel):
     """Basic request model for updating an item"""
+    board_id: str | None = None
     position: str | None = None
     list_id: str | None = None
     index: int | None = None

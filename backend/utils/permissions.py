@@ -98,6 +98,8 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         if self.pip.is_app_staff():
             return # staff users automatically get permissions
         board: DBBoard = self.session.get(DBBoard, target_id)
+        if board is None:
+            raise EntityNotFound('board', 'id', target_id)
         if not board.public and not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
             raise EntityNotFound('board', 'id', target_id)
         

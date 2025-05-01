@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     smtp_login: str
     smtp_password: str
 
+    stripe_secret_key: str
+    stripe_webhook_secret: str
+
     static_path: str
     media_img_max_bytes: int
 

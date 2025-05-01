@@ -191,6 +191,12 @@ class FieldTooLong(BadRequestException):
         self.error = "field_too_long"
         self.message = f"Input to field '{field}' exceeded the maximum length"
 
+class WebhookError(BadRequestException):
+    def __init__(self, detail: str):
+        self.status_code = 422
+        self.error = "webhook_error"
+        self.message = f"The webhook payload had an invalid format or signature: {detail}"
+
 class TooManyRequests(BadRequestException):
     def __init__(self):
         self.status_code = 429

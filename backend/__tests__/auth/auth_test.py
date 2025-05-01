@@ -34,7 +34,7 @@ def test_register_account(session, client, form_headers, exception):
     permission = db_account.permission.__dict__.copy()
     del permission['_sa_instance_state']
     assert permission == {
-        "id": mock.to_uuid(102, 'account'),
+        "id": mock.to_uuid(103, 'account'),
         "account_id": mock.to_uuid(101, 'account'),
         "role": "user",
     }
@@ -44,7 +44,7 @@ def test_register_account(session, client, form_headers, exception):
     del email_verification['expires_at']
     del email_verification['_sa_instance_state']
     assert email_verification == {
-        "id": mock.to_uuid(103, 'account'),
+        "id": mock.to_uuid(104, 'account'),
         "account_id": mock.to_uuid(101, 'account'),
         "email": "fred@example.com",
     }

@@ -16,6 +16,7 @@ from backend.exceptions import BadRequestException
 from backend.routers import boards, accounts, items, auth, media, reports
 from backend.config import settings
 from backend.utils.rate_limiter import limit
+from backend.utils import stripe
 
 from os import path
 
@@ -52,7 +53,7 @@ app = FastAPI(
 )
 
 # Set up all of the routers
-for router in [ accounts.router, boards.router, items.router, auth.router, media.router, reports.router ]:
+for router in [ auth.router, accounts.router, boards.router, items.router, media.router, reports.router, stripe.router ]:
     app.include_router(router)
 
 # Basic routes

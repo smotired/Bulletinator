@@ -12,3 +12,7 @@ class Metadata(BaseModel):
     """Used in response models for collections. May have more fields later."""
 
     count: int
+
+class Success(BaseModel):
+    """Response model for a very basic success."""
+    status: str = "success"

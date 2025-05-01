@@ -12,7 +12,7 @@ from json import dumps
 
 from backend.config import settings
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBEmailVerification, DBAuthEvent
+from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBCustomer, DBEmailVerification, DBAuthEvent
 from backend.exceptions import *
 from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
 from backend.models.accounts import AuthenticatedAccount
@@ -101,6 +101,7 @@ def register_account(host: str, session: DBSession, form: Registration) -> DBAcc
     session.commit()
     session.refresh(new_account)
     new_account.permission = DBPermission( account_id=new_account.id )
+    new_account.customer = DBCustomer( account_id=new_account.id )
     session.add(new_account)
     session.commit()
     # Send email verification

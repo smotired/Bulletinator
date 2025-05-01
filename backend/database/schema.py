@@ -417,8 +417,8 @@ class DBCustomer(Base):
     Fields:
         - id (str): UUID primary key
         - account_id (str): UUID of the associated account
-        - stripe_id (str): ID of the stripe customer (dunno if this is necessary)
-        - type (str): Type of subscription, e.g. free, recurring, lifetime
+        - stripe_id (str): ID of the stripe customer
+        - type (str): Type of subscription, e.g. free, active, inactive, lifetime
         - expiration (datetime): Time at which their subscription expires, where they should go back to being a free tier user
 
     Relationships:
@@ -428,9 +428,9 @@ class DBCustomer(Base):
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
-    stripe_id: Mapped[str] = mapped_column(String(64))
+    stripe_id: Mapped[Optional[str]] = mapped_column(String(64), default=None)
     type: Mapped[str] = mapped_column(String(32), default="free")
-    expiration: Mapped[str] = mapped_column(DateTime)
+    expiration: Mapped[Optional[datetime]] = mapped_column(DateTime, default=None)
 
     account: Mapped["DBAccount"] = relationship(back_populates="customer", foreign_keys="DBCustomer.account_id")
     

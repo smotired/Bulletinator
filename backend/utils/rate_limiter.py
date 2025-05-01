@@ -19,6 +19,7 @@ KEY_LIMITS = {
     "submit_report": (1, 30),
     "media": (1, 10),
     "static": (3, 5),
+    "stripe": (2, 30),
 }
 
 # Usage dictionary

@@ -410,7 +410,6 @@ def test_create_document(session, client, auth_headers, items, def_item):
     assert response.status_code == 201
 
 def test_create_document_default(session, client, auth_headers, items, def_item):
-    """Document has no optional fields but this is here in case we add some later"""
     # Temporarily give this user Premium
     customer = session.get(DBCustomer, mock.to_uuid(1, 'customer'))
     customer.type = "active"

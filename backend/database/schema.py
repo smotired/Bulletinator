@@ -64,7 +64,8 @@ class DBAccount(Base):
     uploaded: Mapped[List["DBImage"]] = relationship( back_populates="uploader", cascade="all, delete-orphan", foreign_keys="DBImage.uploader_id" )
     permission: Mapped["DBPermission"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
     customer: Mapped["DBCustomer"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
-    email_verification: Mapped["DBEmailVerification"] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
+    email_verification: Mapped[Optional["DBEmailVerification"]] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
+    password_change: Mapped[Optional["DBPasswordChangeRequest"]] = relationship(back_populates="account", uselist=False, cascade="all, delete-orphan" )
     reports: Mapped[List["DBReport"]] = relationship(back_populates="account", foreign_keys="DBReport.account_id", cascade="all, delete-orphan")
 
 class DBBoard(Base):
@@ -451,6 +452,22 @@ class DBEmailVerification(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_duration)))
 
     account: Mapped["DBAccount"] = relationship(back_populates="email_verification", foreign_keys="DBEmailVerification.account_id")
+
+class DBPasswordChangeRequest(Base):
+    """Represents a password change request. If an account has this object associated with it, it means they have requested to change their password.
+    
+    Fields:
+        - id (str): UUID primary key
+        - account_id (str): UUID of the associated account
+        - expires_at (datetime): The time at which this expires
+    """
+    __tablename__ = "password_changes"
+    
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: gen_uuid())
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(), default=lambda: (datetime.now(UTC) + timedelta(0, settings.email_verification_duration)))
+
+    account: Mapped["DBAccount"] = relationship(back_populates="password_change", foreign_keys="DBPasswordChangeRequest.account_id")
 
 class DBEditorInvitation(Base):
     """Represents an invitation for a user to edit a board. References an email. If a client clicks the link in their email, or a client registers an account with this email address, they will be added as an editor on this board.

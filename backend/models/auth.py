@@ -12,6 +12,11 @@ class Login(BaseModel):
     """Request model for logging in an account with email or password"""
     identifier: str
     password: str
+
+class PasswordChange(BaseModel):
+    """Request model for changing a password"""
+    password: str
+    confirm_password: str
     
 class AccessToken(BaseModel):
     """Response model for a JWT request"""

@@ -100,6 +100,12 @@ class InvalidEmailVerification(BadRequestException):
         self.status_code = 401
         self.error = "invalid_email_verification"
         self.message = "Could not verify email address"
+
+class InvalidPasswordChange(BadRequestException):
+    def __init__(self):
+        self.status_code = 401
+        self.error = "invalid_password_change"
+        self.message = "Could not verify password change request"
         
 class NotAuthenticated(BadRequestException):
     def __init__(self):

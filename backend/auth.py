@@ -12,9 +12,9 @@ from json import dumps
 
 from backend.config import settings
 from backend.dependencies import DBSession
-from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBCustomer, DBEmailVerification, DBAuthEvent
+from backend.database.schema import DBAccount, DBRefreshToken, DBPermission, DBCustomer, DBEmailVerification, DBPasswordChangeRequest, DBAuthEvent
 from backend.exceptions import *
-from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration
+from backend.models.auth import AccessPayload, RefreshPayload, Login, Registration, PasswordChange
 from backend.models.accounts import AuthenticatedAccount
 from backend.utils import email_handler
 
@@ -365,7 +365,7 @@ def _extract_refresh_payload(session: DBSession, token: str) -> RefreshPayload: 
     # return
     return RefreshPayload(**payload)
 
-def verify_email(session: DBSession, verification_id: str) -> DBAccount: # type: ignore
+def verify_email(host: str,session: DBSession, verification_id: str) -> DBAccount: # type: ignore
     """Verify an email account and update it."""
     # Get and check the verification
     verification: DBEmailVerification | None = session.get(DBEmailVerification, verification_id)
@@ -374,10 +374,59 @@ def verify_email(session: DBSession, verification_id: str) -> DBAccount: # type:
     # Update their email
     account: DBAccount | None = session.get(DBAccount, verification.account_id) # don't use the relationship, in case it was deleted
     if account is None:
-        raise EntityNotFound('account', 'id', verification.id)
+        raise EntityNotFound('account', 'id', verification.account_id)
     account.email = verification.email
     session.add(account)
     session.delete(verification)
     session.commit()
     session.refresh(account)
+    # Log the event
+    event = DBAuthEvent(account_id=account.id, event_type="email_verified", host=host, detail=dumps(AuthenticatedAccount.model_validate(account.__dict__).model_dump()))
+    session.add(event)
+    session.commit()
+    return account
+
+def request_password_change(host: str, session: DBSession, email: str) -> None: # type: ignore
+    """Sends a password change request form to the provided email address."""
+    # Do nothing if this is not associated with a verified account.
+    stmt = select(DBAccount).where(DBAccount.email == email)
+    account: DBAccount | None = session.execute(stmt).scalars().one_or_none()
+    if account is None:
+        return
+    # If the account already has a request, invalidate it by deleting it from the database
+    if account.password_change != None:
+        session.delete(account.password_change)
+    # Send the request email
+    change_request = DBPasswordChangeRequest( account_id=account.id )
+    session.add(change_request)
+    session.commit()
+    session.refresh(change_request)
+    email_handler.send_password_change_email(account, change_request)
+    # Log the event
+    event = DBAuthEvent(account_id=account.id, event_type="password_change_request", host=host, detail=dumps(AuthenticatedAccount.model_validate(account.__dict__).model_dump()))
+    session.add(event)
+    session.commit()
+
+def password_change(host: str,session: DBSession, request_id: str, change: PasswordChange) -> DBAccount: # type: ignore
+    """Change a password."""
+    # Get and check the verification
+    change_request: DBPasswordChangeRequest | None = session.get(DBPasswordChangeRequest, request_id)
+    if change_request is None or change_request.expires_at.astimezone(UTC) < datetime.now(UTC):
+        raise InvalidPasswordChange()
+    # Make sure the passwords match
+    if change.password != change.confirm_password:
+        raise InvalidPasswordChange()
+    # Update the password
+    account: DBAccount | None = session.get(DBAccount, change_request.account_id) # don't use the relationship, in case it was deleted
+    if account is None:
+        raise EntityNotFound('account', 'id', change_request.account_id)
+    account.hashed_password = hash_password(change.password)
+    session.add(account)
+    session.delete(change_request)
+    session.commit()
+    session.refresh(account)
+    # Log the event
+    event = DBAuthEvent(account_id=account.id, event_type="password_changed", host=host, detail=dumps(AuthenticatedAccount.model_validate(account.__dict__).model_dump()))
+    session.add(event)
+    session.commit()
     return account

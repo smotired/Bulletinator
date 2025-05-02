@@ -33,7 +33,8 @@ OFFSETS = {
     'pin': 4000,
     'media': 5000,
     'report': 6000,
-    'permission': 500
+    'permission': 500,
+    'customer': 600,
 }
 
 # Essentially turn off rate limits

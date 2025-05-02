@@ -10,6 +10,7 @@ from backend.dependencies import DBSession, CurrentAccount
 from backend.database.schema import DBCustomer
 from backend.database import accounts as accounts_db
 from backend.utils.rate_limiter import limit
+from backend.utils import email_handler
 from backend.models.shared import Success
 from backend.exceptions import *
 
@@ -112,7 +113,7 @@ async def handle_stripe_webhook(
         session.add(customer)
         session.commit()
 
-        # TODO: Send confirmation email
+        email_handler.send_purchase_confirmation_email(customer)
 
     # Subscription renewal failure
     elif type == 'invoice.payment_failed':
@@ -125,7 +126,7 @@ async def handle_stripe_webhook(
         session.add(customer)
         session.commit()
 
-        # TODO: Send the customer an email letting them know of the failure.
+        email_handler.send_subscription_failure_email(customer)
 
     # Subscription cancellation
     elif type == 'customer.subscription.deleted':
@@ -138,7 +139,7 @@ async def handle_stripe_webhook(
         session.add(customer)
         session.commit()
 
-        # TODO: Send a "Sorry to see you go!" email as confirmation.
+        email_handler.send_subscription_cancellation_email(customer)
 
     # Subscription pause
     elif type == 'customer.subscription.paused':
@@ -151,7 +152,7 @@ async def handle_stripe_webhook(
         session.add(customer)
         session.commit()
 
-        # TODO: Send confirmation email
+        email_handler.send_subscription_cancellation_email(customer)
 
     # Customer deletion (just set customer_id to null, but don't necessarily revoke permissions)
     elif type == 'customer.deleted':

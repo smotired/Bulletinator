@@ -143,6 +143,13 @@ def setup(session, accounts, boards, editors, items, todo_items, pins):
         session.add(account)
     session.commit()
 
+    mock.last_uuid = mock.OFFSETS['customer']
+    for account in db_accounts.values():
+        session.refresh(account)
+        account.customer = DBCustomer( account_id=account.id )
+        session.add(account)
+    session.commit()
+
     # Create boards
     mock.last_uuid = mock.OFFSETS['board']
     for i, board in enumerate(boards):

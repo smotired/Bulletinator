@@ -61,6 +61,10 @@ def cleanup_db():
         statement = delete(DBEmailVerification).where(DBEmailVerification.expires_at < datetime.now(UTC).replace(tzinfo=None))
         session.execute(statement)
         session.commit()
+        # Remove expired password change requests
+        statement = delete(DBPasswordChangeRequest).where(DBPasswordChangeRequest.expires_at < datetime.now(UTC).replace(tzinfo=None))
+        session.execute(statement)
+        session.commit()
         # Remove accounts that have no email and no pending email verifications
         statement = delete(DBAccount).where((DBAccount.email == None) & (DBAccount.email_verification == None))
         session.execute(statement)

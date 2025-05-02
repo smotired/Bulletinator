@@ -3,7 +3,7 @@
 from os import path
 
 from backend.config import settings
-from backend.database.schema import DBAccount, DBCustomer, DBBoard, DBEmailVerification, DBEditorInvitation
+from backend.database.schema import DBAccount, DBCustomer, DBBoard, DBEmailVerification, DBPasswordChangeRequest, DBEditorInvitation
 
 import smtplib
 from email.message import EmailMessage
@@ -21,6 +21,19 @@ def send_verification_email(account: DBAccount, verification: DBEmailVerificatio
         Address(name, addr_spec=verification.email),
         {
             "[VID]": verification.id,
+            "[NAME]": name,
+        }
+    )
+    send_email(message)
+
+def send_password_change_email(account: DBAccount, request: DBPasswordChangeRequest):
+    name = account.display_name or account.username
+    message: EmailMessage = compose_email(
+        "password_change",
+        "Reset your Bulletinator password",
+        Address(name, addr_spec=account.email),
+        {
+            "[PID]": request.id,
             "[NAME]": name,
         }
     )

@@ -123,7 +123,7 @@ def change_password(
     request: Request,
     session: DBSession, # type: ignore
     request_id: UUID,
-    form: Annotated[Login, Form()],
+    form: Annotated[PasswordChange, Form()],
 ) -> DBAccount:
     """Change account password"""
     return auth.password_change(request.client.host, session, str(request_id), form)

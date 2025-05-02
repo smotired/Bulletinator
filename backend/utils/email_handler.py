@@ -71,7 +71,7 @@ def send_purchase_confirmation_email(customer: DBCustomer):
     message: EmailMessage = compose_email(
         "subscription",
         "Welcome to Bulletinator Premium.",
-        Address(customer.account.email, addr_spec=customer.account.email),
+        Address(name, addr_spec=customer.account.email),
         {
             "[NAME]": name,
         }
@@ -83,7 +83,7 @@ def send_subscription_failure_email(customer: DBCustomer):
     message: EmailMessage = compose_email(
         "subscription_failure",
         "Bulletinator: Subscription renewal failure.",
-        Address(customer.account.email, addr_spec=customer.account.email),
+        Address(name, addr_spec=customer.account.email),
         {
             "[NAME]": name,
         }
@@ -95,7 +95,7 @@ def send_subscription_cancellation_email(customer: DBCustomer):
     message: EmailMessage = compose_email(
         "subscription_cancellation",
         "Sorry to see you go!",
-        Address(customer.account.email, addr_spec=customer.account.email),
+        Address(name, addr_spec=customer.account.email),
         {
             "[NAME]": name,
         }

@@ -11,7 +11,7 @@ from backend.exceptions import TooManyRequests
 KEY_LIMITS = {
     "forced": (60, 60), # this will always allow requests through
     "main": (3, 5),
-    "auth": (2, 30), # login takes 1, refresh takes potentially 2 if they redirect to login page and then log in really fast
+    "auth": (3, 20), # login takes 1, refresh takes potentially 2 if they redirect to login page and then log in really fast
     "account": (3, 5),
     "from_email": (1, 30),
     "board": (2, 5),

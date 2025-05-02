@@ -3,7 +3,7 @@
 from os import path
 
 from backend.config import settings
-from backend.database.schema import DBAccount, DBBoard, DBEmailVerification, DBEditorInvitation
+from backend.database.schema import DBAccount, DBCustomer, DBBoard, DBEmailVerification, DBEditorInvitation
 
 import smtplib
 from email.message import EmailMessage
@@ -24,13 +24,7 @@ def send_verification_email(account: DBAccount, verification: DBEmailVerificatio
             "[NAME]": name,
         }
     )
-
-    with smtplib.SMTP_SSL(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-    ) as server:
-        server.login(settings.smtp_login, settings.smtp_password)
-        server.send_message( message )
+    send_email(message)
 
 def send_update_verification_email(account: DBAccount, verification: DBEmailVerification):
     name = account.display_name or account.username
@@ -43,13 +37,7 @@ def send_update_verification_email(account: DBAccount, verification: DBEmailVeri
             "[NAME]": name,
         }
     )
-
-    with smtplib.SMTP_SSL(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-    ) as server:
-        server.login(settings.smtp_login, settings.smtp_password)
-        server.send_message( message )
+    send_email(message)
 
 def send_editor_invitation_email(board: DBBoard, invitation: DBEditorInvitation, editor_email: str):
     message: EmailMessage = compose_email(
@@ -63,7 +51,45 @@ def send_editor_invitation_email(board: DBBoard, invitation: DBEditorInvitation,
             "[BLINK_HTML]": board.name if not board.public else f"<a href=\"https://www.bulletinator.com/boards/{board.id}\">{board.name}</a>",
         }
     )
+    send_email(message)
 
+def send_purchase_confirmation_email(customer: DBCustomer):
+    name = customer.account.display_name or customer.account.username
+    message: EmailMessage = compose_email(
+        "subscription",
+        "Welcome to Bulletinator Premium.",
+        Address(customer.account.email, addr_spec=customer.account.email),
+        {
+            "[NAME]": name,
+        }
+    )
+    send_email(message)
+
+def send_subscription_failure_email(customer: DBCustomer):
+    name = customer.account.display_name or customer.account.username
+    message: EmailMessage = compose_email(
+        "subscription_failure",
+        "Bulletinator: Subscription renewal failure.",
+        Address(customer.account.email, addr_spec=customer.account.email),
+        {
+            "[NAME]": name,
+        }
+    )
+    send_email(message)
+
+def send_subscription_cancellation_email(customer: DBCustomer):
+    name = customer.account.display_name or customer.account.username
+    message: EmailMessage = compose_email(
+        "subscription_cancellation",
+        "Sorry to see you go!",
+        Address(customer.account.email, addr_spec=customer.account.email),
+        {
+            "[NAME]": name,
+        }
+    )
+    send_email(message)
+
+def send_email(message: EmailMessage):
     with smtplib.SMTP_SSL(
         host=settings.smtp_host,
         port=settings.smtp_port,

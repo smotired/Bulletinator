@@ -1,0 +1,9 @@
+Hello, [NAME]!
+
+You received this email because a subscription renewal could not be processed. Proceed to the billing portal to resolve this issue:
+
+https://www.bulletinator.com/billing
+
+If you do not resolve the issue in 7 days, your account will be downgraded to the free tier. None of your premium items will be deleted, but you will not be able to modify them or create more. You may reactivate your subscription at any time to resolve this issue.
+
+You received this email because your email address is associated with an account on Bulletinator.com.

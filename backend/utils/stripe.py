@@ -53,7 +53,7 @@ def create_checkout_session(
         customer=account.customer.stripe_id,
         success_url=settings.app_domain + "/checkout/success?session_id={CHECKOUT_SESSION_ID}", # may change
         cancel_url=settings.app_domain + "/checkout/cancel",
-        payment_method_types=["card", "paypal"],
+        payment_method_types=["card"],
         mode=mode,
         line_items=[{
             "price": checkout_request.price_id,
@@ -100,6 +100,7 @@ async def handle_stripe_webhook(
 
     # Subscription renewal
     if type == 'invoice.paid':
+        print(f"Stripe event: {type}")
         # Extract relevant info
         customer_id = data['customer']
         purchase = data['lines']['data'][0]
@@ -115,8 +116,26 @@ async def handle_stripe_webhook(
 
         email_handler.send_purchase_confirmation_email(customer)
 
+    # Lifetime subscription purchase
+    elif type == 'checkout.session.completed' and data['mode'] == 'payment': # don't double-trigger if this is a subscription
+        print(f"Stripe event: {type}")
+        # Extract relevant info
+        customer_id = data['customer']
+        print("Customer:", customer_id)
+
+        # Update the customer in the database
+        # TODO: Use stripe API to figure out what they actually purchased but like right now any non subscription is a lifetime payment
+        customer: DBCustomer = accounts_db.get_by_stripe_id(session, customer_id)
+        customer.type = "lifetime"
+        customer.expiration = None
+        session.add(customer)
+        session.commit()
+
+        email_handler.send_purchase_confirmation_email(customer)
+
     # Subscription renewal failure
     elif type == 'invoice.payment_failed':
+        print(f"Stripe event: {type}")
         # Extract relevant info
         customer_id = data['customer']
 
@@ -130,6 +149,7 @@ async def handle_stripe_webhook(
 
     # Subscription cancellation
     elif type == 'customer.subscription.deleted':
+        print(f"Stripe event: {type}")
         # Extract relevant info
         customer_id = data['customer']
 
@@ -143,6 +163,7 @@ async def handle_stripe_webhook(
 
     # Subscription pause
     elif type == 'customer.subscription.paused':
+        print(f"Stripe event: {type}")
         # Extract relevant info
         customer_id = data['customer']
 
@@ -156,6 +177,7 @@ async def handle_stripe_webhook(
 
     # Customer deletion (just set customer_id to null, but don't necessarily revoke permissions)
     elif type == 'customer.deleted':
+        print(f"Stripe event: {type}")
         # Extract relevant info
         customer_id = data['id']
 

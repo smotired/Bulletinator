@@ -22,7 +22,8 @@ def get_by_id(session: DBSession, account_id: str) -> DBAccount: # type: ignore
 
 def get_by_stripe_id(session: DBSession, stripe_id: str) -> DBCustomer: # type: ignore
     """Retrieve customer object by stripe ID"""
-    customer: DBCustomer = session.get(DBCustomer, stripe_id)
+    stmt = select(DBCustomer).where(DBCustomer.stripe_id == stripe_id)
+    customer: DBCustomer | None = session.execute(stmt).scalars().one_or_none()
     if customer is None:
         raise EntityNotFound("customer", "stripe_id", stripe_id)
     return customer

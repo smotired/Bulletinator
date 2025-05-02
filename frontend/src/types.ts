@@ -2,11 +2,6 @@
  * Contains TypeScript types for important objects
  */
 
-export type BadRequestException = {
-    error: string,
-    message: string,
-}
-
 export type Metadata = {
     count: number,
 }

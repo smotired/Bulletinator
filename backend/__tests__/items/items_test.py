@@ -2,6 +2,8 @@
 
 from backend.__tests__ import mock
 
+from backend.database.schema import DBCustomer
+
 def test_get_items1(client, get_item):
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items")
     assert response.json() == {
@@ -387,7 +389,13 @@ def test_create_list_title_too_long(client, auth_headers, items, exception):
     assert response.json() == exception("field_too_long", "Input to field 'title' exceeded the maximum length")
     assert response.status_code == 422
 
-def test_create_document(client, auth_headers, items, def_item):
+def test_create_document(session, client, auth_headers, items, def_item):
+    # Temporarily give this user Premium
+    customer = session.get(DBCustomer, mock.to_uuid(1, 'customer'))
+    customer.type = "active"
+    session.add(customer)
+    session.commit()
+    # Create the document
     item = {
         "type": "document",
         "title": "Created Document",
@@ -401,8 +409,14 @@ def test_create_document(client, auth_headers, items, def_item):
     }
     assert response.status_code == 201
 
-def test_create_document_default(client, auth_headers, items, def_item):
+def test_create_document_default(session, client, auth_headers, items, def_item):
     """Document has no optional fields but this is here in case we add some later"""
+    # Temporarily give this user Premium
+    customer = session.get(DBCustomer, mock.to_uuid(1, 'customer'))
+    customer.type = "active"
+    session.add(customer)
+    session.commit()
+    # Create the document
     item = {
         "type": "document",
         "title": "Created Document",
@@ -416,7 +430,13 @@ def test_create_document_default(client, auth_headers, items, def_item):
     }
     assert response.status_code == 201
 
-def test_create_document_missing(client, auth_headers, items, exception):
+def test_create_document_missing(session, client, auth_headers, items, exception):
+    # Temporarily give this user Premium
+    customer = session.get(DBCustomer, mock.to_uuid(1, 'customer'))
+    customer.type = "active"
+    session.add(customer)
+    session.commit()
+    # Create the document
     item = { "type": "document" }
     mock.last_uuid = mock.OFFSETS['item'] + len(items)
     response = client.post(f"/boards/{mock.to_uuid(1, 'board')}/items", headers=auth_headers(1), json=item)

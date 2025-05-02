@@ -43,7 +43,7 @@ def get_item(session: DBSession, board_id: str, item_id: str, account: DBAccount
 
 def create_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str, config: ItemCreate) -> DBItem: # type: ignore
     """Creates an item on this board."""
-    pdp.ensure_modify(board_id)
+    pdp.ensure_create_item(board_id, config.type)
     # Figure out what type of config this is
     subclass: type = ITEMTYPES.get(config.type, { "create": BaseItemCreate })['create']
     if subclass == BaseItemCreate:
@@ -112,6 +112,7 @@ def update_item(session: DBSession, pdp: BoardPolicyDecisionPoint, board_id: str
     item: DBItem = get_by_id(session, item_id)
     if item.board_id != board_id:
         raise EntityNotFound('item', 'id', item_id)
+    pdp.ensure_update_item(board_id, item.type)
     # Handle moving to another board
     if config.board_id is not None and config.board_id != item.board_id:
         # Make sure the account can edit the other board

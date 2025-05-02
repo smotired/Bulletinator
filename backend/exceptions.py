@@ -131,6 +131,18 @@ class UnverifiedEmailAddress(BadRequestException):
         self.error = "unverified_email_address"
         self.message = "This action requires a verified email address"
 
+class ItemLimitExceeded(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "item_limit_exceeded"
+        self.message = f"You have exceeded your item creation limit. Please delete items or upgrade your subscription."
+
+class PremiumFeature(BadRequestException):
+    def __init__(self):
+        self.status_code = 403
+        self.error = "premium_feature"
+        self.message = f"This feature is exclusive to Premium users. Please upgrade your subscription."
+
 class ItemTypeMismatch(BadRequestException):
     def __init__(self, id: str, expected: str, actual: str):
         self.status_code = 418

@@ -4,9 +4,15 @@ from abc import ABC as AbstractBaseClass, abstractmethod
 from fastapi import Depends
 from typing import Annotated
 
+from sqlalchemy import select, func
+
+from backend.config import settings
 from backend.dependencies import DBSession, CurrentAccount
-from backend.database.schema import DBAccount, DBBoard, DBReport
+from backend.database.schema import DBAccount, DBBoard, DBReport, DBItem
 from backend.exceptions import *
+
+# Every item type in this list is considered a premium feature
+PREMIUM_TYPES = [ "document" , "sketch", "latex", "kanban", "widget" ] # some of these are just planned
 
 class PolicyInformationPoint():
     """Used to determine relationships between accounts and other objects"""
@@ -34,6 +40,14 @@ class PolicyInformationPoint():
             return False
         report: DBReport = target if isinstance(target, DBReport) else self.session.get(DBReport, target)
         return report is not None and self.account.id == report.moderator_id
+    
+    def is_premium(self) -> bool:
+        return self.account.customer is not None and self.account.customer.type in [ "active", "inactive", "lifetime" ]
+    
+    def created_item_count(self) -> int:
+        """Gets the total amount of items on all boards owned by this user"""
+        statement = select(func.count(DBItem.id)).join(DBBoard, DBItem.board_id == DBBoard.id).where(DBBoard.owner_id == self.account.id)
+        return self.session.execute(statement).scalar()
     
 class PolicyDecisionPoint(AbstractBaseClass):
     """Uses a PIP determine permissions in relation to other objects. Throws exceptions if the permissions are not met."""
@@ -118,6 +132,26 @@ class BoardPolicyDecisionPoint(PolicyDecisionPoint):
         board: DBBoard = self.session.get(DBBoard, target_id)
         if not self.pip.is_board_owner(board) and not self.pip.is_board_editor(board):
             raise NoPermissions("modify board", "board", target_id)
+        
+    def ensure_create_item(self, target_id: str, target_type: str): # Calls can_modify and has additional checks for premium features
+        self.ensure_modify(target_id)
+        # Create a PDP for the board owner
+        board: DBBoard = self.session.get(DBBoard, target_id)
+        owner = BoardPolicyDecisionPoint(self.session, board.owner)
+        if not owner.pip.is_premium():
+            if target_type in PREMIUM_TYPES:
+                raise PremiumFeature()
+            if owner.pip.created_item_count() >= settings.free_tier_item_limit:
+                raise ItemLimitExceeded() 
+        
+    def ensure_update_item(self, target_id: str, target_type: str): # Calls can_modify and has additional checks for premium features
+        self.ensure_modify(target_id)
+        # Create a PDP for the board owner
+        board: DBBoard = self.session.get(DBBoard, target_id)
+        owner = BoardPolicyDecisionPoint(self.session, board.owner)
+        if not owner.pip.is_premium():
+            if target_type in PREMIUM_TYPES:
+                raise PremiumFeature()
         
     def ensure_delete(self, target_id): # Can delete a board if they are the owner
         if self.pip.is_app_staff():

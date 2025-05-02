@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     db_sqlite: bool
     assets_folder_path: str
 
+    free_tier_item_limit: int
+
     jwt_algorithm: str
     jwt_access_cookie_key: str
     jwt_refresh_cookie_key: str
@@ -57,6 +59,8 @@ def get_settings() -> Settings:
         db_url="sqlite:///database/development.db",
         db_sqlite=True,
         assets_folder_path="./assets/",
+
+        free_tier_item_limit=100,
 
         jwt_algorithm="HS256",
         jwt_access_cookie_key="bulletinator_access_token",

@@ -107,19 +107,19 @@ def verify_email(
     """Verify an account's email address"""
     return auth.verify_email(request.client.host, session, str(verification_id))
 
-@router.post('/request-change-password', status_code=200, response_model=AuthenticatedAccount)
+@router.post('/request-change-password', status_code=204, response_model=None)
 @limit("from_email")
-def verify_email(
+def request_change_password(
     request: Request,
     session: DBSession, # type: ignore
     email: str
-) -> DBAccount:
+) -> None:
     """Change account password"""
-    return auth.request_password_change(request.client.host, session, email)
+    auth.request_password_change(request.client.host, session, email)
 
 @router.post('/change-password/{request_id}', status_code=200, response_model=AuthenticatedAccount)
 @limit("from_email")
-def verify_email(
+def change_password(
     request: Request,
     session: DBSession, # type: ignore
     request_id: UUID,

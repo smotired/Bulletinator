@@ -107,3 +107,34 @@ export type Report = {
     created_at: Date,
     resolved_at: Date | null,
 }
+
+/**
+ * Enums
+ */
+
+export enum AuthResponse {
+    Success,
+    InvalidCredentials,
+    UsernameTaken,
+    EmailTaken,
+}
+
+/**
+ * Exceptions
+ */
+
+export type BadRequest = {
+    error: string,
+    message: string,
+    detail: object | null,
+}
+
+export class ApiError extends Error {
+    status: number;
+    code: string;
+    constructor(status: number, body: BadRequest) {
+        super(body.message)
+        this.status = status;
+        this.code = body.error;
+    }
+}

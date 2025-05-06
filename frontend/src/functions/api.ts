@@ -1,305 +1,188 @@
+/**
+ * Functions for interfacing with the backend API
+ */
+"use server"
+
+import { BadRequest, ApiError } from "@/types";
 import { redirect } from "next/navigation";
 
-const BASE_URL = "http://localhost:8000";
-const API_PATHS = {
-    refresh: "/auth/web/refresh",
-    login: "/auth/web/login",
-};
+// Misc
+const API_BASE = "http://localhost:8000"
+const API_PATHS = { // Important routes on the backend side
+    refresh: "/auth/web/refresh", // Refreshing access tokens
+}
 const APP_PATHS = {
-    login: "/login",
+    login: "/login", // Login page
 }
 
-type ErrorResponse = {
-    error: string,
-    message: string,
-    detail: object | null,
-}
-
+// Types
+type Headers = { [header: string]: string }
 type FormBody = { [key: string]: string }
 
-class ApiError extends Error {
-    status: number;
-    code: string;
-    /**
-     * Error object containing response status, error code, and error message
-     */
-    constructor(status: number, { error, message }: { error: string, message: string }) {
-      super(message);
-      this.status = status;
-      this.code = error;
-    }
+// Helpers
+
+async function handleResponse<T = void>(response: Response): Promise<T> {
+    if (response.status == 204)
+        return undefined as T;
+    else if (response.ok) 
+        return await response.json() as T;
+    throw new ApiError(response.status, await response.json() as BadRequest);
 }
 
-const handleResponse = async (response: Response) => {
-    if (response.ok) {
-        return response.status == 204 ? {} : await response.json();
-    } else {
-        const error: ErrorResponse = await response.json() as ErrorResponse;
-        if (error.detail) {
-            throw new ApiError(response.status, {
-                error: "validation",
-                message: JSON.stringify(error.detail),
-            });
-        } else {
-            throw new ApiError(response.status, error);
-        }
+async function authenticatedFetch<T = void>(fetchFn: () => Promise<Response>): Promise<T> {
+    // Make the response
+    const response: Response = await fetchFn();
+    try {
+        return await handleResponse(response);
     }
-};
 
-// Functions for unauthenticated routes
+    // Make sure this is actually an access token expiration
+    catch (error) {
+        if (!(error instanceof ApiError) || error.code != "invalid_access_token")
+            throw error;
+    }
 
-const get = async (url: string, headers: Headers) => {
-    const response = await fetch(BASE_URL + url, {
+    // Refresh if our token expired, or redirect to login page.
+    const refresh: Response = await fetch(API_BASE + API_PATHS.refresh, {
+        method: "POST",
+        credentials: "include",
+    });
+    if (!refresh.ok)
+        return redirect(APP_PATHS.login);
+
+    // If the refresh was successful, retry the request.
+    const retried: Response = await fetchFn();
+    return await handleResponse<T>(retried);
+}
+
+// Unauthenticated functions
+
+export async function get<T = void>(path: string, headers: Headers): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
         headers,
     });
-    return await handleResponse(response);
-};
+    return await handleResponse<T>(response);
+}
 
-const put = async (url: string, headers: Headers, data: object) => {
-    const response = await fetch(BASE_URL + url, {
+export async function post<T = void>(path: string, headers: Headers, body: object): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
         headers: {
-        ...headers,
-        "Content-Type": "application/json",
-        },
-        method: "PUT",
-        body: JSON.stringify(data),
-    });
-    return await handleResponse(response);
-};
-
-const post = async (url: string, headers: Headers, data: object) => {
-    const response = await fetch(BASE_URL + url, {
-        headers: {
-        ...headers,
-        "Content-Type": "application/json",
+            ...headers,
+            'Content-Type': 'application/json',
         },
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
     });
-    return await handleResponse(response);
-};
+    return await handleResponse<T>(response);
+}
 
-const del = async (url: string, headers: Headers) => {
-    const response = await fetch(BASE_URL + url, {
+export async function put<T = void>(path: string, headers: Headers, body: object): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
+        headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+        },
+        method: "PUT",
+        body: JSON.stringify(body),
+    });
+    return await handleResponse<T>(response);
+}
+
+export async function del<T = void>(path: string, headers: Headers): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
         headers,
         method: "DELETE",
     });
-    return await handleResponse(response);
-};
-
-// Functions for authenticated routes
-
-const refreshOrRedirect = async () => {
-    const response = await fetch (BASE_URL + API_PATHS.refresh, {
-        method: "POST",
-        credentials: "include",
-    });
-    try {
-        await handleResponse(response); // don't return anything on success, we have refreshed
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_refresh_token")
-            throw error;
-
-        // Redirect to login screen
-        redirect(APP_PATHS.login);
-    }
+    return await handleResponse<T>(response);
 }
 
-const getAuth = async (url: string, headers: Headers) => {
-    const response = await fetch(BASE_URL + url, {
+// Authenticated functions
+
+export async function getAuth<T = void>(path: string, headers: Headers): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
         headers,
-        credentials: "include",
-    });
-    try {
-        return await handleResponse(response);
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_access_token")
-            throw error;
+        credentials: 'include',
+    }));
+}
 
-        // Try refreshing access token
-        refreshOrRedirect();
-
-        // Retry the request
-        const response = await fetch(BASE_URL + url, {
-            headers,
-            credentials: "include",
-        });
-        return await handleResponse(response);
-    }
-};
-
-const putAuth = async (url: string, headers: Headers, data: object) => {
-    const response = await fetch(BASE_URL + url, {
+export async function postAuth<T = void>(path: string, headers: Headers, body: object): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
         headers: {
-        ...headers,
-        "Content-Type": "application/json",
-        },
-        method: "PUT",
-        body: JSON.stringify(data),
-        credentials: "include",
-    });
-    try {
-        return await handleResponse(response);
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_access_token")
-            throw error;
-
-        // Try refreshing access token
-        refreshOrRedirect();
-
-        // Retry the request
-        const response = await fetch(BASE_URL + url, {
-            headers: {
             ...headers,
-            "Content-Type": "application/json",
-            },
-            method: "PUT",
-            body: JSON.stringify(data),
-            credentials: "include",
-        });
-        return await handleResponse(response);
-    }
-};
-
-const postAuth = async (url: string, headers: Headers, data: object) => {
-    const response = await fetch(BASE_URL + url, {
-        headers: {
-        ...headers,
-        "Content-Type": "application/json",
+            'Content-Type': 'application/json',
         },
         method: "POST",
-        body: JSON.stringify(data),
-        credentials: "include",
-    });
-    try {
-        return await handleResponse(response);
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_access_token")
-            throw error;
+        body: JSON.stringify(body),
+        credentials: 'include',
+    }));
+}
 
-        // Try refreshing access token
-        refreshOrRedirect();
-
-        // Retry the request
-        const response = await fetch(BASE_URL + url, {
-            headers: {
+export async function putAuth<T = void>(path: string, headers: Headers, body: object): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
+        headers: {
             ...headers,
-            "Content-Type": "application/json",
-            },
-            method: "POST",
-            body: JSON.stringify(data),
-            credentials: "include",
-        });
-        return await handleResponse(response);
-    }
-};
+            'Content-Type': 'application/json',
+        },
+        method: "PUT",
+        body: JSON.stringify(body),
+        credentials: 'include',
+    }));
+}
 
-const delAuth = async (url: string, headers: Headers) => {
-    const response = await fetch(BASE_URL + url, {
+export async function delAuth<T = void>(path: string, headers: Headers): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
         headers,
         method: "DELETE",
-        credentials: "include",
-    });
-    try {
-        return await handleResponse(response);
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_access_token")
-            throw error;
+        credentials: 'include',
+    }));
+}
 
-        // Try refreshing access token
-        refreshOrRedirect();
+// Form functions
 
-        // Retry the request
-        const response = await fetch(BASE_URL + url, {
-            headers,
-            method: "DELETE",
-            credentials: "include",
-        });
-        return await handleResponse(response);
-    }
-};
-
-// Functions for form routes
-
-const putForm = async (url: string, headers: Headers, data: FormBody) => {
-    const response = await fetch(BASE_URL + url, {
+export async function postForm<T = void>(path: string, headers: Headers, form: FormBody): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
         headers: {
-        ...headers,
-        "Content-Type": "application/x-www-form-urlencoded",
-        },
-        method: "PUT",
-        body: new URLSearchParams(data),
-    });
-    return await handleResponse(response);
-};
-
-const putFormAuth = async (url: string, headers: Headers, data: FormBody) => {
-    const response = await fetch(BASE_URL + url, {
-        headers: {
-        ...headers,
-        "Content-Type": "application/x-www-form-urlencoded",
-        },
-        method: "PUT",
-        body: new URLSearchParams(data),
-        credentials: "include",
-    });
-    try {
-        return await handleResponse(response);
-    }
-    catch (error: unknown) {
-        // If this isn't just because access token expired, re-throw error
-        if (!(error instanceof ApiError))
-            throw error;
-        if (error.code != "invalid_access_token")
-            throw error;
-
-        // Try refreshing access token
-        refreshOrRedirect();
-
-        // Retry the request
-        const response = await fetch(BASE_URL + url, {
-            headers: {
             ...headers,
-            "Content-Type": "application/x-www-form-urlencoded",
-            },
-            method: "PUT",
-            body: new URLSearchParams(data),
-            credentials: "include",
-        });
-        return await handleResponse(response);
-    }
-};
-
-const postForm = async (url: string, headers: Headers, data: FormBody) => {
-    const response = await fetch(BASE_URL + url, {
-        headers: {
-        ...headers,
-        "Content-Type": "application/x-www-form-urlencoded",
+            'Content-Type': 'application/x-www-form-urlencoded',
         },
         method: "POST",
-        body: new URLSearchParams(data),
+        body: new URLSearchParams(form),
     });
-    return await handleResponse(response);
-};
+    return await handleResponse<T>(response);
+}
 
-export default { get, post, put, del, getAuth, postAuth, putAuth, delAuth, putForm, putFormAuth, postForm };
+export async function putForm<T = void>(path: string, headers: Headers, form: FormBody): Promise<T> {
+    const response: Response = await fetch(API_BASE + path, {
+        headers: {
+            ...headers,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: "PUT",
+        body: new URLSearchParams(form),
+    });
+    return await handleResponse<T>(response);
+}
+
+export async function postFormAuth<T = void>(path: string, headers: Headers, form: FormBody): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
+        headers: {
+            ...headers,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: "POST",
+        body: new URLSearchParams(form),
+        credentials: 'include',
+    }));
+}
+
+export async function putFormAuth<T = void>(path: string, headers: Headers, form: FormBody): Promise<T> {
+    return await authenticatedFetch(async () => await fetch(API_BASE + path, {
+        headers: {
+            ...headers,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: "PUT",
+        body: new URLSearchParams(form),
+        credentials: 'include',
+    }));
+}

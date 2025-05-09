@@ -1,6 +1,6 @@
 import HeaderBar from "@/features/layout/appbar";
 
-export default function Home() {
+export default async function LandingPage() {
   return (
     <>
       <HeaderBar />

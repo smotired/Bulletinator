@@ -13,6 +13,10 @@ const theme = createTheme({
             main: '#059669',
             dark: '#047857',
         },
+        background: {
+            default: '#eef2ff',
+            paper: '#ffffff',
+        }
     },
     typography: {
         fontFamily: 'var(--font-roboto)',

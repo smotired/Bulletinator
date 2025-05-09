@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { appbarGradient } from "@/theme";
 import { AppBar, Avatar, IconButton, Stack, Tooltip, Menu, MenuItem, Button } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,7 +23,7 @@ export default function HeaderBar() {
     }
 
     return (
-        <AppBar sx={{ padding: 2 }}>
+        <AppBar sx={{ padding: 2, backgroundImage: appbarGradient }}>
             <Stack direction='row' spacing={2} justifyContent='space-between' alignItems='center'>
                 <Link href='/'>
                     <Image src='/header-filled.svg' alt="Bulletinator Logo" width={200} height={50} />

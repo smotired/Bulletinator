@@ -20,3 +20,10 @@ const theme = createTheme({
 });
 
 export default theme;
+
+// Gradient for the app bar
+export const appbarGradient = `
+    radial-gradient(circle at 130% -40%, var(--color-emerald-600) 10%, transparent 80%),
+    radial-gradient(circle at 80% 180%, var(--color-indigo-800) 20%, transparent 60%),
+    radial-gradient(circle at 0% 100%, var(--color-indigo-950) 24%, transparent 80%);
+`;

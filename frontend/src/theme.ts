@@ -1,7 +1,6 @@
 "use client";
 import { createTheme } from "@mui/material/styles";
 
-
 const theme = createTheme({
     palette: {
         primary: {
@@ -13,7 +12,7 @@ const theme = createTheme({
             light: '#10b981',
             main: '#059669',
             dark: '#047857',
-        }
+        },
     },
     typography: {
         fontFamily: 'var(--font-roboto)',

@@ -1,7 +1,9 @@
-import Image from "next/image";
+import HeaderBar from "@/features/layout/appbar";
 
 export default function Home() {
   return (
-    <p className="text-textcol">Welcome to Bulletinator!</p>
+    <>
+      <HeaderBar />
+    </>
   );
 }

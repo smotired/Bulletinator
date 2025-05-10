@@ -2,7 +2,7 @@
  * Addition button and modal for adding a board
  */
 "use client";
-import { Alert, Box, Button, Dialog, Divider, FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, Divider, FormControlLabel, Grid, IconButton, MenuItem, Snackbar, Stack, Switch, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
@@ -135,6 +135,8 @@ export default function BoardCreator() {
                     </Grid>
                 </form>
             </Dialog>
+
+            <Snackbar open={showToast} autoHideDuration={3000} onClose={toggleToast} message="Board created." />
         </>
     )
 }

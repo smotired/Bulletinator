@@ -14,7 +14,7 @@ KEY_LIMITS = {
     "auth": (2, 5), 
     "account": (3, 5),
     "from_email": (1, 30),
-    "board": (2, 5),
+    "board": (5, 5),
     "board_action": (5, 5),
     "submit_report": (1, 30),
     "media": (1, 10),

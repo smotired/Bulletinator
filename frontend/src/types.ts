@@ -14,8 +14,8 @@ export type Collection<Type> = {
 export type Account = {
     id: string,
     username: string,
-    profile_image: string,
-    display_name: string,
+    profile_image: string | null,
+    display_name: string | null,
 }
 
 export type AuthenticatedAccount = Account & {
@@ -121,6 +121,12 @@ export type CookieSettings = {
         options: { [key: string]: string | Date | number | boolean, }
     }
 };
+
+/**
+ * Objects
+ */
+
+export const nullAccount: Account = { id: 'null', username: 'unavailable', display_name: '[Unavailable]', profile_image: null }
 
 /**
  * Enums

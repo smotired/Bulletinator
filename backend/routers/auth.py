@@ -10,9 +10,9 @@ from backend import auth
 from backend.utils.rate_limiter import limit
 from backend.config import settings
 from backend.database.schema import *
-from backend.dependencies import DBSession, CurrentReadOnlyAccount, RefreshToken, set_cookie_secure
+from backend.dependencies import DBSession, CurrentReadOnlyAccount, RefreshToken, OptionalRefreshToken, set_cookie_secure
 from backend.models.auth import AccessToken, Registration, Login, PasswordChange
-from backend.models.accounts import Account, AuthenticatedAccount
+from backend.models.accounts import AuthenticatedAccount
 
 from typing import Annotated
 from uuid import UUID
@@ -64,10 +64,11 @@ def logout_account(
     response: Response,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount,
-    token: RefreshToken
+    token: OptionalRefreshToken
 ) -> None:
     """Authenticated route. Log out an account and invalidate the supplied refresh token."""
-    auth.revoke_one_refresh_token(request.client.host, session, token)
+    if token is not None:
+        auth.revoke_one_refresh_token(request.client.host, session, token)
     response.delete_cookie(settings.jwt_access_cookie_key)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 

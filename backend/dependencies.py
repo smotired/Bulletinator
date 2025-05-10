@@ -127,6 +127,16 @@ def get_refresh_token(
     raise NotAuthenticated()
 
 RefreshToken = Annotated[str, Depends(get_refresh_token)]
+        
+def get_optional_refresh_token(
+    cookie_token: str | None = Depends(refresh_cookie_scheme),
+) -> str | None:
+    """Refresh token extraction dependency. Depends on the cookie scheme. Does not throw an error if not present
+    
+    Extracts the access token JWT from the cookies."""
+    return cookie_token
+
+OptionalRefreshToken = Annotated[str | None, Depends(get_optional_refresh_token)]
 
 # account dependencies
 

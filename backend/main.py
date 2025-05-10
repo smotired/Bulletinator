@@ -76,10 +76,16 @@ def handle_error(request: Request, exc: BadRequestException):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# DO NOT UNDER ANY CIRCUMSTANCES LET THIS ENTER PRODUCTION!!!!!
+# MAKE SURE TO CHANGE MIDDLEWARE BEFORE PRODUCTION
+ORIGINS = [
+    "http://localhost",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins, including null (not safe for production)
+    allow_origins=ORIGINS, # Currently allows our frontend, if hosted on the same machine with port 3000
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

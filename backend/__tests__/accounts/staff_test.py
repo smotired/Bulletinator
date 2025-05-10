@@ -39,7 +39,7 @@ def test_get_editors(client, auth_headers, get_response_account):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 2 },
-        "accounts": [ get_response_account(1), get_response_account(3) ]
+        "contents": [ get_response_account(1), get_response_account(3) ]
     }
     assert response.status_code == 200
 
@@ -51,7 +51,7 @@ def test_remove_editor(client, auth_headers, get_response_account):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "accounts": [ get_response_account(1) ]
+        "contents": [ get_response_account(1) ]
     }
     assert response.status_code == 200
 
@@ -77,6 +77,6 @@ def test_modify_board(client, auth_headers, items, get_item):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/items", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 2 },
-        "items": [ get_item(8), updated_item ]
+        "contents": [ get_item(8), updated_item ]
     }
     assert response.status_code == 200

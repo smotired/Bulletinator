@@ -489,7 +489,7 @@ def test_get_account_images(client, monkeypatch, auth_headers, create_image, sta
     response = client.get("/accounts/me/uploads/images", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "images": [
+        "contents": [
             {
                 'uuid': id,
                 'filename': filename

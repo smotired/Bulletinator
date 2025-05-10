@@ -9,42 +9,34 @@ from uuid import UUID
 
 from backend.database.schema import *
 from backend.database import boards as boards_db
-from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
+from backend.dependencies import DBSession, OptionalAccount
 from backend.utils.permissions import BoardPDP
 from backend.utils.rate_limiter import limit
-from backend.models.boards import Board, BoardCollection, BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation, convert_board_list
-from backend.models.accounts import AccountCollection, convert_account_list
-from backend.models.shared import Metadata
+from backend.models.boards import Board, BoardCreate, BoardUpdate, BoardTransfer, EditorInvitation
+from backend.models.accounts import Account
+from backend.models.shared import CollectionFactory
 
 router = APIRouter(prefix="/boards", tags=["Board"])
 
-@router.get("/", status_code=200)
+@router.get("/", status_code=200, response_model=CollectionFactory(Board, DBBoard))
 @limit("board")
 def get_boards(
     request: Request,
     session: DBSession, # type: ignore
     account: OptionalAccount = None
-) -> BoardCollection:
-    """Returns a BoardCollection of all visible boards, including both public ones and editable ones"""
-    boards = convert_board_list( boards_db.get_visible(session, account) )
-    return BoardCollection(
-        metadata=Metadata(count=len(boards)),
-        boards=boards
-    )
+) -> list[DBBoard]:
+    """Returns a collection of all visible boards, including both public ones and editable ones"""
+    return boards_db.get_visible(session, account)
 
-@router.get("/editable", status_code=200)
+@router.get("/editable", status_code=200, response_model=CollectionFactory(Board, DBBoard))
 @limit("board")
 def get_editable_boards(
     request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP
-) -> BoardCollection:
-    """Returns a BoardCollection of boards that the currently logged-in account can edit"""
-    boards = convert_board_list( boards_db.get_editable(session, pdp) )
-    return BoardCollection(
-        metadata=Metadata(count=len(boards)),
-        boards=boards
-    )
+) -> list[DBBoard]:
+    """Returns a collection of boards that the currently logged-in account can edit"""
+    return boards_db.get_editable(session, pdp)
 
 @router.post("/", status_code=201, response_model=Board)
 @limit("board")
@@ -105,20 +97,16 @@ def delete_board(
     """Deletes the board with this ID if the account is the owner"""
     boards_db.delete(session, pdp, str(board_id))
 
-@router.get("/{board_id}/editors", status_code=200, response_model=AccountCollection)
+@router.get("/{board_id}/editors", status_code=200, response_model=CollectionFactory(Account, DBAccount))
 @limit("board")
 def get_editors(
     request: Request,
     session: DBSession, # type: ignore
     pdp: BoardPDP,
     board_id: UUID,
-) -> AccountCollection:
+) -> list[DBAccount]:
     """Gets all accounts that can edit the board with this ID, excluding the owner."""
-    editors = convert_account_list( boards_db.get_editors(session, pdp, str(board_id)) )
-    return AccountCollection(
-        metadata=Metadata(count=len(editors)),
-        accounts=editors
-    )
+    return boards_db.get_editors(session, pdp, str(board_id))
 
 @router.post("/{board_id}/editors", status_code=204, response_model=None)
 @limit("board", no_content=True)
@@ -132,7 +120,7 @@ def add_editor(
     """Invites an account to edit this board"""
     boards_db.invite_editor(session, pdp, str(board_id), invitation)
 
-@router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=AccountCollection)
+@router.delete("/{board_id}/editors/{editor_id}", status_code=200, response_model=CollectionFactory(Account, DBAccount))
 @limit("board")
 def remove_editor(
     request: Request,
@@ -140,13 +128,9 @@ def remove_editor(
     pdp: BoardPDP,
     board_id: UUID,
     editor_id: UUID,
-) -> AccountCollection:
+) -> list[DBAccount]:
     """Disallows the account with this ID to edit the board with this ID, and returns the updated list of editors."""
-    editors = convert_account_list( boards_db.remove_editor(session, pdp, str(board_id), str(editor_id)) )
-    return AccountCollection(
-        metadata=Metadata(count=len(editors)),
-        accounts=editors
-    )
+    return boards_db.remove_editor(session, pdp, str(board_id), str(editor_id))
 
 @router.post("/{board_id}/transfer", status_code=200, response_model=Board)
 @limit("board")

@@ -7,8 +7,8 @@ from backend.database.schema import DBAccount
 def test_get_accounts(client, get_response_account):
     response = client.get("/accounts")
     assert response.json() == {
-        "metadata": { "count": 5, },
-        "accounts": [ get_response_account(1), get_response_account(2), get_response_account(3), get_response_account(4), get_response_account(5) ]
+        "metadata": { "count": 5 },
+        "contents": [ get_response_account(1), get_response_account(2), get_response_account(3), get_response_account(4), get_response_account(5) ]
     }
     assert response.status_code == 200
 

@@ -12,25 +12,21 @@ from backend import auth
 from backend.utils.rate_limiter import limit
 from backend.database import accounts as accounts_db, media as media_db
 from backend.dependencies import DBSession, CurrentAccount, CurrentReadOnlyAccount
-from backend.models.accounts import Account, AuthenticatedAccount, AccountCollection, AccountUpdate, convert_account, convert_account_list, convert_auth_account
-from backend.models.media import Image, ImageCollection
-from backend.models.shared import Metadata
+from backend.models.accounts import Account, AuthenticatedAccount, AccountUpdate
+from backend.models.media import Image
+from backend.models.shared import CollectionFactory
 from backend.config import settings
 
 router = APIRouter(prefix="/accounts", tags=["Account"])
 
-@router.get("/", status_code=200)
+@router.get("/", status_code=200, response_model=CollectionFactory(Account, DBAccount))
 @limit("main")
 def get_accounts(
     request: Request,
     session: DBSession # type: ignore
-) -> AccountCollection:
+) -> list[DBAccount]:
     """Get a list of all accounts"""
-    accounts = accounts_db.get_all(session)
-    return AccountCollection(
-        metadata=Metadata(count=len(accounts)),
-        accounts=convert_account_list( accounts )
-    )
+    return accounts_db.get_all(session)
 
 @router.get("/me", status_code=200, response_model=AuthenticatedAccount)
 @limit("account")
@@ -66,19 +62,15 @@ def delete_current_account(
     auth.revoke_refresh_tokens(request.client.host, session, account)
     response.delete_cookie(settings.jwt_refresh_cookie_key)
 
-@router.get("/me/uploads/images", status_code=200, response_model=ImageCollection)
+@router.get("/me/uploads/images", status_code=200, response_model=CollectionFactory(Image, DBImage))
 @limit("account")
 def get_current_account(
     request: Request,
     session: DBSession, # type: ignore
     account: CurrentReadOnlyAccount
-) -> ImageCollection:
+) -> list[DBImage]:
     """Get a list of images uploaded by the current account"""
-    images = media_db.get_account_images(session, account)
-    return ImageCollection(
-        metadata=Metadata(count=len(images)),
-        images=[ Image.model_validate(image.__dict__) for image in images ]
-    )
+    return media_db.get_account_images(session, account)
 
 @router.get("/{account_id:uuid}", status_code=200, response_model=Account)
 @limit("account")

@@ -1,8 +1,8 @@
 """Request and response models for item functionality"""
 
-from typing import Union, Optional
-from pydantic import BaseModel
-from backend.models import shared
+from typing import Union, Optional, Callable, Any
+from pydantic import BaseModel, model_validator
+from backend.models.shared import Metadata, Collection, CollectionFactory
 from backend.database.schema import DBItem, DBItemNote, DBItemLink, DBItemMedia, DBItemTodo, DBItemList, DBItemDocument, DBTodoItem, DBPin
 
 # Base Item
@@ -16,11 +16,6 @@ class Item(BaseModel):
     index: int | None = None
     pin: Optional["Pin"] = None
     type: str
-    
-class ItemCollection(BaseModel):
-    """Response model for a collection of items"""
-    metadata: shared.Metadata
-    items: list["SomeItem"]
     
 class BaseItemCreate(BaseModel):
     """Basic request model for creating an item"""
@@ -108,7 +103,7 @@ class ItemMediaUpdate(BaseItemUpdate):
 class ItemTodo(Item):
     """Response model for a Todo item"""
     title: str
-    contents: "TodoItemCollection"
+    items: "Collection[TodoItem]"
     
 class ItemTodoCreate(BaseItemCreate):
     """Request model for creating a Todo item"""
@@ -123,7 +118,7 @@ class ItemTodoUpdate(BaseItemUpdate):
 class ItemList(Item):
     """Response model for a List item"""
     title: str
-    contents: ItemCollection
+    items: "ItemCollection"
     
 class ItemListCreate(BaseItemCreate):
     """Request model for creating a List item"""
@@ -160,11 +155,6 @@ class TodoItem(BaseModel):
     link: str | None = None
     done: bool
 
-class TodoItemCollection(BaseModel):
-    """Response model for a group of todo list items"""
-    metadata: shared.Metadata
-    items: list[TodoItem]
-
 # Pins that can connect different items
 
 class Pin(BaseModel):
@@ -175,6 +165,19 @@ class Pin(BaseModel):
     label: str | None = None
     compass: bool
     connections: list[str] # not a pin collection because of the infinite recursion
+
+    @model_validator(mode='before')
+    @classmethod
+    def convert_from_db_pin(cls, obj: Any) -> Any:
+        """Converts a DBPin"""
+        if not isinstance(obj, DBPin):
+            return obj
+        pin_connections = [ other.id for other in obj.connections ]
+        duplicate = obj.__dict__.copy()
+        duplicate['connections'] = pin_connections
+        return Pin(
+            **duplicate,
+        ).model_dump()
 
 class PinCreate(BaseModel):
     """Request model for creating a pin"""
@@ -218,47 +221,66 @@ ITEMTYPES: dict[str, dict[str, type | list[str]]] = {
     "document": { "base": ItemDocument, "db": DBItemDocument, "create": ItemDocumentCreate, "update": ItemDocumentUpdate, "required_fields": [ "title" ] }
 }
 
+# Converters from item types with special fields (like references to other items)
+ITEM_CONVERTERS: dict[type, Callable[[DBItem], Item]] = {}
+
+# Decorator that maps these converter functions
+def register_item_converter(model_type: type):
+    def wrapper(func: Callable[[DBItem, dict], model_type]): # type: ignore
+        ITEM_CONVERTERS[model_type] = func
+        return func
+    return wrapper
+
+# Converter functions for specific item types
+
+@register_item_converter(ItemTodo)
+def convert_todo(todo: DBItemTodo, d: dict) -> ItemTodo:
+    collection = CollectionFactory(TodoItem, DBTodoItem).model_validate(todo.contents).model_dump()
+    item_dict = Item.model_validate(d).model_dump()
+     # Apply type-specific fields and then return
+    item_dict['title'] = todo.title
+    item_dict['items'] = collection
+    return ItemTodo(**item_dict)
+
+@register_item_converter(ItemList)
+def convert_list(list: DBItemList, d: dict) -> ItemList:
+    collection = ItemCollection.model_validate(list.contents).model_dump()
+    item_dict = Item.model_validate(d).model_dump()
+     # Apply type-specific fields and then return
+    item_dict['title'] = list.title
+    item_dict['items'] = collection
+    return ItemList(**item_dict)
+
+# Main manual converter
 def convert_item(db_item: DBItem) -> SomeItem:
     item_type = ITEMTYPES.get(db_item.type, { "base": Item })['base']
-    # Convert collections before validating
+    # Convert pin before validating
     db_dict = db_item.__dict__
-    db_dict['pin'] = convert_pin( db_item.pin ).__dict__ if db_item.pin else None
-    if item_type == ItemTodo:
-        collection = TodoItemCollection(
-            metadata=shared.Metadata(count=len(db_item.contents)),
-            items=convert_todo_item_list(db_item.contents)
-        )
-        item_dict = Item.model_validate(db_dict).model_dump()
-        item_dict['title'] = db_item.title
-        item_dict['contents'] = collection
-        return ItemTodo(**item_dict)
-    if item_type == ItemList:
-        collection = ItemCollection(
-            metadata=shared.Metadata(count=len(db_item.contents)),
-            items=convert_item_list(db_item.contents) # no need to worry about recursion because lists cannot contain other lists
-        )
-        item_dict = Item.model_validate(db_dict).model_dump()
-        item_dict['title'] = db_item.title
-        item_dict['contents'] = collection
-        return ItemList(**item_dict)
+    db_dict['pin'] = Pin.model_validate(db_item.pin).model_dump() if db_item.pin else None
+    # Handle special conversions
+    if item_type in ITEM_CONVERTERS:
+        return ITEM_CONVERTERS[item_type](db_item, db_dict)
     # Otherwise we can just validate
     return item_type.model_validate(db_dict)
 
-def convert_item_list(db_items: list[DBItem]) -> list[SomeItem]:
-    return [ convert_item(db_item) for db_item in db_items ]
+# Items require their own collection due to polymorphism
+class ItemCollection(BaseModel):
+    """Response model for an item collection."""
 
-def convert_todo_item(todo_item: DBTodoItem) -> TodoItem:
-    return TodoItem.model_validate(todo_item.__dict__)
+    metadata: Metadata
+    contents: list[SomeItem]
 
-def convert_todo_item_list(todo_items: list[DBTodoItem]) -> list[TodoItem]:
-    return [ convert_todo_item(item) for item in todo_items ]
-
-def convert_pin(db_pin: DBPin) -> Pin:
-    return Pin(
-        id=db_pin.id,
-        board_id=db_pin.board_id,
-        item_id=db_pin.item_id,
-        label=db_pin.label,
-        compass=db_pin.compass,
-        connections=[ other.id for other in db_pin.connections ]
-    )
+    @model_validator(mode='before')
+    @classmethod
+    def convert_item_list(cls, obj: Any) -> Any:
+        """Constructs a collection from a list of DBItems"""
+        if isinstance(obj, list):
+            # Make sure either the list is empty or everything matches this type
+            if not all([ isinstance(x, DBItem) for x in obj ]):
+                return obj
+            # If this is indeed a list[DBItem] create the equivalent of a a Collection[ContentsType] from these items
+            return ItemCollection(
+                metadata=Metadata( count=len(obj) ),
+                contents=[ convert_item(element) for element in obj ]
+            ).model_dump()
+        return obj

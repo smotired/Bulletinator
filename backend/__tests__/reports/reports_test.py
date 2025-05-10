@@ -30,21 +30,21 @@ def test_submit_and_get_report(client, auth_headers, exception):
     response = client.get("/reports/", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "reports": [ report ],
+        "contents": [ report ],
     }
     assert response.status_code == 200
     # Get it as a staff account
     response = client.get("/reports/all", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "reports": [ report ],
+        "contents": [ report ],
     }
     assert response.status_code == 200
     # Assign and get as an assigned staff account
     response = client.get("/reports/assigned", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 0 },
-        "reports": [ ],
+        "contents": [ ],
     }
     assert response.status_code == 200
     response = client.put(f"/reports/{mock.to_uuid(1, 'report')}/assignee/{mock.to_uuid(5, 'account')}", headers=auth_headers(5))
@@ -55,7 +55,7 @@ def test_submit_and_get_report(client, auth_headers, exception):
     response = client.get("/reports/assigned", headers=auth_headers(5))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "reports": [ report ],
+        "contents": [ report ],
     }
     assert response.status_code == 200
     # Get by ID as submitter, staff, and other

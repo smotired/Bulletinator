@@ -14,8 +14,8 @@ def test_add_todo_item(client, auth_headers, todo_items, get_item):
     assert response.status_code == 201
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(5, 'item')}")
     todo = get_item(5)
-    todo['contents']['metadata']['count'] = 4
-    todo['contents']['items'].append(updated_item)
+    todo['items']['metadata']['count'] = 4
+    todo['items']['contents'].append(updated_item)
     assert response.json() == todo
     assert response.status_code == 200
 
@@ -33,8 +33,8 @@ def test_add_todo_item_defaults(client, auth_headers, todo_items, get_item):
     assert response.status_code == 201
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(5, 'item')}")
     todo = get_item(5)
-    todo['contents']['metadata']['count'] = 4
-    todo['contents']['items'].append(updated_item)
+    todo['items']['metadata']['count'] = 4
+    todo['items']['contents'].append(updated_item)
     assert response.json() == todo
     assert response.status_code == 200
 
@@ -87,7 +87,7 @@ def test_update_todo_item(client, auth_headers, get_item):
     assert response.status_code == 200
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(5, 'item')}")
     todo = get_item(5)
-    todo['contents']['items'][2]['done'] = True
+    todo['items']['contents'][2]['done'] = True
     assert response.json() == todo
     assert response.status_code == 200
 
@@ -114,8 +114,8 @@ def test_delete_todo_item(client, auth_headers, get_item):
     assert response.status_code == 204
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(5, 'item')}")
     todo = get_item(5)
-    todo['contents']['metadata']['count'] = 2
-    todo['contents']['items'].pop(2)
+    todo['items']['metadata']['count'] = 2
+    todo['items']['contents'].pop(2)
     assert response.json() == todo
     assert response.status_code == 200
 

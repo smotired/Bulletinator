@@ -13,11 +13,6 @@ class Board(BaseModel):
     owner_id: str
     public: bool
     
-class BoardCollection(BaseModel):
-    """Response model for a collection of boards"""
-    metadata: shared.Metadata
-    boards: list[Board]
-    
 class BoardCreate(BaseModel):
     """Request model for creating a board"""
     identifier: str | None = None # if not provided, generate one
@@ -40,9 +35,3 @@ class BoardTransfer(BaseModel):
 class EditorInvitation(BaseModel):
     """Request model for inviting an editor account"""
     email: str
-
-def convert_board(db_board: DBBoard):
-    return Board.model_validate(db_board.__dict__)
-
-def convert_board_list(db_boards: list[DBBoard]):
-    return [ convert_board(db_board) for db_board in db_boards ]

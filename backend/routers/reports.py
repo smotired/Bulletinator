@@ -8,14 +8,15 @@ from backend.utils.permissions import ReportPDP
 from backend.utils.rate_limiter import limit
 from backend.database.schema import DBReport
 from backend.database import reports as reports_db
-from backend.models.reports import Report, ReportCollection, ReportCreate, ReportUpdate, StaffReportUpdate
+from backend.models.reports import Report, ReportCreate, ReportUpdate, StaffReportUpdate
+from backend.models.shared import CollectionFactory
 
 router = APIRouter(
     prefix="/reports",
     tags=["Reports"]
 )
 
-@router.get("/", status_code=200, response_model=ReportCollection)
+@router.get("/", status_code=200, response_model=CollectionFactory(Report, DBReport))
 @limit("main")
 def get_submitted(
     request: Request,
@@ -25,7 +26,7 @@ def get_submitted(
     """Returns a list of reports submitted by this user, sorted by most recent."""
     return reports_db.get_submitted(session, pdp)
 
-@router.get("/all", status_code=200, response_model=ReportCollection)
+@router.get("/all", status_code=200, response_model=CollectionFactory(Report, DBReport))
 @limit("main")
 def get_reports(
     request: Request,
@@ -35,13 +36,13 @@ def get_reports(
     """Returns a list of all reports sorted by most recent."""
     return reports_db.get_all(session, pdp)
 
-@router.get("/assigned", status_code=200, response_model=ReportCollection)
+@router.get("/assigned", status_code=200, response_model=CollectionFactory(Report, DBReport))
 @limit("main")
 def get_assigned(
     request: Request,
     session: DBSession, # type: ignore
     pdp: ReportPDP,
-) -> ReportCollection:
+) -> list[DBReport]:
     """Returns a list of reports assigned to this account, sorted by most recent."""
     return reports_db.get_assigned(session, pdp)
 

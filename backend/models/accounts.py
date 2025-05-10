@@ -22,11 +22,6 @@ class AuthenticatedAccount(BaseModel):
     profile_image: str | None = None
     display_name: str | None = None
     
-class AccountCollection(BaseModel):
-    """Response model for a collection of accounts"""
-    metadata: shared.Metadata
-    accounts: list[Account]
-    
 class AccountUpdate(BaseModel):
     """Request model to update an account."""
     old_password: str | None = None # not necessary unless updating email or password
@@ -38,12 +33,3 @@ class AccountUpdate(BaseModel):
     new_password: str | None = None
     
 AccountUpdateForm = Annotated[AccountUpdate, Form()]
-
-def convert_account(db_account: DBAccount):
-    return Account.model_validate(db_account.__dict__)
-
-def convert_auth_account(db_account: DBAccount):
-    return AuthenticatedAccount.model_validate(db_account.__dict__)
-
-def convert_account_list(db_accounts: list[DBAccount]):
-    return [ convert_account(db_account) for db_account in db_accounts ]

@@ -9,7 +9,7 @@ def test_get_public(client, get_board):
     response = client.get("/boards")
     assert response.json() == {
         "metadata": { "count": 2 },
-        "boards": [ get_board(2), get_board(1) ] # they are ordered by name
+        "contents": [ get_board(2), get_board(1) ] # they are ordered by name
     }
     assert response.status_code == 200
 
@@ -18,7 +18,7 @@ def test_get_visible(client, get_board, auth_headers):
     response = client.get("/boards", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 3 },
-        "boards": [ get_board(2), get_board(3), get_board(1) ] # they are ordered by name
+        "contents": [ get_board(2), get_board(3), get_board(1) ] # they are ordered by name
     }
     assert response.status_code == 200
 
@@ -27,7 +27,7 @@ def test_get_editable(client, auth_headers, get_board):
     response = client.get("/boards/editable", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 2 },
-        "boards": [ get_board(3), get_board(1) ]
+        "contents": [ get_board(3), get_board(1) ]
     }
     assert response.status_code == 200
 
@@ -237,7 +237,7 @@ def test_get_editors(client, auth_headers, get_response_account):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 2 }, 
-        "accounts": [ get_response_account(1), get_response_account(3) ] # TODO: Figure out ordering
+        "contents": [ get_response_account(1), get_response_account(3) ] # TODO: Figure out ordering
     }
     assert response.status_code == 200
 
@@ -245,7 +245,7 @@ def test_get_editors_as_editor(client, auth_headers, get_response_account):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 2 }, 
-        "accounts": [ get_response_account(1), get_response_account(3) ]
+        "contents": [ get_response_account(1), get_response_account(3) ]
     }
     assert response.status_code == 200
 
@@ -278,7 +278,7 @@ def test_invite_editor(session, client, auth_headers, get_response_account, get_
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(4))
     assert response.json() == {
         "metadata": { "count": 3 }, 
-        "accounts": [ get_response_account(1), get_response_account(3), get_response_account(4) ]
+        "contents": [ get_response_account(1), get_response_account(3), get_response_account(4) ]
     }
     assert response.status_code == 200
 
@@ -305,7 +305,7 @@ def test_remove_editor(client, auth_headers, get_response_account):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 }, 
-        "accounts": [ get_response_account(1) ]
+        "contents": [ get_response_account(1) ]
     }
     assert response.status_code == 200
 
@@ -316,7 +316,7 @@ def test_remove_editor_as_editor(client, auth_headers, exception, get_response_a
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/editors", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 2 }, 
-        "accounts": [ get_response_account(1), get_response_account(3) ]
+        "contents": [ get_response_account(1), get_response_account(3) ]
     }
     assert response.status_code == 200
 
@@ -324,7 +324,7 @@ def test_remove_editor_as_self(client, auth_headers, get_response_account):
     response = client.delete(f"/boards/{mock.to_uuid(3, 'board')}/editors/{mock.to_uuid(3, 'account')}", headers=auth_headers(3))
     assert response.json() == {
         "metadata": { "count": 1 }, 
-        "accounts": [ get_response_account(1) ]
+        "contents": [ get_response_account(1) ]
     }
     assert response.status_code == 200
 
@@ -343,7 +343,7 @@ def test_transfer(client, auth_headers, get_board, get_response_account):
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "accounts": [ get_response_account(1) ],
+        "contents": [ get_response_account(1) ],
     }
     assert response.status_code == 200
 
@@ -367,7 +367,7 @@ def test_transfer_private(client, auth_headers, get_board, get_response_account)
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/editors", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "accounts": [ get_response_account(2) ],
+        "contents": [ get_response_account(2) ],
     }
     assert response.status_code == 200
 
@@ -406,7 +406,7 @@ def test_create_with_reference(client, auth_headers, boards, get_response_accoun
     response = client.get(f"/boards/{mock.to_uuid(len(boards)+1, 'board')}/editors", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "accounts": [ get_response_account(2) ],
+        "contents": [ get_response_account(2) ],
     }
     assert response.status_code == 200
 
@@ -430,7 +430,7 @@ def test_create_with_reference_as_editor(client, auth_headers, boards, get_respo
     response = client.get(f"/boards/{mock.to_uuid(len(boards)+1, 'board')}/editors", headers=auth_headers(2))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "accounts": [ get_response_account(1) ],
+        "contents": [ get_response_account(1) ],
     }
     assert response.status_code == 200
 

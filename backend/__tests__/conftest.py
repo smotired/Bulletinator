@@ -61,6 +61,14 @@ def form_headers():
 def static_path():
     return os.path.join(os.getcwd(), '__tests__', 'media', 'static')
 
+# An empty collection
+@pytest.fixture()
+def empty_collection():
+    return {
+        "metadata": { "count": 0 },
+        "contents": []
+    }
+
 # Initial database contents
 
 @pytest.fixture
@@ -264,7 +272,7 @@ def get_item(items, todo_items, get_item_pin):
                 todo_item['id'] = mock.to_uuid(i + 1, 'sub_item')
                 todo_item['list_id'] = mock.to_uuid(id, 'item')
                 contents.append(todo_item)
-            item['contents'] = { "metadata": { "count": len(contents) }, "items": contents }
+            item['items'] = { "metadata": { "count": len(contents) }, "contents": contents }
         if item['type'] == "list":
             contents = []
             for i, li in enumerate(items):
@@ -278,7 +286,7 @@ def get_item(items, todo_items, get_item_pin):
                 else:
                     del list_item['board_id']
                 contents.append(list_item)
-            item['contents'] = { "metadata": { "count": len(contents) }, "items": sorted(contents, key=lambda i: i['index']) }
+            item['items'] = { "metadata": { "count": len(contents) }, "contents": sorted(contents, key=lambda i: i['index']) }
         # Remove board ID if not asked for
         if not includeBoardId:
             del item['board_id']
@@ -334,16 +342,6 @@ def def_item(items):
             "pin": None,
         }
     return _def_item
-
-@pytest.fixture()
-def empty_collection():
-    """Function to generate an empty collection with this key"""
-    def _empty_collection(list_key: str) -> dict:
-        return {
-            "metadata": { "count": 0 },
-            list_key: []
-        }
-    return _empty_collection
 
 @pytest.fixture
 def get_pin(pins):

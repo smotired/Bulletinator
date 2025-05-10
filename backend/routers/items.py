@@ -10,29 +10,25 @@ from uuid import UUID
 from backend.utils.rate_limiter import limit
 from backend.database.schema import *
 from backend.database import items as items_db
-from backend.dependencies import DBSession, CurrentAccount, OptionalAccount
+from backend.dependencies import DBSession, OptionalAccount
 from backend.utils.permissions import BoardPDP
 from backend.models.items import *
-from backend.models.shared import Metadata
+from backend.models.shared import CollectionFactory
 
 router = APIRouter(prefix="/boards/{board_id}/items", tags=["Item"])
 
-@router.get("/", status_code=200)
+@router.get("/", status_code=200, response_model=ItemCollection)
 @limit("board_action")
 def get_items(
     request: Request,
     session: DBSession, # type: ignore
     board_id: UUID,
     account: OptionalAccount
-) -> ItemCollection:
+) -> list[DBItem]:
     """If the current account can see the board with this ID, return a collection of all items on this board."""
-    items = items_db.get_items(session, str(board_id), account)
-    return ItemCollection(
-        metadata=Metadata(count=len(items)),
-        items=convert_item_list( items )
-    )
+    return items_db.get_items(session, str(board_id), account)
 
-@router.get("/{item_id}", status_code=200)
+@router.get("/{item_id}", status_code=200, response_model=SomeItem)
 @limit("board_action")
 def get_item(
     request: Request,
@@ -44,7 +40,7 @@ def get_item(
     """If the account can edit this board, add an item."""
     return convert_item( items_db.get_item(session, str(board_id), str(item_id), account) )
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=SomeItem)
 @limit("board_action")
 def add_item(
     request: Request,
@@ -56,7 +52,7 @@ def add_item(
     """If the account can edit this board, add an item."""
     return convert_item( items_db.create_item(session, pdp, str(board_id), config) )
 
-@router.put("/{item_id}", status_code=200)
+@router.put("/{item_id}", status_code=200, response_model=SomeItem)
 @limit("board_action")
 def update_item(
     request: Request,
@@ -118,7 +114,7 @@ def delete_todo_item(
     """Add an item to a todo list on this board."""
     items_db.delete_todo_item(session, pdp, str(board_id), str(todo_item_id))
 
-@router.put("/pins/connect", status_code=200)
+@router.put("/pins/connect", status_code=200, response_model=list[Pin])
 @limit("board_action")
 def connect_pin(
     request: Request,
@@ -127,11 +123,11 @@ def connect_pin(
     board_id: UUID,
     p1: UUID,
     p2: UUID,
-) -> list[Pin]:
+) -> list[DBPin]:
     """Adds a connection between two pins on this board."""
-    return [ convert_pin(pin) for pin in items_db.add_pin_connection(session, pdp, str(board_id), str(p1), str(p2)) ]
+    return items_db.add_pin_connection(session, pdp, str(board_id), str(p1), str(p2))
 
-@router.delete("/pins/connect", status_code=200)
+@router.delete("/pins/connect", status_code=200, response_model=list[Pin])
 @limit("board_action")
 def disconnect_pin(
     request: Request,
@@ -140,11 +136,11 @@ def disconnect_pin(
     board_id: UUID,
     p1: UUID,
     p2: UUID,
-) -> list[Pin]:
+) -> list[DBPin]:
     """Deletes a connection between two pins on this board."""
-    return [ convert_pin(pin) for pin in items_db.remove_pin_connection(session, pdp, str(board_id), str(p1), str(p2)) ]
+    return items_db.remove_pin_connection(session, pdp, str(board_id), str(p1), str(p2))
 
-@router.post("/pins", status_code=201)
+@router.post("/pins", status_code=201, response_model=Pin)
 @limit("board_action")
 def create_pin(
     request: Request,
@@ -152,11 +148,11 @@ def create_pin(
     pdp: BoardPDP,
     board_id: UUID,
     config: PinCreate,
-) -> Pin:
+) -> DBPin:
     """Creates a pin on this board."""
-    return convert_pin( items_db.create_pin(session, pdp, str(board_id), config) )
+    return items_db.create_pin(session, pdp, str(board_id), config)
 
-@router.put("/pins/{pin_id}", status_code=200)
+@router.put("/pins/{pin_id}", status_code=200, response_model=Pin)
 @limit("board_action")
 def update_pin(
     request: Request,
@@ -165,9 +161,9 @@ def update_pin(
     board_id: UUID,
     pin_id: UUID,
     config: PinUpdate,
-) -> Pin:
+) -> DBPin:
     """Updates a pin on this board."""
-    return convert_pin( items_db.update_pin(session, pdp, str(board_id), str(pin_id), config) )
+    return items_db.update_pin(session, pdp, str(board_id), str(pin_id), config)
 
 @router.delete("/pins/{pin_id}", status_code=204)
 @limit("board_action", no_content=True)

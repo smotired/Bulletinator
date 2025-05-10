@@ -57,12 +57,12 @@ export type ItemImage = Item & {
 
 export type ItemList = Item & {
     title: string,
-    contents: Collection<Item> | null;
+    items: Collection<Item> | null;
 }
 
 export type ItemTodo = Item & {
     text: string,
-    contents: Collection<TodoItem> | null;
+    items: Collection<TodoItem> | null;
 }
 
 export type ItemDocument = Item & {

@@ -20,22 +20,6 @@ class Report(BaseModel):
     created_at: datetime
     resolved_at: datetime | None = None
 
-class ReportCollection(BaseModel):
-    """Response model for a list of reports"""
-    metadata: Metadata
-    reports: list[Report]
-
-    @model_validator(mode='before')
-    def convert_list(cls, obj: Any) -> Any:
-        """If this is a list[DBReport], convert to a report collection straightaway."""
-        if isinstance(obj, list):
-            if all([ isinstance(e, DBReport) for e in obj ]):
-                return ReportCollection(
-                    metadata=Metadata(count=len(obj)),
-                    reports=[ Report.model_validate(report.__dict__) for report in obj ]
-                ).model_dump()
-        return obj
-
 class ReportCreate(BaseModel):
     """Request model for creating a report"""
     entity_id: str

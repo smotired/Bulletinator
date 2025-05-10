@@ -8,7 +8,7 @@ def test_get_items1(client, get_item):
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items")
     assert response.json() == {
         "metadata": { "count": 3 },
-        "items": [ get_item(1), get_item(5), get_item(7) ]
+        "contents": [ get_item(1), get_item(5), get_item(7) ]
     }
     assert response.status_code == 200
 
@@ -16,7 +16,7 @@ def test_get_items2(client, get_item):
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items")
     assert response.json() == {
         "metadata": { "count": 4 },
-        "items": [ get_item(2), get_item(6), get_item(9), get_item(11) ]
+        "contents": [ get_item(2), get_item(6), get_item(9), get_item(11) ]
     }
     assert response.status_code == 200
 
@@ -24,7 +24,7 @@ def test_get_private_items(client, auth_headers, get_item):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/items", headers=auth_headers(3))
     assert response.json() == {
         "metadata": { "count": 1 },
-        "items": [ get_item(8) ]
+        "contents": [ get_item(8) ]
     }
     assert response.status_code == 200
 
@@ -94,7 +94,7 @@ def test_create_item(client, auth_headers, items, get_item):
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items")
     assert response.json() == {
         "metadata": { "count": 4 },
-        "items": [ get_item(1), get_item(5), get_item(7), updated_item ]
+        "contents": [ get_item(1), get_item(5), get_item(7), updated_item ]
     }
     assert response.status_code == 200
 
@@ -313,7 +313,7 @@ def test_create_todo(client, auth_headers, def_item, items, empty_collection):
     assert response.json() == {
         **def_item(1),
         **item,
-        "contents": empty_collection("items")
+        "items": empty_collection
     }
     assert response.status_code == 201
 
@@ -335,7 +335,7 @@ def test_create_todo_default(client, auth_headers, def_item, items, empty_collec
     assert response.json() == {
         **def_item(1),
         **item,
-        "contents": empty_collection("items")
+        "items": empty_collection
     }
     assert response.status_code == 201
 
@@ -356,7 +356,7 @@ def test_create_list(client, auth_headers, def_item, items, empty_collection):
     assert response.json() == {
         **def_item(1),
         **item,
-        "contents": empty_collection("items")
+        "items": empty_collection
     }
     assert response.status_code == 201
 
@@ -371,7 +371,7 @@ def test_create_list_default(client, auth_headers, items, def_item, empty_collec
     assert response.json() == {
         **def_item(1),
         **item,
-        "contents": empty_collection("items")
+        "items": empty_collection
     }
     assert response.status_code == 201
 
@@ -471,8 +471,8 @@ def test_create_append_to_list(client, auth_headers, items, get_item):
     # Try getting the list to make sure it's in there
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 3
-    list_item['contents']['items'].append(updated_item)
+    list_item['items']['metadata']['count'] = 3
+    list_item['items']['contents'].append(updated_item)
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -498,9 +498,9 @@ def test_create_insert_into_list(client, auth_headers, items, get_item):
     # Try getting the list to make sure it's in there
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 3
-    list_item['contents']['items'][1]['index'] = 2
-    list_item['contents']['items'].insert(1, updated_item)
+    list_item['items']['metadata']['count'] = 3
+    list_item['items']['contents'][1]['index'] = 2
+    list_item['items']['contents'].insert(1, updated_item)
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -524,8 +524,8 @@ def test_create_insert_at_end(client, auth_headers, items, get_item):
     assert response.status_code == 201
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 3
-    list_item['contents']['items'].append(updated_item)
+    list_item['items']['metadata']['count'] = 3
+    list_item['items']['contents'].append(updated_item)
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -630,8 +630,8 @@ def test_update_add_to_list(client, auth_headers, get_item):
     # make sure it's in the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 3
-    list_item['contents']['items'].append(updated)
+    list_item['items']['metadata']['count'] = 3
+    list_item['items']['contents'].append(updated)
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -647,9 +647,9 @@ def test_update_insert_to_list(client, auth_headers, get_item):
     # make sure it's in the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 3
-    list_item['contents']['items'].insert(1, updated)
-    list_item['contents']['items'][2]['index'] = 2
+    list_item['items']['metadata']['count'] = 3
+    list_item['items']['contents'].insert(1, updated)
+    list_item['items']['contents'][2]['index'] = 2
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -665,8 +665,8 @@ def test_update_remove_from_list(client, auth_headers, get_item):
     # make sure it's not in the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 1
-    list_item['contents']['items'].pop(1)
+    list_item['items']['metadata']['count'] = 1
+    list_item['items']['contents'].pop(1)
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -681,17 +681,17 @@ def test_update_swap_lists(client, auth_headers, get_item):
     # make sure it's in the new list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list1 = get_item(2)
-    list1['contents']['metadata']['count'] = 3
-    list1['contents']['items'].insert(0, updated)
-    list1['contents']['items'][1]['index'] = 1
-    list1['contents']['items'][2]['index'] = 2
+    list1['items']['metadata']['count'] = 3
+    list1['items']['contents'].insert(0, updated)
+    list1['items']['contents'][1]['index'] = 1
+    list1['items']['contents'][2]['index'] = 2
     assert response.json() == list1
     assert response.status_code == 200
     # make sure it's NOT in the old list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(9, 'item')}")
     list2 = get_item(9)
-    list2['contents']['metadata']['count'] = 0
-    list2['contents']['items'] = []
+    list2['items']['metadata']['count'] = 0
+    list2['items']['contents'] = []
     assert response.json() == list2
     assert response.status_code == 200
 
@@ -707,9 +707,9 @@ def test_update_reorder1(client, auth_headers, get_item):
     # make sure it's in the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['items'][0], list_item['contents']['items'][1] = list_item['contents']['items'][1], list_item['contents']['items'][0]
-    list_item['contents']['items'][0]['index'] = 0
-    list_item['contents']['items'][1]['index'] = 1
+    list_item['items']['contents'][0], list_item['items']['contents'][1] = list_item['items']['contents'][1], list_item['items']['contents'][0]
+    list_item['items']['contents'][0]['index'] = 0
+    list_item['items']['contents'][1]['index'] = 1
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -725,9 +725,9 @@ def test_update_reorder2(client, auth_headers, get_item):
     # make sure it's in the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['items'][0], list_item['contents']['items'][1] = list_item['contents']['items'][1], list_item['contents']['items'][0]
-    list_item['contents']['items'][0]['index'] = 0
-    list_item['contents']['items'][1]['index'] = 1
+    list_item['items']['contents'][0], list_item['items']['contents'][1] = list_item['items']['contents'][1], list_item['items']['contents'][0]
+    list_item['items']['contents'][0]['index'] = 0
+    list_item['items']['contents'][1]['index'] = 1
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -774,7 +774,7 @@ def test_delete_item(client, auth_headers, get_item, exception):
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items")
     assert response.json() == {
         "metadata": { "count": 2 },
-        "items": [ get_item(5), get_item(7) ]
+        "contents": [ get_item(5), get_item(7) ]
     }
     assert response.status_code == 200
     response = client.get(f"/boards/{mock.to_uuid(1, 'board')}/items/{mock.to_uuid(1, 'item')}")
@@ -787,9 +787,9 @@ def test_delete_list_item(client, auth_headers, get_item):
     # make sure it's removed from the list
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(2, 'item')}")
     list_item = get_item(2)
-    list_item['contents']['metadata']['count'] = 1
-    list_item['contents']['items'].pop(0)
-    list_item['contents']['items'][0]['index'] = 0
+    list_item['items']['metadata']['count'] = 1
+    list_item['items']['contents'].pop(0)
+    list_item['items']['contents'][0]['index'] = 0
     assert response.json() == list_item
     assert response.status_code == 200
 
@@ -803,7 +803,7 @@ def test_delete_list(client, auth_headers, get_item, exception):
     expected_items[1]['pin']['connections'].remove(mock.to_uuid(1, 'pin'))
     assert response.json() == {
         "metadata": { "count": 3 },
-        "items": expected_items
+        "contents": expected_items
     }
     assert response.status_code == 200
     response = client.delete(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(3, 'item')}", headers=auth_headers(1))
@@ -888,7 +888,7 @@ def test_move_to_board(client, auth_headers, pins, get_item):
     response = client.get(f"/boards/{mock.to_uuid(3, 'board')}/items", headers=auth_headers(1))
     assert response.json() == {
         "metadata": { "count": 2 },
-        "items": [ get_item(8), updated ]
+        "contents": [ get_item(8), updated ]
     }
     # Make sure the other pin is not connected to anything
     response = client.get(f"/boards/{mock.to_uuid(2, 'board')}/items/{mock.to_uuid(11, 'item')}", headers=auth_headers(1))

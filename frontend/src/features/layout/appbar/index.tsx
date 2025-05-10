@@ -59,9 +59,9 @@ export default function HeaderBar() {
 
                 :
                 /* Go to Login page */
-                // <Link href="/login">
-                    <Button onClick={toggleAuthenticated} color="inherit">Log In</Button>
-                // </Link>
+                <Link href="/login">
+                    <Button color="inherit">Log In</Button>
+                </Link>
                 }
 
             </Stack>

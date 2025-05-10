@@ -1,5 +1,5 @@
 /**
- * Contains TypeScript types for important objects
+ * Backend Types
  */
 
 export type Metadata = {
@@ -109,6 +109,24 @@ export type Report = {
 }
 
 /**
+ * Other Types
+ */
+
+export type BadRequest = {
+    error: string,
+    message: string,
+    detail: object | null,
+}
+
+export type CookieSettings = {
+    [key: string]: {
+        key: string,
+        value: string,
+        options: { [key: string]: string | Date | number | boolean, }
+    }
+};
+
+/**
  * Enums
  */
 
@@ -122,12 +140,6 @@ export enum AuthResponse {
 /**
  * Exceptions
  */
-
-export type BadRequest = {
-    error: string,
-    message: string,
-    detail: object | null,
-}
 
 export class ApiError extends Error {
     status: number;

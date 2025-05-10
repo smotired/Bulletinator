@@ -11,7 +11,7 @@ type Login = { identifier: string, password: string }
 export default function LoginFormClient() {
     const router = useRouter();
     const nextPath = useSearchParams().get('next');
-    const { handleLogin } = useAuth();
+    const { handleLogin, authenticated } = useAuth();
 
     const [ hasAttempted, setHasAttempted ] = useState<boolean>(false);
     const [ disabled, setDisabled ] = useState<boolean>(true);
@@ -55,15 +55,19 @@ export default function LoginFormClient() {
 
         // Otherwise, send the login request.
         call(login, form)
-            .then(() => router.push(nextPath || '/dashboard'))
+            .then(() => {
+                handleLogin();
+            })
             .catch((error: Error) => {
                 setForm(null);
                 setError(error.message);
-                handleLogin();
                 if (passwordRef.current)
                     passwordRef.current.value = '';
             })
     }, [form]);
+
+    // If authenticated, immediately go to Next
+    useEffect(() => { authenticated && router.push(nextPath || '/dashboard'); }, [authenticated]);
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col w-full gap-4 items-stretch">

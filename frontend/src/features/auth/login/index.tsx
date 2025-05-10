@@ -1,8 +1,8 @@
 /**
  * Wrapping server component for login page
  */
-import { Avatar, Stack, Container, Paper, Typography } from '@mui/material';
-import LockIcon from '@mui/icons-material/Lock';
+import { Stack, Container, Paper, Typography } from '@mui/material';
+import Image from 'next/image';
 import LoginFormClient from './form';
 
 export default async function LoginForm() {
@@ -10,9 +10,7 @@ export default async function LoginForm() {
         <Container maxWidth="sm">
             <Paper sx={{ mt: 4, p: 2 }}>
                 <Stack spacing={2} alignItems='center'>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <LockIcon />
-                    </Avatar>
+                    <Image src='/header-text.png' alt="Bulletinator" width={512} height={64} className="mx-auto"/>
                     <Typography variant='h6' sx={{ textAlign: 'center' }}>Please log in.</Typography>
 
                     <LoginFormClient />

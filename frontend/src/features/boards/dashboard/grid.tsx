@@ -9,10 +9,12 @@ import { Account, Board, Collection } from "@/types";
 import { Box, Card, Grid, Typography } from "@mui/material";
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "@/contexts";
 
 function BoardCard({ board, owner }: { board: Board, owner: Account })
 {
     const [ hovered, setHovered ] = useState<boolean>(false);
+    const { account } = useAuth();
 
     return (
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
@@ -35,8 +37,15 @@ function BoardCard({ board, owner }: { board: Board, owner: Account })
                                 :
                                 <LockIcon color="disabled" sx={{ width: 18, height: 18 }} />
                             }
-                            <AccountAvatar account={owner} sx={{ width: 24, height: 24, fontSize: '0.75rem' }} />
-                            <Typography noWrap>{owner.display_name || owner.username}</Typography>
+                            {
+                                account?.id == owner.id ?
+                                    <Typography color="#888888" variant="subtitle2" noWrap>{ board.public ? "Public Board" : "Private Board" }</Typography>
+                                :
+                                <>
+                                    <AccountAvatar account={owner} sx={{ width: 24, height: 24, fontSize: '0.75rem' }} />
+                                    <Typography noWrap>{owner.display_name || owner.username}</Typography>
+                                </>
+                            }
                         </Grid>
                     </Grid>
                 </Card>

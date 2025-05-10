@@ -33,7 +33,7 @@ export default function HeaderBar() {
     return (
         <AppBar position="static" sx={{ padding: 2, backgroundImage: appbarGradient }}>
             <Stack direction='row' spacing={2} justifyContent='space-between' alignItems='center'>
-                <Link href='/'>
+                <Link href={ authenticated ? '/dashboard' : '/' }>
                     <Image src='/header-outline.svg' alt="Bulletinator Logo" width={200} height={50} />
                 </Link>
 

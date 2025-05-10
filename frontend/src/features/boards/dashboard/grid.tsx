@@ -60,7 +60,7 @@ export default function BoardGrid({ boards, owners }: {
 }) {
 
     return (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid container spacing={2} sx={{ my: 2 }}>
             {
                 boards.contents.map((board: Board) => <BoardCard key={board.id} board={board} owner={owners[board.owner_id]} />)
             }

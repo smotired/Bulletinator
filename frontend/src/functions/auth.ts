@@ -1,8 +1,12 @@
 import { CookieSettings } from "@/types";
-import { postFormAuth } from "./api";
+import { postAuth, postForm } from "./api";
 
 export async function login(
     form: { identifier: string, password: string },
 ): Promise<[void, CookieSettings | null]> {
-    return await postFormAuth('/auth/web/login', {}, form, true)
+    return await postForm('/auth/web/login', {}, form, true);
+}
+
+export async function logout(): Promise<[void, CookieSettings | null]> {
+    return await postAuth('/auth/web/logout', {}, {}, true);
 }

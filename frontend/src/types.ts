@@ -14,16 +14,12 @@ export type Collection<Type> = {
 export type Account = {
     id: string,
     username: string,
-    profileImage: string,
-    displayName: string,
+    profile_image: string,
+    display_name: string,
 }
 
-export type AuthenticatedAccount = {
-    id: string,
-    username: string,
+export type AuthenticatedAccount = Account & {
     email: string,
-    profileImage: string,
-    displayName: string,
 }
 
 export type Board = {
@@ -31,15 +27,15 @@ export type Board = {
     identifier: string,
     name: string,
     icon: string,
-    ownerId: string,
+    owner_id: string,
     public: boolean,
 }
 
 export type Item = {
     id: string,
-    boardId: string,
+    board_id: string,
     position: string | null,
-    listId: string | null,
+    list_id: string | null,
     index: number | null,
     pin: Pin | null,
     type: string,
@@ -76,7 +72,7 @@ export type ItemDocument = Item & {
 
 export type TodoItem = {
     id: string,
-    listId: string,
+    list_id: string,
     text: string,
     link: string | null,
     done: boolean,
@@ -84,8 +80,8 @@ export type TodoItem = {
 
 export type Pin = {
     id: string,
-    boardId: string,
-    itemId: string,
+    board_id: string,
+    item_id: string,
     label: string | null,
     compass: boolean
     connections: string[],
@@ -98,12 +94,12 @@ export type MediaImage = {
 
 export type Report = {
     id: string,
-    accountId: string,
-    entityId: string,
-    entityType: string,
-    reportType: string,
+    account_id: string,
+    entity_id: string,
+    entity_type: string,
+    report_type: string,
     status: string,
-    moderatorId: string | null,
+    moderator_id: string | null,
     created_at: Date,
     resolved_at: Date | null,
 }

@@ -3,30 +3,38 @@
  */
 "use client";
 
+import AccountAvatar from "@/components/AccountAvatar";
+import { useAuth } from "@/contexts";
+import call from "@/functions";
+import { logout } from "@/functions/auth";
 import { appbarGradient } from "@/theme";
-import { AppBar, Avatar, IconButton, Stack, Tooltip, Menu, MenuItem, Button } from "@mui/material";
+import { AppBar, IconButton, Stack, Tooltip, Menu, MenuItem, Button } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function HeaderBar() {
-    const [ authenticated, setAuthenticated ] = useState<boolean>(false);
-    const toggleAuthenticated = () => setAuthenticated(toggle => !toggle);
+    const { authenticated, account, handleLogout } = useAuth();
+    const router = useRouter();
 
     const [ accountMenuAnchor, setAccountMenuAnchor ] = useState<HTMLElement | null>(null);
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => setAccountMenuAnchor(event.currentTarget);
     const handleCloseMenu = () => setAccountMenuAnchor(null);
 
-    function handleLogout() {
-        toggleAuthenticated();
-        handleCloseMenu();
+    function doLogout() {
+        call(logout).then(() => {
+            handleLogout();
+            handleCloseMenu();
+            router.push('/');
+        });
     }
 
     return (
         <AppBar sx={{ padding: 2, backgroundImage: appbarGradient }}>
             <Stack direction='row' spacing={2} justifyContent='space-between' alignItems='center'>
                 <Link href='/'>
-                    <Image src='/header-filled.svg' alt="Bulletinator Logo" width={200} height={50} />
+                    <Image src='/header-outline.svg' alt="Bulletinator Logo" width={200} height={50} />
                 </Link>
 
                 <div className="grow" />
@@ -37,9 +45,8 @@ export default function HeaderBar() {
                 <>
                     <Tooltip title="Account Menu">
                         <IconButton onClick={handleOpenMenu} sx={{ p: 0}}>
-                            <Avatar>
-                                SH
-                            </Avatar>
+                            {/* If authenticated, account cannot be null. */}
+                            <AccountAvatar account={account!} sx={{ border: '1px solid #ffffff' }} />
                         </IconButton>
                     </Tooltip>
                     <Menu
@@ -53,7 +60,7 @@ export default function HeaderBar() {
                             <MenuItem onClick={handleCloseMenu}>My Account</MenuItem>
                         </Link>
 
-                        <MenuItem onClick={handleLogout}>Log Out</MenuItem>
+                        <MenuItem onClick={doLogout}>Log Out</MenuItem>
                     </Menu>
                 </>
 

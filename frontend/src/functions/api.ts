@@ -181,7 +181,6 @@ export async function getAuth<T = void>(path: string, headers: Headers, forwardC
         headers: {
             ...headers,
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         credentials: 'include',
     }), forwardCookies, shouldRedirect);
@@ -193,7 +192,6 @@ export async function postAuth<T = void>(path: string, headers: Headers, body: o
             ...headers,
             'Content-Type': 'application/json',
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         method: 'POST',
         body: JSON.stringify(body),
@@ -207,7 +205,6 @@ export async function putAuth<T = void>(path: string, headers: Headers, body: ob
             ...headers,
             'Content-Type': 'application/json',
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         method: 'PUT',
         body: JSON.stringify(body),
@@ -220,7 +217,6 @@ export async function delAuth<T = void>(path: string, headers: Headers, forwardC
         headers: {
             ...headers,
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         method: 'DELETE',
         credentials: 'include',
@@ -259,7 +255,6 @@ export async function postFormAuth<T = void>(path: string, headers: Headers, for
             ...headers,
             'Content-Type': 'application/x-www-form-urlencoded',
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         method: 'POST',
         body: new URLSearchParams(form),
@@ -273,7 +268,6 @@ export async function putFormAuth<T = void>(path: string, headers: Headers, form
             ...headers,
             'Content-Type': 'application/x-www-form-urlencoded',
             Cookie: `${ACCESS_KEY}=${token}`,
-            credentials: 'include',
         },
         method: 'PUT',
         body: new URLSearchParams(form),

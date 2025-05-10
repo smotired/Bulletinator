@@ -4,6 +4,7 @@ import theme from '@/theme';
 import "./globals.css";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { Roboto } from 'next/font/google';
+import ContextProviders from "@/contexts";
 
 const roboto = Roboto({
     weight: ['300', '400', '500', '700'],
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description: "Bulletinator description",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -28,7 +29,9 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {children}
+            <ContextProviders>
+              {children}
+            </ContextProviders>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

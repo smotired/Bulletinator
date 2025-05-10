@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from "@/contexts/auth";
 import call from "@/functions";
 import { login } from "@/functions/auth";
 import { Stack, TextField, Button, Alert } from "@mui/material";
@@ -10,6 +11,7 @@ type Login = { identifier: string, password: string }
 export default function LoginFormClient() {
     const router = useRouter();
     const nextPath = useSearchParams().get('next');
+    const { handleLogin } = useAuth();
 
     const [ hasAttempted, setHasAttempted ] = useState<boolean>(false);
     const [ disabled, setDisabled ] = useState<boolean>(true);
@@ -57,6 +59,7 @@ export default function LoginFormClient() {
             .catch((error: Error) => {
                 setForm(null);
                 setError(error.message);
+                handleLogin();
                 if (passwordRef.current)
                     passwordRef.current.value = '';
             })

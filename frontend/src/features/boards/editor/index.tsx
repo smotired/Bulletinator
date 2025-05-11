@@ -2,11 +2,14 @@
  * (Very limited) server component for the board editor page.
  * Fetches initial board object and item contents.
  */
+"use server";
 
+import CookieSetter from "@/components/CookieSetter";
 import { getBoard } from "@/functions/boards";
 import { getBoardItems } from "@/functions/items";
 import { ApiError } from "@/types";
 import { notFound, redirect, RedirectType } from "next/navigation";
+import EditorTopMenu from "./topmenu";
 
 export default async function BoardEditor({ slug }: { slug: string }) {
     // Convert slug into username and board identifier
@@ -20,14 +23,18 @@ export default async function BoardEditor({ slug }: { slug: string }) {
             redirect('/', RedirectType.push);
         }) || [ undefined, undefined ] // fallback that should never hit;
     
-    // fallback
-    if (!board)
-        return <p>board gone</p>
+    // fallback (again, should never hit)
+    if (!board) redirect('/', RedirectType.push);
 
     // Fetch the items (if board fetch was successful this should be too)
     const [ items, itemCookies ] = await getBoardItems(board.id)
 
     return (
-        <p>{username} / {boardId}: {board.name} - {items.metadata.count} items</p>
+        <>
+            <CookieSetter settings={boardCookies} />
+            <CookieSetter settings={itemCookies} />
+
+            <EditorTopMenu board={board} />
+        </>
     )
 }

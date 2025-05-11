@@ -122,6 +122,8 @@ export type CookieSettings = {
     }
 };
 
+export type CookiePromise<T = void> = Promise<[T, CookieSettings | null]>;
+
 /**
  * Objects
  */

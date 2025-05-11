@@ -1,5 +1,5 @@
 "use server";
-import { Account, AuthenticatedAccount, Collection, CookieSettings, nullAccount } from "@/types";
+import { Account, AuthenticatedAccount, Collection, CookiePromise, nullAccount } from "@/types";
 import { get, getAuth } from "./api";
 
 /**
@@ -7,7 +7,7 @@ import { get, getAuth } from "./api";
  * @param shouldRedirect If we should redirect upon authentication failure.
  * @returns The account object for the currently authenticated account.
  */
-export async function getOwnAccount(shouldRedirect: boolean = true): Promise<[AuthenticatedAccount, CookieSettings | null]> {
+export async function getOwnAccount(shouldRedirect: boolean = true): CookiePromise<AuthenticatedAccount> {
     return await getAuth<AuthenticatedAccount>('/accounts/me', {}, false, shouldRedirect);
 }
 

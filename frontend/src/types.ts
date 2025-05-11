@@ -31,6 +31,7 @@ export type Board = {
     public: boolean,
 }
 
+export type ItemType = 'note' | 'link' | 'media' | 'todo' | 'list' | 'document'
 export type Item = {
     id: string,
     board_id: string,
@@ -38,7 +39,7 @@ export type Item = {
     list_id: string | null,
     index: number | null,
     pin: Pin | null,
-    type: string,
+    type: ItemType,
 }
 
 export type ItemNote = Item & {

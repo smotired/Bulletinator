@@ -1,6 +1,7 @@
 /**
  * Server actions for board-related functionality
  */
+"use server";
 
 import { Board, Collection, CookiePromise } from "@/types";
 import { getAuth, postAuth } from "./api";

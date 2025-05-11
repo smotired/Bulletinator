@@ -56,6 +56,9 @@ export default function HeaderBar() {
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     >
+                        <Link href="/dashboard">
+                            <MenuItem onClick={handleCloseMenu}>Dashboard</MenuItem>
+                        </Link>
                         <Link href="/account">
                             <MenuItem onClick={handleCloseMenu}>My Account</MenuItem>
                         </Link>
